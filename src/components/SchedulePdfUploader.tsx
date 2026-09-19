@@ -68,10 +68,28 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     setErrorMsg(null);
     setExtractionResult(null);
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+
+    const fileName = file.name.toLowerCase();
+    const isPdfName = fileName.endsWith('.pdf');
+    const isPdfType = file.type === 'application/pdf' || file.type.includes('pdf');
+
+    let isRealPdf = isPdfName || isPdfType;
+    if (!isRealPdf) {
+      try {
+        const slice = await file.slice(0, 5).arrayBuffer();
+        const header = new TextDecoder('latin1').decode(slice);
+        if (header.startsWith('%PDF')) {
+          isRealPdf = true;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (!isRealPdf) {
       setErrorMsg('Please select a valid PDF document (.pdf) of your official timetable.');
       return;
     }

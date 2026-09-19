@@ -48,6 +48,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
 }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [chairMode, setChairMode] = useState<'all' | 'dual'>('dual');
+  const [selectedClinicFilter, setSelectedClinicFilter] = useState<ClinicPlace | 'ALL'>('ALL');
   
   // Modals state
   const [rubricModalData, setRubricModalData] = useState<{
@@ -75,15 +76,12 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
     plan: string;
   }>({ isOpen: false, dentalCase: null, date: '', plan: '' });
 
-  // Filter cases active for this clinic place or worked on today
-  const activeCasesForClinic = cases.filter(
-    (c) => c.clinicPlace === activeClinicPlace && c.status === 'In Progress'
-  );
-
-  // If there are other active cases in general, fallback to in-progress cases
-  const displayedCases = activeCasesForClinic.length > 0 
-    ? activeCasesForClinic 
-    : cases.filter((c) => c.status === 'In Progress');
+  // Filter cases: include all clinics by default!
+  const inProgressCases = cases.filter((c) => c.status === 'In Progress');
+  const basePool = inProgressCases.length > 0 ? inProgressCases : cases;
+  const displayedCases = selectedClinicFilter === 'ALL'
+    ? basePool
+    : basePool.filter((c) => c.clinicPlace === selectedClinicFilter);
 
   // Toggle step completion chairside
   const handleToggleStep = (c: DentalCase, procId: string, stepId: string) => {
@@ -223,7 +221,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                 Today&apos;s Clinic Session
               </h2>
               <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-xs font-bold">
-                Clinic {activeClinicPlace}
+                {selectedClinicFilter === 'ALL' ? 'All Clinics' : `Clinic ${selectedClinicFilter}`}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
@@ -244,18 +242,32 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
               />
             </div>
 
-            {/* Clinic Place Pills */}
+            {/* Clinic Place Pills (All clinics by default) */}
             <div className="flex items-center gap-1 neu-input p-1 rounded-xl">
+              <button
+                onClick={() => setSelectedClinicFilter('ALL')}
+                className={`px-2.5 h-7 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center ${
+                  selectedClinicFilter === 'ALL'
+                    ? 'bg-sky-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Show all clinics by default"
+              >
+                All
+              </button>
               {CLINICS.map((clinic) => (
                 <button
                   key={clinic}
-                  onClick={() => onChangeClinicPlace(clinic)}
+                  onClick={() => {
+                    setSelectedClinicFilter(clinic);
+                    onChangeClinicPlace(clinic);
+                  }}
                   className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center ${
-                    activeClinicPlace === clinic
+                    selectedClinicFilter === clinic
                       ? 'bg-sky-600 text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
-                  title={`Switch to Clinic ${clinic}`}
+                  title={`Filter by Clinic ${clinic}`}
                 >
                   {clinic}
                 </button>
@@ -566,15 +578,19 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 mx-auto flex items-center justify-center font-bold">
             <User className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-800">No active cases in Clinic {activeClinicPlace}</h3>
+          <h3 className="text-base font-bold text-slate-800">
+            {selectedClinicFilter === 'ALL'
+              ? 'No active cases in progress across clinics'
+              : `No active cases in Clinic ${selectedClinicFilter}`}
+          </h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Receive a patient, tap &ldquo;+ Add Case&rdquo; to input their name and file number, or select another clinic place above.
+            Receive a patient, tap &ldquo;+ Add Case&rdquo; to input their name and file number, or select another clinic filter above.
           </p>
           <button
             onClick={onOpenAddCaseModal}
             className="neu-btn-primary px-4 py-2 rounded-xl text-xs font-bold text-white cursor-pointer inline-flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> Add Case for Clinic {activeClinicPlace}
+            <Plus className="w-4 h-4" /> Add Patient Case
           </button>
         </div>
       )}

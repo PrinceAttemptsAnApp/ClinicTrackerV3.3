@@ -11,11 +11,13 @@ import {
   Eye
 } from 'lucide-react';
 import { DisciplineType } from '../types';
+import { safeLocalStorage } from '../lib/safeStorage';
 
 export interface ToothInfo {
   fdi: string;
   universal: string;
   palmer: string;
+  digitalPalmer: string;
   name: string;
   type: 'molar' | 'premolar' | 'canine' | 'incisor';
   subType?: 'central' | 'lateral' | 'canine' | 'pm1' | 'pm2' | 'm1' | 'm2' | 'm3';
@@ -28,75 +30,75 @@ export interface ToothInfo {
 // Permanent Teeth Data (32 teeth)
 export const PERMANENT_TEETH: ToothInfo[] = [
   // Quadrant 1: Upper Right (18 to 11) - Third molar to central incisor
-  { fdi: '18', universal: '1', palmer: '8', palmerSymbol: '8┘', name: 'Maxillary Right 3rd Molar', type: 'molar', subType: 'm3', quadrant: 1, quadrantName: 'UR (Q1)' },
-  { fdi: '17', universal: '2', palmer: '7', palmerSymbol: '7┘', name: 'Maxillary Right 2nd Molar', type: 'molar', subType: 'm2', quadrant: 1, quadrantName: 'UR (Q1)' },
-  { fdi: '16', universal: '3', palmer: '6', palmerSymbol: '6┘', name: 'Maxillary Right 1st Molar', type: 'molar', subType: 'm1', quadrant: 1, quadrantName: 'UR (Q1)' },
-  { fdi: '15', universal: '4', palmer: '5', palmerSymbol: '5┘', name: 'Maxillary Right 2nd Premolar', type: 'premolar', subType: 'pm2', quadrant: 1, quadrantName: 'UR (Q1)' },
-  { fdi: '14', universal: '5', palmer: '4', palmerSymbol: '4┘', name: 'Maxillary Right 1st Premolar', type: 'premolar', subType: 'pm1', quadrant: 1, quadrantName: 'UR (Q1)' },
-  { fdi: '13', universal: '6', palmer: '3', palmerSymbol: '3┘', name: 'Maxillary Right Canine', type: 'canine', subType: 'canine', quadrant: 1, quadrantName: 'UR (Q1)' },
-  { fdi: '12', universal: '7', palmer: '2', palmerSymbol: '2┘', name: 'Maxillary Right Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 1, quadrantName: 'UR (Q1)' },
-  { fdi: '11', universal: '8', palmer: '1', palmerSymbol: '1┘', name: 'Maxillary Right Central Incisor', type: 'incisor', subType: 'central', quadrant: 1, quadrantName: 'UR (Q1)' },
+  { fdi: '18', universal: '1', palmer: '8', digitalPalmer: 'UR8', palmerSymbol: '8┘', name: 'Maxillary Right 3rd Molar', type: 'molar', subType: 'm3', quadrant: 1, quadrantName: 'UR (Q1)' },
+  { fdi: '17', universal: '2', palmer: '7', digitalPalmer: 'UR7', palmerSymbol: '7┘', name: 'Maxillary Right 2nd Molar', type: 'molar', subType: 'm2', quadrant: 1, quadrantName: 'UR (Q1)' },
+  { fdi: '16', universal: '3', palmer: '6', digitalPalmer: 'UR6', palmerSymbol: '6┘', name: 'Maxillary Right 1st Molar', type: 'molar', subType: 'm1', quadrant: 1, quadrantName: 'UR (Q1)' },
+  { fdi: '15', universal: '4', palmer: '5', digitalPalmer: 'UR5', palmerSymbol: '5┘', name: 'Maxillary Right 2nd Premolar', type: 'premolar', subType: 'pm2', quadrant: 1, quadrantName: 'UR (Q1)' },
+  { fdi: '14', universal: '5', palmer: '4', digitalPalmer: 'UR4', palmerSymbol: '4┘', name: 'Maxillary Right 1st Premolar', type: 'premolar', subType: 'pm1', quadrant: 1, quadrantName: 'UR (Q1)' },
+  { fdi: '13', universal: '6', palmer: '3', digitalPalmer: 'UR3', palmerSymbol: '3┘', name: 'Maxillary Right Canine', type: 'canine', subType: 'canine', quadrant: 1, quadrantName: 'UR (Q1)' },
+  { fdi: '12', universal: '7', palmer: '2', digitalPalmer: 'UR2', palmerSymbol: '2┘', name: 'Maxillary Right Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 1, quadrantName: 'UR (Q1)' },
+  { fdi: '11', universal: '8', palmer: '1', digitalPalmer: 'UR1', palmerSymbol: '1┘', name: 'Maxillary Right Central Incisor', type: 'incisor', subType: 'central', quadrant: 1, quadrantName: 'UR (Q1)' },
 
   // Quadrant 2: Upper Left (21 to 28) - Central incisor to third molar
-  { fdi: '21', universal: '9', palmer: '1', palmerSymbol: '└1', name: 'Maxillary Left Central Incisor', type: 'incisor', subType: 'central', quadrant: 2, quadrantName: 'UL (Q2)' },
-  { fdi: '22', universal: '10', palmer: '2', palmerSymbol: '└2', name: 'Maxillary Left Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 2, quadrantName: 'UL (Q2)' },
-  { fdi: '23', universal: '11', palmer: '3', palmerSymbol: '└3', name: 'Maxillary Left Canine', type: 'canine', subType: 'canine', quadrant: 2, quadrantName: 'UL (Q2)' },
-  { fdi: '24', universal: '12', palmer: '4', palmerSymbol: '└4', name: 'Maxillary Left 1st Premolar', type: 'premolar', subType: 'pm1', quadrant: 2, quadrantName: 'UL (Q2)' },
-  { fdi: '25', universal: '13', palmer: '5', palmerSymbol: '└5', name: 'Maxillary Left 2nd Premolar', type: 'premolar', subType: 'pm2', quadrant: 2, quadrantName: 'UL (Q2)' },
-  { fdi: '26', universal: '14', palmer: '6', palmerSymbol: '└6', name: 'Maxillary Left 1st Molar', type: 'molar', subType: 'm1', quadrant: 2, quadrantName: 'UL (Q2)' },
-  { fdi: '27', universal: '15', palmer: '7', palmerSymbol: '└7', name: 'Maxillary Left 2nd Molar', type: 'molar', subType: 'm2', quadrant: 2, quadrantName: 'UL (Q2)' },
-  { fdi: '28', universal: '16', palmer: '8', palmerSymbol: '└8', name: 'Maxillary Left 3rd Molar', type: 'molar', subType: 'm3', quadrant: 2, quadrantName: 'UL (Q2)' },
+  { fdi: '21', universal: '9', palmer: '1', digitalPalmer: 'UL1', palmerSymbol: '└1', name: 'Maxillary Left Central Incisor', type: 'incisor', subType: 'central', quadrant: 2, quadrantName: 'UL (Q2)' },
+  { fdi: '22', universal: '10', palmer: '2', digitalPalmer: 'UL2', palmerSymbol: '└2', name: 'Maxillary Left Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 2, quadrantName: 'UL (Q2)' },
+  { fdi: '23', universal: '11', palmer: '3', digitalPalmer: 'UL3', palmerSymbol: '└3', name: 'Maxillary Left Canine', type: 'canine', subType: 'canine', quadrant: 2, quadrantName: 'UL (Q2)' },
+  { fdi: '24', universal: '12', palmer: '4', digitalPalmer: 'UL4', palmerSymbol: '└4', name: 'Maxillary Left 1st Premolar', type: 'premolar', subType: 'pm1', quadrant: 2, quadrantName: 'UL (Q2)' },
+  { fdi: '25', universal: '13', palmer: '5', digitalPalmer: 'UL5', palmerSymbol: '└5', name: 'Maxillary Left 2nd Premolar', type: 'premolar', subType: 'pm2', quadrant: 2, quadrantName: 'UL (Q2)' },
+  { fdi: '26', universal: '14', palmer: '6', digitalPalmer: 'UL6', palmerSymbol: '└6', name: 'Maxillary Left 1st Molar', type: 'molar', subType: 'm1', quadrant: 2, quadrantName: 'UL (Q2)' },
+  { fdi: '27', universal: '15', palmer: '7', digitalPalmer: 'UL7', palmerSymbol: '└7', name: 'Maxillary Left 2nd Molar', type: 'molar', subType: 'm2', quadrant: 2, quadrantName: 'UL (Q2)' },
+  { fdi: '28', universal: '16', palmer: '8', digitalPalmer: 'UL8', palmerSymbol: '└8', name: 'Maxillary Left 3rd Molar', type: 'molar', subType: 'm3', quadrant: 2, quadrantName: 'UL (Q2)' },
 
   // Quadrant 4: Lower Right (48 to 41) - Third molar to central incisor
-  { fdi: '48', universal: '32', palmer: '8', palmerSymbol: '8┐', name: 'Mandibular Right 3rd Molar', type: 'molar', subType: 'm3', quadrant: 4, quadrantName: 'LR (Q4)' },
-  { fdi: '47', universal: '31', palmer: '7', palmerSymbol: '7┐', name: 'Mandibular Right 2nd Molar', type: 'molar', subType: 'm2', quadrant: 4, quadrantName: 'LR (Q4)' },
-  { fdi: '46', universal: '30', palmer: '6', palmerSymbol: '6┐', name: 'Mandibular Right 1st Molar', type: 'molar', subType: 'm1', quadrant: 4, quadrantName: 'LR (Q4)' },
-  { fdi: '45', universal: '29', palmer: '5', palmerSymbol: '5┐', name: 'Mandibular Right 2nd Premolar', type: 'premolar', subType: 'pm2', quadrant: 4, quadrantName: 'LR (Q4)' },
-  { fdi: '44', universal: '28', palmer: '4', palmerSymbol: '4┐', name: 'Mandibular Right 1st Premolar', type: 'premolar', subType: 'pm1', quadrant: 4, quadrantName: 'LR (Q4)' },
-  { fdi: '43', universal: '27', palmer: '3', palmerSymbol: '3┐', name: 'Mandibular Right Canine', type: 'canine', subType: 'canine', quadrant: 4, quadrantName: 'LR (Q4)' },
-  { fdi: '42', universal: '26', palmer: '2', palmerSymbol: '2┐', name: 'Mandibular Right Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 4, quadrantName: 'LR (Q4)' },
-  { fdi: '41', universal: '25', palmer: '1', palmerSymbol: '1┐', name: 'Mandibular Right Central Incisor', type: 'incisor', subType: 'central', quadrant: 4, quadrantName: 'LR (Q4)' },
+  { fdi: '48', universal: '32', palmer: '8', digitalPalmer: 'LR8', palmerSymbol: '8┐', name: 'Mandibular Right 3rd Molar', type: 'molar', subType: 'm3', quadrant: 4, quadrantName: 'LR (Q4)' },
+  { fdi: '47', universal: '31', palmer: '7', digitalPalmer: 'LR7', palmerSymbol: '7┐', name: 'Mandibular Right 2nd Molar', type: 'molar', subType: 'm2', quadrant: 4, quadrantName: 'LR (Q4)' },
+  { fdi: '46', universal: '30', palmer: '6', digitalPalmer: 'LR6', palmerSymbol: '6┐', name: 'Mandibular Right 1st Molar', type: 'molar', subType: 'm1', quadrant: 4, quadrantName: 'LR (Q4)' },
+  { fdi: '45', universal: '29', palmer: '5', digitalPalmer: 'LR5', palmerSymbol: '5┐', name: 'Mandibular Right 2nd Premolar', type: 'premolar', subType: 'pm2', quadrant: 4, quadrantName: 'LR (Q4)' },
+  { fdi: '44', universal: '28', palmer: '4', digitalPalmer: 'LR4', palmerSymbol: '4┐', name: 'Mandibular Right 1st Premolar', type: 'premolar', subType: 'pm1', quadrant: 4, quadrantName: 'LR (Q4)' },
+  { fdi: '43', universal: '27', palmer: '3', digitalPalmer: 'LR3', palmerSymbol: '3┐', name: 'Mandibular Right Canine', type: 'canine', subType: 'canine', quadrant: 4, quadrantName: 'LR (Q4)' },
+  { fdi: '42', universal: '26', palmer: '2', digitalPalmer: 'LR2', palmerSymbol: '2┐', name: 'Mandibular Right Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 4, quadrantName: 'LR (Q4)' },
+  { fdi: '41', universal: '25', palmer: '1', digitalPalmer: 'LR1', palmerSymbol: '1┐', name: 'Mandibular Right Central Incisor', type: 'incisor', subType: 'central', quadrant: 4, quadrantName: 'LR (Q4)' },
 
   // Quadrant 3: Lower Left (31 to 38) - Central incisor to third molar
-  { fdi: '31', universal: '24', palmer: '1', palmerSymbol: '┌1', name: 'Mandibular Left Central Incisor', type: 'incisor', subType: 'central', quadrant: 3, quadrantName: 'LL (Q3)' },
-  { fdi: '32', universal: '23', palmer: '2', palmerSymbol: '┌2', name: 'Mandibular Left Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 3, quadrantName: 'LL (Q3)' },
-  { fdi: '33', universal: '22', palmer: '3', palmerSymbol: '┌3', name: 'Mandibular Left Canine', type: 'canine', subType: 'canine', quadrant: 3, quadrantName: 'LL (Q3)' },
-  { fdi: '34', universal: '21', palmer: '4', palmerSymbol: '┌4', name: 'Mandibular Left 1st Premolar', type: 'premolar', subType: 'pm1', quadrant: 3, quadrantName: 'LL (Q3)' },
-  { fdi: '35', universal: '20', palmer: '5', palmerSymbol: '┌5', name: 'Mandibular Left 2nd Premolar', type: 'premolar', subType: 'pm2', quadrant: 3, quadrantName: 'LL (Q3)' },
-  { fdi: '36', universal: '19', palmer: '6', palmerSymbol: '┌6', name: 'Mandibular Left 1st Molar', type: 'molar', subType: 'm1', quadrant: 3, quadrantName: 'LL (Q3)' },
-  { fdi: '37', universal: '18', palmer: '7', palmerSymbol: '┌7', name: 'Mandibular Left 2nd Molar', type: 'molar', subType: 'm2', quadrant: 3, quadrantName: 'LL (Q3)' },
-  { fdi: '38', universal: '17', palmer: '8', palmerSymbol: '┌8', name: 'Mandibular Left 3rd Molar', type: 'molar', subType: 'm3', quadrant: 3, quadrantName: 'LL (Q3)' },
+  { fdi: '31', universal: '24', palmer: '1', digitalPalmer: 'LL1', palmerSymbol: '┌1', name: 'Mandibular Left Central Incisor', type: 'incisor', subType: 'central', quadrant: 3, quadrantName: 'LL (Q3)' },
+  { fdi: '32', universal: '23', palmer: '2', digitalPalmer: 'LL2', palmerSymbol: '┌2', name: 'Mandibular Left Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 3, quadrantName: 'LL (Q3)' },
+  { fdi: '33', universal: '22', palmer: '3', digitalPalmer: 'LL3', palmerSymbol: '┌3', name: 'Mandibular Left Canine', type: 'canine', subType: 'canine', quadrant: 3, quadrantName: 'LL (Q3)' },
+  { fdi: '34', universal: '21', palmer: '4', digitalPalmer: 'LL4', palmerSymbol: '┌4', name: 'Mandibular Left 1st Premolar', type: 'premolar', subType: 'pm1', quadrant: 3, quadrantName: 'LL (Q3)' },
+  { fdi: '35', universal: '20', palmer: '5', digitalPalmer: 'LL5', palmerSymbol: '┌5', name: 'Mandibular Left 2nd Premolar', type: 'premolar', subType: 'pm2', quadrant: 3, quadrantName: 'LL (Q3)' },
+  { fdi: '36', universal: '19', palmer: '6', digitalPalmer: 'LL6', palmerSymbol: '┌6', name: 'Mandibular Left 1st Molar', type: 'molar', subType: 'm1', quadrant: 3, quadrantName: 'LL (Q3)' },
+  { fdi: '37', universal: '18', palmer: '7', digitalPalmer: 'LL7', palmerSymbol: '┌7', name: 'Mandibular Left 2nd Molar', type: 'molar', subType: 'm2', quadrant: 3, quadrantName: 'LL (Q3)' },
+  { fdi: '38', universal: '17', palmer: '8', digitalPalmer: 'LL8', palmerSymbol: '┌8', name: 'Mandibular Left 3rd Molar', type: 'molar', subType: 'm3', quadrant: 3, quadrantName: 'LL (Q3)' },
 ];
 
 // Primary / Pediatric Teeth (20 teeth)
 export const DECIDUOUS_TEETH: ToothInfo[] = [
   // Quad 5: Upper Right
-  { fdi: '55', universal: 'A', palmer: 'E', palmerSymbol: 'E┘', name: 'Primary Maxillary Right 2nd Molar', type: 'molar', subType: 'm2', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
-  { fdi: '54', universal: 'B', palmer: 'D', palmerSymbol: 'D┘', name: 'Primary Maxillary Right 1st Molar', type: 'molar', subType: 'm1', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
-  { fdi: '53', universal: 'C', palmer: 'C', palmerSymbol: 'C┘', name: 'Primary Maxillary Right Canine', type: 'canine', subType: 'canine', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
-  { fdi: '52', universal: 'D', palmer: 'B', palmerSymbol: 'B┘', name: 'Primary Maxillary Right Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
-  { fdi: '51', universal: 'E', palmer: 'A', palmerSymbol: 'A┘', name: 'Primary Maxillary Right Central Incisor', type: 'incisor', subType: 'central', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
+  { fdi: '55', universal: 'A', palmer: 'E', digitalPalmer: 'URE', palmerSymbol: 'E┘', name: 'Primary Maxillary Right 2nd Molar', type: 'molar', subType: 'm2', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
+  { fdi: '54', universal: 'B', palmer: 'D', digitalPalmer: 'URD', palmerSymbol: 'D┘', name: 'Primary Maxillary Right 1st Molar', type: 'molar', subType: 'm1', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
+  { fdi: '53', universal: 'C', palmer: 'C', digitalPalmer: 'URC', palmerSymbol: 'C┘', name: 'Primary Maxillary Right Canine', type: 'canine', subType: 'canine', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
+  { fdi: '52', universal: 'D', palmer: 'B', digitalPalmer: 'URB', palmerSymbol: 'B┘', name: 'Primary Maxillary Right Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
+  { fdi: '51', universal: 'E', palmer: 'A', digitalPalmer: 'URA', palmerSymbol: 'A┘', name: 'Primary Maxillary Right Central Incisor', type: 'incisor', subType: 'central', quadrant: 5, quadrantName: 'UR (Q5)', isPediatric: true },
 
   // Quad 6: Upper Left
-  { fdi: '61', universal: 'F', palmer: 'A', palmerSymbol: '└A', name: 'Primary Maxillary Left Central Incisor', type: 'incisor', subType: 'central', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
-  { fdi: '62', universal: 'G', palmer: 'B', palmerSymbol: '└B', name: 'Primary Maxillary Left Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
-  { fdi: '63', universal: 'H', palmer: 'C', palmerSymbol: '└C', name: 'Primary Maxillary Left Canine', type: 'canine', subType: 'canine', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
-  { fdi: '64', universal: 'I', palmer: 'D', palmerSymbol: '└D', name: 'Primary Maxillary Left 1st Molar', type: 'molar', subType: 'm1', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
-  { fdi: '65', universal: 'J', palmer: 'E', palmerSymbol: '└E', name: 'Primary Maxillary Left 2nd Molar', type: 'molar', subType: 'm2', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
+  { fdi: '61', universal: 'F', palmer: 'A', digitalPalmer: 'ULA', palmerSymbol: '└A', name: 'Primary Maxillary Left Central Incisor', type: 'incisor', subType: 'central', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
+  { fdi: '62', universal: 'G', palmer: 'B', digitalPalmer: 'ULB', palmerSymbol: '└B', name: 'Primary Maxillary Left Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
+  { fdi: '63', universal: 'H', palmer: 'C', digitalPalmer: 'ULC', palmerSymbol: '└C', name: 'Primary Maxillary Left Canine', type: 'canine', subType: 'canine', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
+  { fdi: '64', universal: 'I', palmer: 'D', digitalPalmer: 'ULD', palmerSymbol: '└D', name: 'Primary Maxillary Left 1st Molar', type: 'molar', subType: 'm1', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
+  { fdi: '65', universal: 'J', palmer: 'E', digitalPalmer: 'ULE', palmerSymbol: '└E', name: 'Primary Maxillary Left 2nd Molar', type: 'molar', subType: 'm2', quadrant: 6, quadrantName: 'UL (Q6)', isPediatric: true },
 
   // Quad 8: Lower Right
-  { fdi: '85', universal: 'T', palmer: 'E', palmerSymbol: 'E┐', name: 'Primary Mandibular Right 2nd Molar', type: 'molar', subType: 'm2', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
-  { fdi: '84', universal: 'S', palmer: 'D', palmerSymbol: 'D┐', name: 'Primary Mandibular Right 1st Molar', type: 'molar', subType: 'm1', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
-  { fdi: '83', universal: 'R', palmer: 'C', palmerSymbol: 'C┐', name: 'Primary Mandibular Right Canine', type: 'canine', subType: 'canine', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
-  { fdi: '82', universal: 'Q', palmer: 'B', palmerSymbol: 'B┐', name: 'Primary Mandibular Right Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
-  { fdi: '81', universal: 'P', palmer: 'A', palmerSymbol: 'A┐', name: 'Primary Mandibular Right Central Incisor', type: 'incisor', subType: 'central', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
+  { fdi: '85', universal: 'T', palmer: 'E', digitalPalmer: 'LRE', palmerSymbol: 'E┐', name: 'Primary Mandibular Right 2nd Molar', type: 'molar', subType: 'm2', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
+  { fdi: '84', universal: 'S', palmer: 'D', digitalPalmer: 'LRD', palmerSymbol: 'D┐', name: 'Primary Mandibular Right 1st Molar', type: 'molar', subType: 'm1', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
+  { fdi: '83', universal: 'R', palmer: 'C', digitalPalmer: 'LRC', palmerSymbol: 'C┐', name: 'Primary Mandibular Right Canine', type: 'canine', subType: 'canine', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
+  { fdi: '82', universal: 'Q', palmer: 'B', digitalPalmer: 'LRB', palmerSymbol: 'B┐', name: 'Primary Mandibular Right Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
+  { fdi: '81', universal: 'P', palmer: 'A', digitalPalmer: 'LRA', palmerSymbol: 'A┐', name: 'Primary Mandibular Right Central Incisor', type: 'incisor', subType: 'central', quadrant: 8, quadrantName: 'LR (Q8)', isPediatric: true },
 
   // Quad 7: Lower Left
-  { fdi: '71', universal: 'O', palmer: 'A', palmerSymbol: '┌A', name: 'Primary Mandibular Left Central Incisor', type: 'incisor', subType: 'central', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
-  { fdi: '72', universal: 'N', palmer: 'B', palmerSymbol: '┌B', name: 'Primary Mandibular Left Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
-  { fdi: '73', universal: 'M', palmer: 'C', palmerSymbol: '┌C', name: 'Primary Mandibular Left Canine', type: 'canine', subType: 'canine', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
-  { fdi: '74', universal: 'L', palmer: 'D', palmerSymbol: '┌D', name: 'Primary Mandibular Left 1st Molar', type: 'molar', subType: 'm1', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
-  { fdi: '75', universal: 'K', palmer: 'E', palmerSymbol: '┌E', name: 'Primary Mandibular Left 2nd Molar', type: 'molar', subType: 'm2', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
+  { fdi: '71', universal: 'O', palmer: 'A', digitalPalmer: 'LLA', palmerSymbol: '┌A', name: 'Primary Mandibular Left Central Incisor', type: 'incisor', subType: 'central', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
+  { fdi: '72', universal: 'N', palmer: 'B', digitalPalmer: 'LLB', palmerSymbol: '┌B', name: 'Primary Mandibular Left Lateral Incisor', type: 'incisor', subType: 'lateral', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
+  { fdi: '73', universal: 'M', palmer: 'C', digitalPalmer: 'LLC', palmerSymbol: '┌C', name: 'Primary Mandibular Left Canine', type: 'canine', subType: 'canine', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
+  { fdi: '74', universal: 'L', palmer: 'D', digitalPalmer: 'LLD', palmerSymbol: '┌D', name: 'Primary Mandibular Left 1st Molar', type: 'molar', subType: 'm1', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
+  { fdi: '75', universal: 'K', palmer: 'E', digitalPalmer: 'LLE', palmerSymbol: '┌E', name: 'Primary Mandibular Left 2nd Molar', type: 'molar', subType: 'm2', quadrant: 7, quadrantName: 'LL (Q7)', isPediatric: true },
 ];
 
 export type NumberingSystem = 'palmer' | 'fdi' | 'universal';
@@ -107,6 +109,7 @@ interface ToothDiagramSelectorProps {
   discipline?: DisciplineType;
   label?: string;
   allowSurfaces?: boolean;
+  notation?: 'palmer' | 'fdi';
 }
 
 const COMMON_SURFACES = ['O', 'MO', 'DO', 'MOD', 'B', 'L', 'P', 'Class I', 'Class II', 'Class III', 'Class IV', 'Class V'];
@@ -555,14 +558,31 @@ const ToothOcclusalSVG: React.FC<ToothGraphicProps> = ({ tooth, isUpper, isSelec
 
 /**
  * Strict parser to extract FDI tooth numbers from the formatted case string.
- * Avoids false positive collisions with Palmer numbers or Universal numbers.
+ * Supports Palmer symbols (1┘, └2, etc.), FDI numbers (11, 21), and Universal numbers.
  */
 function parseFdiFromValue(val: string, isPediatric: boolean): string[] {
   if (!val || typeof val !== 'string') return [];
   const trimmed = val.trim();
   if (!trimmed) return [];
 
-  // 1. Direct match from "(FDI 11, 21)" or "(FDI 14, #12)" format
+  const validTeeth = isPediatric ? DECIDUOUS_TEETH : PERMANENT_TEETH;
+
+  // 1. Direct match from Digital Palmer (e.g. "UL3", "LL5", "LR6", "UR1", "ULA")
+  const digitalPalmerMatches = validTeeth.filter((t) => {
+    const regex = new RegExp(`\\b${t.digitalPalmer}\\b`, 'i');
+    return regex.test(trimmed);
+  });
+  if (digitalPalmerMatches.length > 0) {
+    return digitalPalmerMatches.map((t) => t.fdi);
+  }
+
+  // 2. Direct match from legacy Palmer symbols (e.g. "Tooth 1┘", "Teeth 1┘, 2┘", "└A")
+  const palmerMatches = validTeeth.filter((t) => trimmed.includes(t.palmerSymbol));
+  if (palmerMatches.length > 0) {
+    return palmerMatches.map((t) => t.fdi);
+  }
+
+  // 3. Direct match from "(FDI 11, 21)" or "(FDI 14, #12)" format
   const fdiSection = trimmed.match(/FDI\s+([0-9,\s]+)/i);
   if (fdiSection) {
     const ids = fdiSection[1]
@@ -572,22 +592,20 @@ function parseFdiFromValue(val: string, isPediatric: boolean): string[] {
     if (ids.length > 0) return Array.from(new Set(ids));
   }
 
-  // 2. Direct 2-digit FDI numbers: e.g. "16" or "11, 21" or "46"
+  // 4. Direct 2-digit FDI numbers: e.g. "Tooth 16" or "11, 21" or "46"
   const twoDigitMatches = trimmed.match(/\b([1-8][1-8])\b/g);
   if (twoDigitMatches && twoDigitMatches.length > 0) {
-    const validTeeth = isPediatric ? DECIDUOUS_TEETH : PERMANENT_TEETH;
     const validIds = twoDigitMatches.filter((id) => validTeeth.some((t) => t.fdi === id));
     if (validIds.length > 0) return Array.from(new Set(validIds));
   }
 
-  // 3. Universal notation: e.g. "#14", "#8"
+  // 5. Universal notation: e.g. "#14", "#8"
   const uniMatches = trimmed.match(/#([0-9]{1,2}|[A-T])/gi);
   if (uniMatches) {
-    const teeth = isPediatric ? DECIDUOUS_TEETH : PERMANENT_TEETH;
     const matched: string[] = [];
     uniMatches.forEach((u) => {
       const cleanU = u.replace('#', '').toUpperCase();
-      const t = teeth.find((item) => item.universal.toUpperCase() === cleanU);
+      const t = validTeeth.find((item) => item.universal.toUpperCase() === cleanU);
       if (t) matched.push(t.fdi);
     });
     if (matched.length > 0) return Array.from(new Set(matched));
@@ -602,10 +620,19 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
   discipline,
   label = 'Tooth Selection (Quadrant Diagram)',
   allowSurfaces = true,
+  notation,
 }) => {
-  const [isPediatric, setIsPediatric] = useState<boolean>(() => {
-    return discipline === 'Pediatric Dentistry' || /primary|pediatric|deciduous/i.test(value);
-  });
+  // Pediatric teeth are ONLY shown when Pediatric Dentistry is selected.
+  // When Pediatric Dentistry is selected, adult teeth are hidden and only pediatric teeth are shown.
+  // For all other disciplines, pediatric teeth are hidden and adult teeth are shown.
+  const isPediatric = discipline ? discipline === 'Pediatric Dentistry' : /primary|pediatric|deciduous/i.test(value);
+
+  // Active tooth numbering notation preference: Palmer (default) or FDI 2-digit
+  const effectiveNotation: 'palmer' | 'fdi' =
+    notation ||
+    (safeLocalStorage.getItem('dentatrack_notation') as 'palmer' | 'fdi') ||
+    'palmer';
+
   const [selectedSurface, setSelectedSurface] = useState<string>('');
   const [hoveredTooth, setHoveredTooth] = useState<ToothInfo | null>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
@@ -615,7 +642,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
     return parseFdiFromValue(value, isPediatric);
   });
 
-  // Synchronize when value changes externally or clears
+  // Synchronize when value or discipline changes
   useEffect(() => {
     const parsed = parseFdiFromValue(value, isPediatric);
     setSelectedFdis(parsed);
@@ -645,7 +672,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
     return currentTeeth.filter((t) => t.quadrant === quadId);
   }, [currentTeeth, isPediatric]);
 
-  // Format the resulting string representation for the case with Palmer notation
+  // Format the resulting string representation according to the chosen notation
   const updateToothString = (fdiList: string[], surface: string = selectedSurface) => {
     if (fdiList.length === 0) {
       onChange(surface ? surface : '');
@@ -655,8 +682,9 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
     if (fdiList.length === 1) {
       const tooth = currentTeeth.find((t) => t.fdi === fdiList[0]);
       if (tooth) {
-        // Prominently label using Palmer notation (e.g. "Tooth 1┘ (FDI 11, #8)")
-        let labelStr = `Tooth ${tooth.palmerSymbol} (FDI ${tooth.fdi}, #${tooth.universal})`;
+        let labelStr = effectiveNotation === 'palmer'
+          ? `Tooth ${tooth.digitalPalmer}`
+          : `Tooth #${tooth.fdi}`;
         if (surface) {
           labelStr += ` [${surface}]`;
         }
@@ -667,12 +695,17 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
 
     // Multiple teeth selected
     const sorted = [...fdiList].sort();
-    const palmerSymbols = sorted.map((fdi) => {
-      const t = currentTeeth.find((item) => item.fdi === fdi);
-      return t ? t.palmerSymbol : fdi;
-    });
+    let labelStr = '';
+    if (effectiveNotation === 'palmer') {
+      const palmerSymbols = sorted.map((fdi) => {
+        const t = currentTeeth.find((item) => item.fdi === fdi);
+        return t ? t.digitalPalmer : fdi;
+      });
+      labelStr = `Teeth ${palmerSymbols.join(', ')}`;
+    } else {
+      labelStr = `Teeth #${sorted.join(', #')}`;
+    }
 
-    let labelStr = `Teeth ${palmerSymbols.join(', ')} (FDI ${sorted.join(', ')})`;
     if (surface) {
       labelStr += ` [${surface}]`;
     }
@@ -749,16 +782,11 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
     updateToothString(selectedFdis, nextSurface);
   };
 
-  // Renders a single tooth card displaying both Buccal & Occlusal views + Palmer notation below
-  // Uses responsive full-width scaling with pointer-events-none internal elements for solid hitboxes
+  // Renders a single tooth card displaying both Buccal & Occlusal views + single chosen notation below
   const renderToothCard = (tooth: ToothInfo, isUpper: boolean) => {
     const isSelected = selectedFdis.includes(tooth.fdi);
 
     // Authentic Palmer Bracket borders:
-    // Q1 (UR): line bottom and line right -> border-b-2 border-r-2
-    // Q2 (UL): line bottom and line left  -> border-b-2 border-l-2
-    // Q4 (LR): line top and line right    -> border-t-2 border-r-2
-    // Q3 (LL): line top and line left     -> border-t-2 border-l-2
     let palmerBracketClass = '';
     if (tooth.quadrant === 1 || tooth.quadrant === 5) {
       palmerBracketClass = 'border-b sm:border-b-2 border-r sm:border-r-2 pr-0.5 pb-0.5';
@@ -786,9 +814,9 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
             ? 'bg-sky-100 border-2 border-sky-500 shadow-sm ring-1 ring-sky-300 z-10'
             : 'bg-white hover:bg-sky-50/50 border border-slate-200 hover:border-sky-300'
         }`}
-        title={`${tooth.name} • Palmer ${tooth.palmerSymbol} • FDI ${tooth.fdi} • Universal #${tooth.universal}`}
+        title={`${tooth.name} • Digital Palmer: ${tooth.digitalPalmer} • FDI #${tooth.fdi} • Universal #${tooth.universal}`}
       >
-        {/* UPPER ARCH: Buccal on top, Occlusal below (closest to midline occlusal plane) */}
+        {/* UPPER ARCH: Buccal on top, Occlusal below */}
         {isUpper ? (
           <>
             {/* 1. Buccal Aspect */}
@@ -807,22 +835,27 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
               </span>
             </div>
 
-            {/* 3. Palmer Notation Labeled Below the Picture */}
-            <div className="w-full pt-0.5 sm:pt-1 border-t border-slate-100 flex flex-col items-center justify-center pointer-events-none">
-              <div 
-                className={`inline-block font-black text-[10px] xs:text-[11px] sm:text-[13px] leading-tight ${
-                  isSelected ? 'border-sky-600 text-sky-700' : 'border-slate-800 text-slate-800'
-                } ${palmerBracketClass}`}
-              >
-                {tooth.palmer}
-              </div>
-              <span className="text-[7px] sm:text-[8px] text-slate-400 font-medium leading-none mt-0.5">
-                {tooth.fdi}
-              </span>
+            {/* 3. Notation Labeled Below the Picture (Digital Palmer OR FDI) */}
+            <div className="w-full pt-0.5 sm:pt-1 border-t border-slate-100 flex items-center justify-center pointer-events-none min-h-[22px]">
+              {effectiveNotation === 'palmer' ? (
+                <span 
+                  className={`font-black text-[10px] sm:text-[12px] leading-tight tracking-tight ${
+                    isSelected ? 'text-sky-700 font-extrabold' : 'text-slate-800'
+                  }`}
+                >
+                  {tooth.digitalPalmer}
+                </span>
+              ) : (
+                <span className={`font-black text-[11px] sm:text-[12px] leading-none ${
+                  isSelected ? 'text-sky-700' : 'text-slate-800'
+                }`}>
+                  #{tooth.fdi}
+                </span>
+              )}
             </div>
           </>
         ) : (
-          /* LOWER ARCH: Occlusal on top (closest to midline occlusal plane), Buccal below */
+          /* LOWER ARCH: Occlusal on top, Buccal below */
           <>
             {/* 1. Occlusal Aspect */}
             <div className="w-full h-4 xs:h-5 sm:h-7 flex items-center justify-center my-0.5 pointer-events-none relative">
@@ -832,7 +865,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
               </span>
             </div>
 
-            {/* 2. Buccal Aspect (crown points up, root down) */}
+            {/* 2. Buccal Aspect */}
             <div className="w-full h-7 xs:h-8 sm:h-11 flex items-center justify-center pointer-events-none relative">
               <ToothBuccalSVG tooth={tooth} isUpper={false} isSelected={isSelected} />
               <span className="hidden md:block absolute bottom-0 right-0 text-[6px] text-slate-400 font-bold bg-slate-100/90 px-0.5 rounded pointer-events-none">
@@ -840,18 +873,23 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
               </span>
             </div>
 
-            {/* 3. Palmer Notation Labeled Below the Picture */}
-            <div className="w-full pt-0.5 sm:pt-1 border-t border-slate-100 flex flex-col items-center justify-center pointer-events-none">
-              <div 
-                className={`inline-block font-black text-[10px] xs:text-[11px] sm:text-[13px] leading-tight ${
-                  isSelected ? 'border-sky-600 text-sky-700' : 'border-slate-800 text-slate-800'
-                } ${palmerBracketClass}`}
-              >
-                {tooth.palmer}
-              </div>
-              <span className="text-[7px] sm:text-[8px] text-slate-400 font-medium leading-none mt-0.5">
-                {tooth.fdi}
-              </span>
+            {/* 3. Notation Labeled Below the Picture (Digital Palmer OR FDI) */}
+            <div className="w-full pt-0.5 sm:pt-1 border-t border-slate-100 flex items-center justify-center pointer-events-none min-h-[22px]">
+              {effectiveNotation === 'palmer' ? (
+                <span 
+                  className={`font-black text-[10px] sm:text-[12px] leading-tight tracking-tight ${
+                    isSelected ? 'text-sky-700 font-extrabold' : 'text-slate-800'
+                  }`}
+                >
+                  {tooth.digitalPalmer}
+                </span>
+              ) : (
+                <span className={`font-black text-[11px] sm:text-[12px] leading-none ${
+                  isSelected ? 'text-sky-700' : 'text-slate-800'
+                }`}>
+                  #{tooth.fdi}
+                </span>
+              )}
             </div>
           </>
         )}
@@ -883,34 +921,22 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
         </div>
 
         <div className="flex items-center gap-2 text-[11px]">
-          {/* Permanent vs Pediatric Dentition */}
-          <div className="inline-flex rounded-lg bg-slate-100 p-0.5 font-semibold text-slate-600">
-            <button
-              type="button"
-              onClick={() => {
-                setIsPediatric(false);
-                updateToothString([]);
-              }}
-              className={`px-2 py-1 rounded-md transition cursor-pointer text-[10px] sm:text-[11px] ${
-                !isPediatric ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'hover:text-slate-900'
-              }`}
-            >
-              Adult (32)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsPediatric(true);
-                updateToothString([]);
-              }}
-              className={`px-2 py-1 rounded-md transition cursor-pointer flex items-center gap-1 text-[10px] sm:text-[11px] ${
-                isPediatric ? 'bg-sky-600 text-white shadow-2xs font-bold' : 'hover:text-slate-900'
-              }`}
-            >
-              <Baby className="w-3 h-3" />
-              <span>Pediatric (20)</span>
-            </button>
-          </div>
+          {/* Dentition Indicator (Context-Aware: Pediatric vs Adult) */}
+          {isPediatric ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 font-bold text-[10px] sm:text-[11px] border border-amber-200 shadow-2xs">
+              <Baby className="w-3.5 h-3.5 text-amber-600" />
+              <span>Pediatric Dentition (20)</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-[10px] sm:text-[11px] border border-slate-200">
+              <span>Adult Dentition (32)</span>
+            </span>
+          )}
+
+          {/* Notation Indicator Badge */}
+          <span className="px-2 py-1 rounded-lg bg-sky-50 text-sky-700 font-bold text-[10px] sm:text-[11px] border border-sky-200">
+            {effectiveNotation === 'palmer' ? 'Digital Palmer' : 'FDI Notation'}
+          </span>
 
           {/* Expand / Collapse Button */}
           <button
@@ -976,7 +1002,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                 <span className="font-bold text-slate-700">O</span> = Occlusal
               </span>
               <span className="text-sky-700 font-bold hidden xs:inline">
-                Palmer Notation (┘ └ ┐ ┌) Below
+                {effectiveNotation === 'palmer' ? 'Digital Palmer (UR / UL / LL / LR)' : 'FDI 2-Digit System'}
               </span>
             </div>
             <span>Patient&apos;s Left (UL / LL) →</span>
@@ -993,7 +1019,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
               
               {/* UPPER ARCH (MAXILLARY) */}
               <div className="grid grid-cols-2 border-b-2 border-sky-400 pb-1 sm:pb-2">
-                {/* Quadrant 1 / 5: Upper Right (18 to 11) */}
+                {/* Quadrant 1 / 5: Upper Right */}
                 <div className="border-r-2 border-sky-400 pr-1 sm:pr-2 flex flex-col justify-between">
                   <div className="w-full flex items-center justify-between pb-0.5 px-0.5">
                     <button
@@ -1001,8 +1027,8 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                       onClick={() => handleSelectQuadrant(qUpperRight)}
                       className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 hover:text-sky-600 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
                     >
-                      <span>{isPediatric ? 'Q5: UR' : 'Q1: UR'}</span>
-                      <span className="text-sky-500 font-normal">┘</span>
+                      <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q5: UR' : 'Q5 (51-55)') : (effectiveNotation === 'palmer' ? 'Q1: UR' : 'Q1 (11-18)')}</span>
+                      {effectiveNotation === 'palmer' && <span className="text-sky-500 font-normal">┘</span>}
                     </button>
                     <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">Midline →</span>
                   </div>
@@ -1012,7 +1038,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                   </div>
                 </div>
 
-                {/* Quadrant 2 / 6: Upper Left (21 to 28) */}
+                {/* Quadrant 2 / 6: Upper Left */}
                 <div className="pl-1 sm:pl-2 flex flex-col justify-between">
                   <div className="w-full flex items-center justify-between pb-0.5 px-0.5">
                     <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">← Midline</span>
@@ -1021,8 +1047,8 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                       onClick={() => handleSelectQuadrant(qUpperLeft)}
                       className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 hover:text-sky-600 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
                     >
-                      <span className="text-sky-500 font-normal">└</span>
-                      <span>{isPediatric ? 'Q6: UL' : 'Q2: UL'}</span>
+                      {effectiveNotation === 'palmer' && <span className="text-sky-500 font-normal">└</span>}
+                      <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q6: UL' : 'Q6 (61-65)') : (effectiveNotation === 'palmer' ? 'Q2: UL' : 'Q2 (21-28)')}</span>
                     </button>
                   </div>
                   {/* Teeth columns */}
@@ -1041,7 +1067,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
 
               {/* LOWER ARCH (MANDIBULAR) */}
               <div className="grid grid-cols-2 border-t-2 border-sky-400 pt-1 sm:pt-2">
-                {/* Quadrant 4 / 8: Lower Right (48 to 41) */}
+                {/* Quadrant 4 / 8: Lower Right */}
                 <div className="border-r-2 border-sky-400 pr-1 sm:pr-2 flex flex-col justify-between">
                   {/* Teeth columns */}
                   <div className={`grid ${isPediatric ? 'grid-cols-5' : 'grid-cols-8'} gap-0.5 sm:gap-1 w-full`}>
@@ -1053,14 +1079,14 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                       onClick={() => handleSelectQuadrant(qLowerRight)}
                       className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 hover:text-sky-600 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
                     >
-                      <span>{isPediatric ? 'Q8: LR' : 'Q4: LR'}</span>
-                      <span className="text-sky-500 font-normal">┐</span>
+                      <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q8: LR' : 'Q8 (81-85)') : (effectiveNotation === 'palmer' ? 'Q4: LR' : 'Q4 (41-48)')}</span>
+                      {effectiveNotation === 'palmer' && <span className="text-sky-500 font-normal">┐</span>}
                     </button>
                     <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">Midline →</span>
                   </div>
                 </div>
 
-                {/* Quadrant 3 / 7: Lower Left (31 to 38) */}
+                {/* Quadrant 3 / 7: Lower Left */}
                 <div className="pl-1 sm:pl-2 flex flex-col justify-between">
                   {/* Teeth columns */}
                   <div className={`grid ${isPediatric ? 'grid-cols-5' : 'grid-cols-8'} gap-0.5 sm:gap-1 w-full`}>
@@ -1073,8 +1099,8 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                       onClick={() => handleSelectQuadrant(qLowerLeft)}
                       className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 hover:text-sky-600 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
                     >
-                      <span className="text-sky-500 font-normal">┌</span>
-                      <span>{isPediatric ? 'Q7: LL' : 'Q3: LL'}</span>
+                      {effectiveNotation === 'palmer' && <span className="text-sky-500 font-normal">┌</span>}
+                      <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q7: LL' : 'Q7 (71-75)') : (effectiveNotation === 'palmer' ? 'Q3: LL' : 'Q3 (31-38)')}</span>
                     </button>
                   </div>
                 </div>
@@ -1088,7 +1114,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
               <span className="font-semibold text-sky-800 flex items-center gap-1.5 animate-in fade-in duration-100">
                 <Sparkles className="w-3.5 h-3.5 text-sky-500" />
                 <span>
-                  <strong>{hoveredTooth.name}</strong> • Palmer: <strong>{hoveredTooth.palmerSymbol}</strong> • FDI {hoveredTooth.fdi} • Universal #{hoveredTooth.universal}
+                  <strong>{hoveredTooth.name}</strong> • {effectiveNotation === 'palmer' ? `Palmer: ${hoveredTooth.palmerSymbol}` : `FDI: ${hoveredTooth.fdi}`}
                 </span>
               </span>
             ) : selectedFdis.length > 0 ? (

@@ -139,6 +139,7 @@ export interface StudentProfile {
   currentSemester: Semester;
   pointsTarget: number;
   university?: string;
+  toothNotation?: 'palmer' | 'fdi';
   schedulePdfUploaded?: boolean;
   schedulePdfMeta?: {
     fileName: string;

@@ -33,6 +33,7 @@ import {
 import { HeaderBar } from './components/HeaderBar';
 import { PrivacyBanner } from './components/PrivacyBanner';
 import { TutorialModal } from './components/TutorialModal';
+import { FirstTimeNameModal } from './components/FirstTimeNameModal';
 import { AddCaseModal } from './components/AddCaseModal';
 import { DashboardView } from './components/DashboardView';
 import { TodayClinicView } from './components/TodayClinicView';
@@ -53,10 +54,11 @@ export default function App() {
   // App Data State
   const [cases, setCases] = useState<DentalCase[]>([]);
   const [profile, setProfile] = useState<StudentProfile>({
-    studentName: 'Dr. Amir',
+    studentName: '',
     academicYear: '2026–2027',
     currentSemester: 'Semester 1',
     pointsTarget: 200,
+    toothNotation: 'palmer',
   });
   const [schedule, setSchedule] = useState<ClinicSession[]>([]);
   const [templates, setTemplates] = useState<ProcedureTemplate[]>(DEFAULT_TEMPLATES);
@@ -66,6 +68,7 @@ export default function App() {
   // Modals
   const [isAddCaseModalOpen, setIsAddCaseModalOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Load all initial data from IndexedDB
@@ -81,6 +84,13 @@ export default function App() {
       if (dbProfile) {
         setProfile(dbProfile);
         setActiveSemester(dbProfile.currentSemester || 'Semester 1');
+
+        // Check if student name needs to be prompted
+        if (!dbProfile.studentName || dbProfile.studentName.trim() === '' || dbProfile.studentName === 'Dr. Amir') {
+          setIsNameModalOpen(true);
+        }
+      } else {
+        setIsNameModalOpen(true);
       }
       if (dbSchedule.length > 0) setSchedule(dbSchedule);
       if (dbTemplates.length > 0) setTemplates(dbTemplates);
@@ -100,6 +110,16 @@ export default function App() {
       localStorage.setItem('dentatrack_tutorial_shown', 'true');
     }
   }, [refreshData]);
+
+  const handleSaveFirstTimeName = async (name: string) => {
+    const updated: StudentProfile = {
+      ...profile,
+      studentName: name,
+    };
+    setProfile(updated);
+    await saveStudentProfile(updated);
+    setIsNameModalOpen(false);
+  };
 
   // Handle Case Update
   const handleUpdateCase = async (updatedCase: DentalCase) => {
@@ -266,6 +286,7 @@ export default function App() {
                     setActiveTab('case-detail');
                   }}
                   onOpenAddCaseModal={() => setIsAddCaseModalOpen(true)}
+                  onDeleteCase={handleDeleteCase}
                 />
               )}
 
@@ -358,7 +379,17 @@ export default function App() {
       <TutorialModal
         isOpen={isTutorialOpen}
         onClose={() => setIsTutorialOpen(false)}
+        profile={profile}
+        onUpdateProfile={handleUpdateProfile}
       />
+
+      {/* First-Time Doctor Name Prompt */}
+      {isNameModalOpen && !isTutorialOpen && (
+        <FirstTimeNameModal
+          isOpen={isNameModalOpen}
+          onSaveName={handleSaveFirstTimeName}
+        />
+      )}
     </div>
   );
 }

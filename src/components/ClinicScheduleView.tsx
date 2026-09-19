@@ -19,6 +19,7 @@ interface ClinicScheduleViewProps {
   onNavigateToClinic: (place: ClinicPlace) => void;
   profile?: StudentProfile;
   onUpdateProfile?: (profile: StudentProfile) => void;
+  onNavigateToSettings?: () => void;
 }
 
 const CLINICS: ClinicPlace[] = ['A', 'C', 'B', 'M', 'N', 'G'];
@@ -30,6 +31,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
   onNavigateToClinic,
   profile,
   onUpdateProfile,
+  onNavigateToSettings,
 }) => {
   const [isAddingSession, setIsAddingSession] = useState(false);
   const [day, setDay] = useState<(typeof DAYS)[number]>('Sunday');
@@ -123,22 +125,36 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
           </button>
         </div>
 
-        {/* Schedule PDF Extractor & Update Schedule Section */}
-        <div className="mt-4 pt-3 border-t border-slate-200/70">
-          <SchedulePdfUploader
-            isAlreadyUploaded={Boolean(profile?.schedulePdfUploaded || profile?.schedulePdfMeta || (schedule && schedule.length > 0))}
-            metadata={profile?.schedulePdfMeta || (schedule && schedule.length > 0 ? {
-              fileName: 'Doctor Clinical Timetable',
-              uploadedAt: new Date().toISOString(),
-              sessionCount: schedule.length,
-              studentName: profile?.studentName,
-              studentId: profile?.studentId,
-              university: profile?.university,
-            } : undefined)}
-            onScheduleExtracted={handleScheduleExtracted}
-            variant="schedule"
-          />
-        </div>
+        {/* Schedule PDF Extractor or Active Schedule Link to Settings */}
+        {(!schedule || schedule.length === 0) ? (
+          <div className="mt-4 pt-3 border-t border-slate-200/70">
+            <SchedulePdfUploader
+              isAlreadyUploaded={false}
+              metadata={profile?.schedulePdfMeta}
+              onScheduleExtracted={handleScheduleExtracted}
+              variant="schedule"
+            />
+          </div>
+        ) : (
+          <div className="mt-4 pt-3 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+              <span className="font-semibold text-slate-700">
+                {schedule.length} clinical sessions active • {profile?.schedulePdfMeta?.fileName || 'Timetable Loaded'}
+              </span>
+            </div>
+            {onNavigateToSettings && (
+              <button
+                type="button"
+                onClick={onNavigateToSettings}
+                className="neu-btn px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 hover:text-sky-900 border border-sky-300/70 flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto"
+                title="Update your schedule in Settings"
+              >
+                <span>Update Schedule in Settings &rarr;</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Add Session Form */}

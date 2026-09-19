@@ -1,5 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { DentalCase, ProcedureTemplate, ClinicScheduleItem, StudentProfile, DisciplineType } from '../types';
+import { safeLocalStorage } from './safeStorage';
 
 interface DentaTrackDB extends DBSchema {
   cases: {
@@ -785,12 +786,13 @@ const INITIAL_SCHEDULES: ClinicScheduleItem[] = [
   },
 ];
 
-const INITIAL_PROFILE: StudentProfile = {
-  studentName: 'Dr. Amir',
+export const INITIAL_PROFILE: StudentProfile = {
+  studentName: '',
   studentId: '2101233',
   academicYear: '2026–2027',
   currentSemester: 'Semester 1',
   pointsTarget: 200,
+  toothNotation: 'palmer',
 };
 
 // Seed initial database if empty or sync updated macro templates
@@ -892,9 +894,19 @@ export async function deleteSchedule(id: string): Promise<void> {
 // Student Profile CRUD
 export async function getProfile(): Promise<StudentProfile> {
   const db = await getDB();
-  const profileKey = INITIAL_PROFILE.studentId || '2101233';
-  const profile = await db.get('profile', profileKey);
-  return profile || INITIAL_PROFILE;
+  const allProfiles = await db.getAll('profile');
+  if (allProfiles && allProfiles.length > 0) {
+    const profile = allProfiles[0];
+    if (profile.studentName === 'Dr. Amir') {
+      profile.studentName = '';
+      await db.put('profile', profile);
+    }
+    if (!profile.toothNotation) {
+      profile.toothNotation = 'palmer';
+    }
+    return profile;
+  }
+  return INITIAL_PROFILE;
 }
 
 export async function saveProfile(profile: StudentProfile): Promise<void> {
@@ -1019,6 +1031,33 @@ export async function resetDemoData(): Promise<void> {
   await tx.objectStore('profile').put(INITIAL_PROFILE);
   await tx.objectStore('blobs').clear();
   await tx.done;
+}
+
+// Complete wipe: Delete all clinical cases, templates, schedules, profile, and files
+export async function clearAllData(): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction(['cases', 'templates', 'schedules', 'profile', 'blobs'], 'readwrite');
+  await tx.objectStore('cases').clear();
+  await tx.objectStore('templates').clear();
+  for (const t of DEFAULT_TEMPLATES) {
+    await tx.objectStore('templates').put(t);
+  }
+  await tx.objectStore('schedules').clear();
+  await tx.objectStore('profile').clear();
+  const blankProfile: StudentProfile = {
+    studentName: '',
+    studentId: '2101233',
+    academicYear: '2026–2027',
+    currentSemester: 'Semester 1',
+    pointsTarget: 200,
+    toothNotation: 'palmer',
+  };
+  await tx.objectStore('profile').put(blankProfile);
+  await tx.objectStore('blobs').clear();
+  await tx.done;
+
+  // Clear all local storage keys
+  safeLocalStorage.clear();
 }
 
 // Aliases and convenience methods

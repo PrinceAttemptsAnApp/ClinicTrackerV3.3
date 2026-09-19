@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, X, PlusCircle, AlertCircle, Sparkles, Phone } from 'lucide-react';
+import { UserPlus, X, PlusCircle, AlertCircle, Sparkles, Phone, Layers } from 'lucide-react';
 import { ClinicPlace, DentalCase, DisciplineType, ProcedureTemplate, Semester, ClinicalProcedure } from '../types';
 import { DEFAULT_TEMPLATES, computeIsComprehensive } from '../lib/storage';
 import { ToothDiagramSelector } from './ToothDiagramSelector';
@@ -235,6 +235,15 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                     setSelectedDiscipline(disc);
                     const firstMatch = templates.find((t) => t.discipline === disc);
                     if (firstMatch) setSelectedTemplateId(firstMatch.id);
+
+                    // If Removable is selected, automatically assign to entire jaw (maxillary or mandibular)
+                    if (disc === 'Removable') {
+                      if (!toothNumber || (!toothNumber.includes('Arch') && !toothNumber.includes('Jaw'))) {
+                        setToothNumber('Maxillary Arch (Upper Jaw)');
+                      }
+                    } else if (toothNumber.includes('Arch') || toothNumber.includes('Jaw')) {
+                      setToothNumber('');
+                    }
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                     selectedDiscipline === disc
@@ -294,13 +303,72 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
             </div>
           </div>
 
-          {/* Tooth Selection Diagram (Separated into Quadrants) */}
-          <ToothDiagramSelector
-            value={toothNumber}
-            onChange={setToothNumber}
-            discipline={selectedDiscipline}
-            label="Tooth Selection (Quadrant Diagram)"
-          />
+          {/* Removable Jaw Assignment vs. Standard Tooth Selection Diagram */}
+          {selectedDiscipline === 'Removable' ? (
+            <div className="rounded-2xl bg-white/95 border border-sky-200/90 shadow-xs p-3 sm:p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-sky-600" />
+                  <span>Jaw / Arch Assignment (Removable Prosthodontics)</span>
+                </span>
+                {toothNumber && (
+                  <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] sm:text-[11px] font-bold">
+                    {toothNumber}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 leading-tight">
+                Removable prosthodontic cases are automatically assigned to entire jaws (Maxillary or Mandibular). Select the target jaw:
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setToothNumber('Maxillary Arch (Upper Jaw)')}
+                  className={`p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer ${
+                    toothNumber === 'Maxillary Arch (Upper Jaw)'
+                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm font-bold'
+                      : 'bg-slate-50 hover:bg-sky-50 border-slate-200 text-slate-700 font-semibold'
+                  }`}
+                >
+                  <span className="block text-xs font-bold">Maxillary Arch</span>
+                  <span className="block text-[10px] opacity-80 mt-0.5">Upper Jaw</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setToothNumber('Mandibular Arch (Lower Jaw)')}
+                  className={`p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer ${
+                    toothNumber === 'Mandibular Arch (Lower Jaw)'
+                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm font-bold'
+                      : 'bg-slate-50 hover:bg-sky-50 border-slate-200 text-slate-700 font-semibold'
+                  }`}
+                >
+                  <span className="block text-xs font-bold">Mandibular Arch</span>
+                  <span className="block text-[10px] opacity-80 mt-0.5">Lower Jaw</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setToothNumber('Both Jaws (Maxillary & Mandibular)')}
+                  className={`p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer ${
+                    toothNumber === 'Both Jaws (Maxillary & Mandibular)'
+                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm font-bold'
+                      : 'bg-slate-50 hover:bg-sky-50 border-slate-200 text-slate-700 font-semibold'
+                  }`}
+                >
+                  <span className="block text-xs font-bold">Both Jaws</span>
+                  <span className="block text-[10px] opacity-80 mt-0.5">Complete Denture</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <ToothDiagramSelector
+              value={toothNumber}
+              onChange={setToothNumber}
+              discipline={selectedDiscipline}
+              label="Tooth Selection (Quadrant Diagram)"
+            />
+          )}
 
           {/* Academic Info Banner */}
           <div className="p-3 rounded-xl bg-purple-50/70 border border-purple-200/80 flex items-center gap-2 text-purple-900">

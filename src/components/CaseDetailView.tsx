@@ -13,6 +13,7 @@ import {
   FileCheck2, 
   Send, 
   Trash2,
+  AlertTriangle,
   Eye,
   X,
   Phone,
@@ -69,6 +70,17 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   // Case Notes Editor
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesInput, setNotesInput] = useState(dentalCase.notes || '');
+
+  // Delete Case & Procedure In-App Modals
+  const [isDeleteCaseModalOpen, setIsDeleteCaseModalOpen] = useState(false);
+  const [procedurePendingDelete, setProcedurePendingDelete] = useState<{
+    id: string;
+    title: string;
+    discipline: string;
+    toothNumber?: string;
+  } | null>(null);
+  const [customStepProcId, setCustomStepProcId] = useState<string | null>(null);
+  const [customStepTitle, setCustomStepTitle] = useState('');
 
   useEffect(() => {
     setPhoneInput(dentalCase.patientPhone || '');
@@ -160,19 +172,23 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   };
 
   // Add Step to Procedure
-  const handleAddCustomStep = (procId: string) => {
-    const title = window.prompt('Enter new macro milestone step title (e.g. Try-in, Occlusion Check):');
-    if (!title?.trim()) return;
+  const handleOpenAddCustomStep = (procId: string) => {
+    setCustomStepProcId(procId);
+    setCustomStepTitle('');
+  };
+
+  const handleConfirmCustomStep = () => {
+    if (!customStepProcId || !customStepTitle.trim()) return;
 
     const updatedProcedures = dentalCase.procedures.map((p) => {
-      if (p.id !== procId) return p;
+      if (p.id !== customStepProcId) return p;
       return {
         ...p,
         steps: [
           ...p.steps,
           {
             id: `step-${Date.now()}`,
-            title: title.trim(),
+            title: customStepTitle.trim(),
             isCompleted: false,
           },
         ],
@@ -183,12 +199,13 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
       ...dentalCase,
       procedures: updatedProcedures,
     });
+    setCustomStepProcId(null);
+    setCustomStepTitle('');
   };
 
   // Remove Procedure
-  const handleRemoveProcedure = (procId: string, procTitle: string) => {
-    if (!window.confirm(`Are you sure you want to remove procedure "${procTitle}" from this case?`)) return;
-    const updated = dentalCase.procedures.filter(p => p.id !== procId);
+  const handleRemoveProcedure = (procId: string) => {
+    const updated = dentalCase.procedures.filter((p) => p.id !== procId);
     const disciplines = Array.from(new Set(updated.map((p) => p.discipline)));
     onUpdateCase({
       ...dentalCase,
@@ -196,6 +213,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
       disciplines,
       isComprehensive: computeIsComprehensive(updated),
     });
+    setProcedurePendingDelete(null);
   };
 
   // Save Rubric
@@ -463,10 +481,11 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           </div>
 
           {/* Action Buttons: Export Moodle PDF & ZIP */}
-          <div className="flex items-center gap-2 self-end sm:self-center">
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
             <button
+              type="button"
               onClick={() => generateCaseMoodlePDF(dentalCase)}
-              className="neu-btn-primary px-3.5 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="neu-btn-primary px-3 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
               title="Export all signed rubrics as PDF for Moodle"
             >
               <FileDown className="w-4 h-4" />
@@ -474,25 +493,23 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
             </button>
 
             <button
+              type="button"
               onClick={() => exportCaseAsZip(dentalCase)}
               className="neu-btn px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-sky-700 flex items-center gap-1.5 cursor-pointer"
               title="Download entire case documents as ZIP"
             >
               <Archive className="w-4 h-4 text-slate-600" />
-              <span className="hidden sm:inline">ZIP</span>
+              <span>ZIP</span>
             </button>
 
             <button
-              onClick={() => {
-                if (window.confirm(`Delete case for ${dentalCase.patientName} (#${dentalCase.fileNumber})?`)) {
-                  onDeleteCase(dentalCase.id);
-                  onBack();
-                }
-              }}
-              className="neu-btn p-2 rounded-xl text-rose-600 hover:bg-rose-50 cursor-pointer"
-              title="Delete Case"
+              type="button"
+              onClick={() => setIsDeleteCaseModalOpen(true)}
+              className="neu-btn px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/90 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              title="Delete Entire Case"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              <span>Delete Case</span>
             </button>
           </div>
         </div>
@@ -649,7 +666,16 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                           </button>
 
                           <button
-                            onClick={() => handleRemoveProcedure(proc.id, proc.title)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProcedurePendingDelete({
+                                id: proc.id,
+                                title: proc.title,
+                                discipline: proc.discipline,
+                                toothNumber: proc.toothNumber,
+                              });
+                            }}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                             title="Remove procedure"
                           >
@@ -759,7 +785,8 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                             </span>
                           </p>
                           <button
-                            onClick={() => handleAddCustomStep(proc.id)}
+                            type="button"
+                            onClick={() => handleOpenAddCustomStep(proc.id)}
                             className="text-[11px] font-semibold text-sky-600 hover:underline cursor-pointer"
                           >
                             + Add Milestone

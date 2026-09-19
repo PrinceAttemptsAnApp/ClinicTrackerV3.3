@@ -114,33 +114,48 @@ export function resolveToothInfo(toothNotation?: string): {
   }
 
   const raw = toothNotation.trim();
+  // Check if it matches Digital Palmer (e.g. "UL3", "LL5", "LR6", "UR1", "Tooth UL3")
+  const dpMatch = raw.match(/\b(U[LR][1-8A-E]|L[LR][1-8A-E])\b/i);
+  const dpProbe = dpMatch ? dpMatch[1].toUpperCase() : null;
+
   // Extract digits or tooth identification (e.g. "#14" -> "14", "tooth 15" -> "15")
   const digitsMatch = raw.match(/\b([1-8][1-8]|[A-T]|[1-3]?[0-9])\b/i);
-  const probe = digitsMatch ? digitsMatch[1].toUpperCase() : raw.replace(/[#\s]/g, '');
+  const probe = dpProbe || (digitsMatch ? digitsMatch[1].toUpperCase() : raw.replace(/[#\s]/g, ''));
 
   const permanentMatch = PERMANENT_TEETH.find(
-    (t) => t.fdi === probe || t.universal === probe || `#${t.fdi}` === raw || t.palmer === probe
+    (t) =>
+      (dpProbe && t.digitalPalmer.toUpperCase() === dpProbe) ||
+      t.digitalPalmer.toUpperCase() === probe ||
+      t.fdi === probe ||
+      t.universal === probe ||
+      `#${t.fdi}` === raw ||
+      t.palmer === probe
   );
   if (permanentMatch) {
     return {
-      cleanId: `#${permanentMatch.fdi}`,
+      cleanId: permanentMatch.digitalPalmer,
       tooth: permanentMatch,
-      displayName: `#${permanentMatch.fdi} • ${permanentMatch.name}`,
-      display: `#${permanentMatch.fdi}`,
+      displayName: `${permanentMatch.digitalPalmer} (#${permanentMatch.fdi}) • ${permanentMatch.name}`,
+      display: permanentMatch.digitalPalmer,
       quadrantBadge: permanentMatch.quadrantName,
       isSpecificTooth: true,
     };
   }
 
   const deciduousMatch = DECIDUOUS_TEETH.find(
-    (t) => t.fdi === probe || t.universal.toUpperCase() === probe || `#${t.fdi}` === raw
+    (t) =>
+      (dpProbe && t.digitalPalmer.toUpperCase() === dpProbe) ||
+      t.digitalPalmer.toUpperCase() === probe ||
+      t.fdi === probe ||
+      t.universal.toUpperCase() === probe ||
+      `#${t.fdi}` === raw
   );
   if (deciduousMatch) {
     return {
-      cleanId: `#${deciduousMatch.fdi}`,
+      cleanId: deciduousMatch.digitalPalmer,
       tooth: deciduousMatch,
-      displayName: `#${deciduousMatch.fdi} • ${deciduousMatch.name}`,
-      display: `#${deciduousMatch.fdi}`,
+      displayName: `${deciduousMatch.digitalPalmer} (#${deciduousMatch.fdi}) • ${deciduousMatch.name}`,
+      display: deciduousMatch.digitalPalmer,
       quadrantBadge: deciduousMatch.quadrantName,
       isSpecificTooth: true,
     };

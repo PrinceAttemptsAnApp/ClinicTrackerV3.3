@@ -11,7 +11,10 @@ import {
   Clock,
   Send,
   AlertCircle,
-  PhoneCall
+  PhoneCall,
+  Trash2,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { DentalCase, ClinicPlace, Semester } from '../types';
 import { generateCaseMoodlePDF, exportCaseAsZip } from '../lib/pdfExport';
@@ -22,6 +25,7 @@ interface CasesViewProps {
   activeSemester: Semester;
   onSelectCase: (caseId: string) => void;
   onOpenAddCaseModal: () => void;
+  onDeleteCase?: (caseId: string) => void;
 }
 
 const CLINICS: ClinicPlace[] = ['A', 'C', 'B', 'M', 'N', 'G'];
@@ -32,10 +36,12 @@ export const CasesView: React.FC<CasesViewProps> = ({
   activeSemester,
   onSelectCase,
   onOpenAddCaseModal,
+  onDeleteCase,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClinic, setSelectedClinic] = useState<string>('all');
   const [filterTab, setFilterTab] = useState<string>(initialFilter);
+  const [casePendingDelete, setCasePendingDelete] = useState<DentalCase | null>(null);
 
   // Filter cases
   const filteredCases = cases.filter((c) => {
@@ -287,7 +293,11 @@ export const CasesView: React.FC<CasesViewProps> = ({
                     <div className="flex items-center gap-1">
                       {/* Export PDF */}
                       <button
-                        onClick={() => generateCaseMoodlePDF(c)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          generateCaseMoodlePDF(c);
+                        }}
                         className="neu-btn p-2 rounded-xl text-slate-600 hover:text-sky-600 cursor-pointer"
                         title="Export Case Moodle PDF"
                       >
@@ -296,15 +306,35 @@ export const CasesView: React.FC<CasesViewProps> = ({
 
                       {/* Export ZIP */}
                       <button
-                        onClick={() => exportCaseAsZip(c)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          exportCaseAsZip(c);
+                        }}
                         className="neu-btn p-2 rounded-xl text-slate-600 hover:text-sky-600 cursor-pointer"
                         title="Export Case as ZIP folder"
                       >
                         <Archive className="w-4 h-4" />
                       </button>
 
+                      {/* Delete Case */}
+                      {onDeleteCase && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCasePendingDelete(c);
+                          }}
+                          className="neu-btn p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                          title={`Delete Case for ${c.patientName}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+
                       {/* Open details */}
                       <button
+                        type="button"
                         onClick={() => onSelectCase(c.id)}
                         className="neu-btn-primary p-2 rounded-xl text-white cursor-pointer"
                         title="Open Case Details"
@@ -335,6 +365,72 @@ export const CasesView: React.FC<CasesViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* In-App Delete Case Confirmation Modal */}
+      {casePendingDelete && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-100 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setCasePendingDelete(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black text-slate-900">
+                Delete Clinical Case?
+              </h3>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                Are you sure you want to permanently delete the case for{' '}
+                <strong className="text-slate-900 font-bold">{casePendingDelete.patientName}</strong>{' '}
+                (File #{casePendingDelete.fileNumber}, Clinic {casePendingDelete.clinicPlace})?
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80 text-xs text-rose-800 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                <span>This action cannot be undone:</span>
+              </p>
+              <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
+                <li>All {casePendingDelete.procedures.length} procedure(s) will be permanently deleted</li>
+                <li>All rubric attachments, signed evaluations, and milestone steps will be lost</li>
+                <li>All clinical photo evidence will be purged from the local database</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setCasePendingDelete(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDeleteCase && casePendingDelete) {
+                    onDeleteCase(casePendingDelete.id);
+                  }
+                  setCasePendingDelete(null);
+                }}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Yes, Delete Case</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

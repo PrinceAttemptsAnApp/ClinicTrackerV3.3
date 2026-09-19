@@ -18,10 +18,14 @@ import {
   Share2,
   Globe,
   Copy,
-  Calendar
+  Calendar,
+  Trash2,
+  Binary,
+  Check
 } from 'lucide-react';
-import { StudentProfile, ProcedureTemplate, DentalCase, ClinicSession } from '../types';
-import { exportAllDataBackup, importDataBackup, resetToDefaultDemoData } from '../lib/storage';
+import { StudentProfile, ProcedureTemplate, DentalCase, ClinicSession, Semester } from '../types';
+import { exportAllDataBackup, importDataBackup, resetToDefaultDemoData, clearAllData } from '../lib/storage';
+import { safeLocalStorage } from '../lib/safeStorage';
 import { PWAInstallButton } from './PWAInstallButton';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SchedulePdfUploader } from './SchedulePdfUploader';
@@ -35,6 +39,8 @@ interface SettingsViewProps {
   onUpdateProfile: (profile: StudentProfile) => void;
   onRefreshData: () => Promise<void>;
   onNavigateToSchedule?: () => void;
+  activeSemester?: Semester;
+  onSemesterChange?: (sem: Semester) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -46,12 +52,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onUpdateProfile,
   onRefreshData,
   onNavigateToSchedule,
+  activeSemester,
+  onSemesterChange,
 }) => {
   const { isInstalled, isIOS } = usePWAInstall();
   const [studentName, setStudentName] = useState(profile.studentName);
   const [academicYear, setAcademicYear] = useState(profile.academicYear);
   const [pointsTarget, setPointsTarget] = useState(profile.pointsTarget || 200);
   const [university, setUniversity] = useState(profile.university || 'Faculty of Dentistry');
+  const [currentSemester, setCurrentSemester] = useState<Semester>(
+    activeSemester || profile.currentSemester || 'Semester 1'
+  );
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
@@ -61,6 +72,53 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [copiedGitCmd, setCopiedGitCmd] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Dental Notation preference state
+  const [toothNotation, setToothNotation] = useState<'palmer' | 'fdi'>(() => {
+    return profile.toothNotation || (safeLocalStorage.getItem('dentatrack_notation') === 'fdi' ? 'fdi' : 'palmer');
+  });
+  const [notationSuccess, setNotationSuccess] = useState(false);
+
+  // Delete all data modal state
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+
+  const handleNotationChange = (system: 'palmer' | 'fdi') => {
+    setToothNotation(system);
+    safeLocalStorage.setItem('dentatrack_notation', system);
+    onUpdateProfile({
+      ...profile,
+      toothNotation: system,
+    });
+    setNotationSuccess(true);
+    setTimeout(() => setNotationSuccess(false), 2500);
+  };
+
+  const handleSemesterToggle = (sem: Semester) => {
+    setCurrentSemester(sem);
+    if (onSemesterChange) onSemesterChange(sem);
+    onUpdateProfile({
+      ...profile,
+      currentSemester: sem,
+    });
+  };
+
+  const handleDeleteAllData = async () => {
+    setIsDeletingAll(true);
+    try {
+      await clearAllData();
+      await onRefreshData();
+      setShowDeleteAllModal(false);
+      setDeleteConfirmText('');
+      alert('All clinical records, patient cases, uploaded evidence, and schedule have been permanently erased.');
+    } catch (err) {
+      console.error('Error clearing data:', err);
+      alert('Failed to erase data: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
 
   // Compute local stats
   let totalRubrics = 0;
@@ -211,6 +269,42 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
+          {/* Current Semester Slider */}
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">
+              Active Semester (Sets Case & Points View)
+            </label>
+            <div className="flex items-center gap-2 p-1 neu-input rounded-xl bg-slate-100/80 max-w-sm">
+              <button
+                type="button"
+                onClick={() => handleSemesterToggle('Semester 1')}
+                className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  currentSemester === 'Semester 1'
+                    ? 'bg-sky-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>Semester 1</span>
+                {currentSemester === 'Semester 1' && <Check className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSemesterToggle('Semester 2')}
+                className={`flex-1 py-2 px-3 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  currentSemester === 'Semester 2'
+                    ? 'bg-sky-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>Semester 2</span>
+                {currentSemester === 'Semester 2' && <Check className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Controls case requirements, point tallies, and active clinic sessions.
+            </p>
+          </div>
+
           <div className="pt-2 flex justify-end">
             <button
               type="submit"
@@ -221,6 +315,118 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Dental Tooth Notation Preference */}
+      <div className="frosted-card rounded-2xl p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-700 flex items-center justify-center border border-purple-500/30">
+              <Binary className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-800">
+                Dental Tooth Notation System
+              </h2>
+              <p className="text-xs text-slate-500">
+                Choose your preferred notation for odontograms, tooth selectors, and clinical logs
+              </p>
+            </div>
+          </div>
+
+          <span className="hidden sm:inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
+            Active: {toothNotation === 'fdi' ? 'FDI Two-Digit' : 'Digital Palmer (UL3, LL5, LR6)'}
+          </span>
+        </div>
+
+        {notationSuccess && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>Notation system preference saved and updated across all odontograms!</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          {/* Digital Palmer Notation Card */}
+          <button
+            type="button"
+            onClick={() => handleNotationChange('palmer')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              toothNotation === 'palmer'
+                ? 'bg-sky-50/80 border-sky-400 ring-2 ring-sky-400/30 shadow-sm'
+                : 'bg-white/70 border-slate-200 hover:border-slate-300 hover:bg-white'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-sm text-slate-800">Digital Palmer Notation</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-100 text-sky-700 border border-sky-200">
+                    Clinical Standard
+                  </span>
+                </div>
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                    toothNotation === 'palmer'
+                      ? 'bg-sky-600 border-sky-600 text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}
+                >
+                  {toothNotation === 'palmer' && <Check className="w-3 h-3 stroke-[3]" />}
+                </div>
+              </div>
+
+              <p className="text-slate-600 leading-relaxed text-xs">
+                Modern text-safe Palmer system using quadrant letters (<strong>UR, UL, LL, LR</strong>) followed by tooth number <strong>1 to 8</strong> for permanent adult teeth (e.g. <strong>UL3, LL5, LR6</strong>) and <strong>A to E</strong> for deciduous teeth.
+              </p>
+            </div>
+
+            <div className="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Permanent: <strong className="font-mono text-sky-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">UL3, LL5, LR6</strong></span>
+              <span>Pediatric: <strong className="font-mono text-sky-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">URD, ULA</strong></span>
+            </div>
+          </button>
+
+          {/* FDI Notation Card */}
+          <button
+            type="button"
+            onClick={() => handleNotationChange('fdi')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              toothNotation === 'fdi'
+                ? 'bg-purple-50/80 border-purple-400 ring-2 ring-purple-400/30 shadow-sm'
+                : 'bg-white/70 border-slate-200 hover:border-slate-300 hover:bg-white'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-sm text-slate-800">FDI Two-Digit System</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 border border-purple-200">
+                    ISO 3950
+                  </span>
+                </div>
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                    toothNotation === 'fdi'
+                      ? 'bg-purple-600 border-purple-600 text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}
+                >
+                  {toothNotation === 'fdi' && <Check className="w-3 h-3 stroke-[3]" />}
+                </div>
+              </div>
+
+              <p className="text-slate-600 leading-relaxed text-xs">
+                Two-digit international standard. Uses quadrant prefixes (<strong>1–4</strong> for permanent, <strong>5–8</strong> for primary) followed by the tooth position (e.g. 16 for upper right first molar).
+              </p>
+            </div>
+
+            <div className="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Permanent: <strong className="font-mono text-purple-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">#16</strong></span>
+              <span>Pediatric: <strong className="font-mono text-purple-800 bg-white px-1.5 py-0.5 rounded border border-slate-200">#54</strong></span>
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Doctor's Timetable: Upload / Update Schedule Card */}
@@ -539,7 +745,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {/* Reset to Default Demo Data */}
-      <div className="frosted-card rounded-2xl p-5 border border-rose-200/50">
+      <div className="frosted-card rounded-2xl p-5 border border-amber-200/60 bg-amber-50/20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div>
             <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
@@ -553,12 +759,98 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           <button
             onClick={handleResetDemo}
-            className="neu-btn px-4 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-semibold cursor-pointer flex-shrink-0"
+            className="neu-btn px-4 py-2 rounded-xl text-amber-700 hover:bg-amber-50 font-semibold cursor-pointer flex-shrink-0"
           >
             Reset to Demo Set
           </button>
         </div>
       </div>
+
+      {/* Danger Zone: Erase All Data */}
+      <div className="frosted-card rounded-2xl p-5 border border-rose-300/80 bg-rose-50/30">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+          <div>
+            <h4 className="font-extrabold text-rose-800 text-sm flex items-center gap-1.5">
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              Erase All Clinical Data
+            </h4>
+            <p className="text-slate-600 mt-0.5 max-w-xl leading-relaxed">
+              Permanently delete all patient cases, clinical procedures, photographed rubrics, radiographic evidence, and timetable schedules. Resets the application to a completely empty state.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowDeleteAllModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold cursor-pointer flex items-center justify-center gap-2 shadow-sm transition-all flex-shrink-0"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Delete All Data</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Delete All Data Confirmation Modal */}
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative shadow-2xl border border-rose-300">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200 mb-4 mx-auto">
+              <AlertTriangle className="w-6 h-6 text-rose-600" />
+            </div>
+
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800">
+                Permanently Delete All Data?
+              </h3>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                This will irreversibly wipe <strong>all clinical patient cases</strong>, <strong>photographed rubrics</strong>, <strong>evidence images</strong>, and <strong>schedules</strong> from this device. This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 mb-4 text-xs text-rose-900 space-y-1">
+              <p className="font-semibold">Before you proceed:</p>
+              <p>Consider downloading a full backup using the <strong>Export Complete Clinical Backup</strong> button above so you don&apos;t lose your records.</p>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Type <span className="font-mono text-rose-600 font-extrabold select-all">DELETE</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE here"
+                className="neu-input w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-800 bg-white"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteAllModal(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={isDeletingAll}
+                className="neu-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteAllData}
+                disabled={deleteConfirmText.trim().toUpperCase() !== 'DELETE' || isDeletingAll}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-sm transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeletingAll ? 'Erasing Data...' : 'Permanently Erase All Data'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

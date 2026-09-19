@@ -6,8 +6,8 @@ import { StudentProfile } from '../types';
 
 interface HeaderBarProps {
   profile: StudentProfile;
-  activeSemester: string;
-  onSemesterChange: (sem: 'Semester 1' | 'Semester 2') => void;
+  activeSemester?: string;
+  onSemesterChange?: (sem: 'Semester 1' | 'Semester 2') => void;
   onOpenTutorial: () => void;
 }
 
@@ -22,8 +22,6 @@ const GREETINGS = [
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
   profile,
-  activeSemester,
-  onSemesterChange,
   onOpenTutorial,
 }) => {
   const isOnline = useOnlineStatus();
@@ -56,7 +54,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             {/* Rotating Doctor Greeting */}
             <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium transition-all duration-500">
               <Sparkles className="w-3.5 h-3.5 text-sky-500 flex-shrink-0 animate-pulse" />
-              <span className="font-semibold text-slate-700">{profile.studentName || 'Dr. Amir'}:</span>
+              <span className="font-semibold text-slate-700">{profile.studentName || 'Doctor'}:</span>
               <span className="truncate max-w-[200px] sm:max-w-md text-slate-500">
                 {GREETINGS[greetingIndex]}
               </span>
@@ -64,32 +62,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           </div>
         </div>
 
-        {/* Right: Semester Switcher, Online/Offline badge, Tutorial & Install button */}
+        {/* Right: Online/Offline badge, Tutorial & Install button */}
         <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-          {/* Semester Selector */}
-          <div className="neu-input flex items-center rounded-xl p-0.5 text-xs font-semibold">
-            <button
-              onClick={() => onSemesterChange('Semester 1')}
-              className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                activeSemester === 'Semester 1'
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Sem 1
-            </button>
-            <button
-              onClick={() => onSemesterChange('Semester 2')}
-              className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                activeSemester === 'Semester 2'
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Sem 2
-            </button>
-          </div>
-
           {/* Online/Offline indicator */}
           <div
             className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border ${
