@@ -1,0 +1,6 @@
+{
+  "name": "Dentistry Clinical Tracker & Case Manager",
+  "description": "5th-year dental clinical tracker, case manager, rubric signature monitor, and Moodle submission manager.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#075985" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <!-- Clinical tooth icon with cross -->
+  <g transform="translate(106, 96)" filter="url(#shadow)">
+    <!-- Tooth path -->
+    <path d="M150 10 C 90 10, 40 45, 30 110 C 20 180, 45 230, 80 280 C 110 325, 125 365, 130 380 C 135 390, 145 385, 148 370 C 155 330, 160 300, 160 270 C 160 270, 165 270, 170 270 C 170 300, 175 330, 182 370 C 185 385, 195 390, 200 380 C 205 365, 220 325, 250 280 C 285 230, 310 180, 300 110 C 290 45, 240 10, 180 10 C 165 10, 155 18, 150 18 C 145 18, 135 10, 120 10 Z" fill="#ffffff" fill-opacity="0.95" />
+    <!-- Medical / Clinical plus cross accent -->
+    <rect x="135" y="115" width="30" height="90" rx="6" fill="#0284c7" />
+    <rect x="105" y="145" width="90" height="30" rx="6" fill="#0284c7" />
+    <!-- Subtle shine accent -->
+    <path d="M60 105 C 65 70, 95 40, 135 35 C 120 45, 95 75, 90 115 C 80 115, 68 110, 60 105 Z" fill="#ffffff" fill-opacity="0.4" />
+  </g>
+</svg>

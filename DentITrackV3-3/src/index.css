@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #eaf0f6;
+    color: #1e293b;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Frosted-Soft UI & Neumorphic Styles */
+.frosted-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 6px 6px 18px rgba(163, 177, 198, 0.28), -6px -6px 18px rgba(255, 255, 255, 0.85);
+}
+
+.frosted-glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+.neu-btn {
+  background: #eaf0f6;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 4px 4px 10px rgba(163, 177, 198, 0.35), -4px -4px 10px rgba(255, 255, 255, 0.9);
+  transition: all 0.15s ease-in-out;
+}
+
+.neu-btn:hover {
+  box-shadow: 2px 2px 6px rgba(163, 177, 198, 0.25), -2px -2px 6px rgba(255, 255, 255, 0.8);
+}
+
+.neu-btn:active {
+  box-shadow: inset 3px 3px 6px rgba(163, 177, 198, 0.35), inset -3px -3px 6px rgba(255, 255, 255, 0.8);
+}
+
+.neu-btn-primary {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  box-shadow: 4px 4px 12px rgba(2, 132, 199, 0.35), -2px -2px 8px rgba(255, 255, 255, 0.7);
+  transition: all 0.15s ease-in-out;
+}
+
+.neu-btn-primary:hover {
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  box-shadow: 2px 2px 8px rgba(2, 132, 199, 0.45);
+}
+
+.neu-btn-primary:active {
+  box-shadow: inset 2px 2px 6px rgba(3, 105, 161, 0.6);
+}
+
+.neu-input {
+  background: rgba(234, 240, 246, 0.6);
+  border: 1px solid rgba(203, 213, 225, 0.6);
+  box-shadow: inset 2px 2px 5px rgba(163, 177, 198, 0.25), inset -2px -2px 5px rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+}
+
+.neu-input:focus {
+  background: #ffffff;
+  border-color: #0284c7;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18);
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
