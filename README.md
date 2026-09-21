@@ -143,3 +143,5 @@ All data entered into DentaTrack is stored locally in your browser's **IndexedDB
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE) — feel free to use, modify, test, and share with your colleagues.
+
+ENJOY, I DESPISE YOU ALL
