@@ -93,6 +93,73 @@ export function getProcedureMacroStepStatus(
 }
 
 /**
+ * Cleans any redundantly baked tooth string from procedure title
+ * (e.g. "Fixed Procedure (Teeth UR4, UR5)" -> "Fixed Procedure").
+ */
+export function cleanProcedureTitle(title: string): string {
+  if (!title) return '';
+  return title
+    .replace(/\s*\((?:teeth|tooth|#)?[^)]+\)\s*$/i, '')
+    .trim() || title;
+}
+
+/**
+ * Formats multiple teeth or notation into a clean, unified display string
+ * e.g., "Teeth UR4, UR5" -> "UR4 · UR5"
+ * e.g., "Tooth UR4" -> "UR4"
+ * e.g., "Teeth #14, #15" -> "#14 · #15"
+ */
+export function formatTeethDisplay(raw?: string): string {
+  if (!raw || !raw.trim()) return '';
+  const trimmed = raw.trim();
+
+  // Check for Digital Palmer matches (e.g. UR4, UR5, LL6)
+  const palmerMatches = trimmed.match(/\b(U[LR][1-8A-E]|L[LR][1-8A-E])\b/gi);
+  if (palmerMatches && palmerMatches.length > 0) {
+    const unique = Array.from(new Set(palmerMatches.map((m) => m.toUpperCase())));
+    return unique.join(' · ');
+  }
+
+  // Check for FDI with # (e.g. #14, #15)
+  const fdiMatches = trimmed.match(/#[1-8][1-8]/g);
+  if (fdiMatches && fdiMatches.length > 0) {
+    const unique = Array.from(new Set(fdiMatches));
+    return unique.join(' · ');
+  }
+
+  // If Arch / Jaw or Full Mouth
+  if (/maxillary|mandibular|arch|jaw|full\s*mouth/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Fallback: strip leading "Teeth ", "Tooth ", and replace commas with " · "
+  const cleaned = trimmed
+    .replace(/^teeth\s+/i, '')
+    .replace(/^tooth\s+/i, '')
+    .replace(/,\s*/g, ' · ')
+    .trim();
+
+  return cleaned || trimmed;
+}
+
+/**
+ * Aggregates all unique involved teeth across all procedures in a case.
+ */
+export function getCaseInvolvedTeeth(procedures: ClinicalProcedure[] = []): string[] {
+  const teethSet = new Set<string>();
+  procedures.forEach((p) => {
+    if (!p.toothNumber) return;
+    const formatted = formatTeethDisplay(p.toothNumber);
+    if (!formatted) return;
+    formatted.split(' · ').forEach((t) => {
+      const trimmed = t.trim();
+      if (trimmed) teethSet.add(trimmed);
+    });
+  });
+  return Array.from(teethSet);
+}
+
+/**
  * Resolves dental tooth metadata (name, quadrant, anatomical description)
  * from standard notation string (e.g., "#14", "14", "36", "UR 1st Premolar").
  */

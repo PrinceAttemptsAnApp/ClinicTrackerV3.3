@@ -13,6 +13,7 @@ import {
   Stethoscope
 } from 'lucide-react';
 import { DentalCase, StudentProfile } from '../types';
+import { haptic } from '../lib/haptics';
 
 interface DashboardViewProps {
   cases: DentalCase[];
@@ -182,8 +183,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <button
-            onClick={onNavigateToToday}
-            className="neu-btn-primary px-3.5 py-1.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1 cursor-pointer flex-shrink-0"
+            onClick={() => {
+              haptic.light();
+              onNavigateToToday();
+            }}
+            className="neu-btn-primary px-3.5 py-1.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1 cursor-pointer flex-shrink-0 active:scale-95"
           >
             <Stethoscope className="w-3.5 h-3.5" />
             <span>Open Today&apos;s Clinic</span>
@@ -195,8 +199,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Awaiting Signature */}
         <button
-          onClick={() => onNavigateToCases('awaiting-signature')}
-          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] cursor-pointer group"
+          onClick={() => {
+            haptic.light();
+            onNavigateToCases('awaiting-signature');
+          }}
+          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
@@ -211,8 +218,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Ready for Moodle */}
         <button
-          onClick={() => onNavigateToCases('ready-moodle')}
-          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] cursor-pointer group"
+          onClick={() => {
+            haptic.light();
+            onNavigateToCases('ready-moodle');
+          }}
+          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center">
@@ -227,8 +237,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Completed / Submitted */}
         <button
-          onClick={() => onNavigateToCases('submitted')}
-          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] cursor-pointer group"
+          onClick={() => {
+            haptic.light();
+            onNavigateToCases('submitted');
+          }}
+          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
@@ -243,8 +256,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Comprehensive Cases */}
         <button
-          onClick={() => onNavigateToCases('comprehensive')}
-          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] cursor-pointer group"
+          onClick={() => {
+            haptic.light();
+            onNavigateToCases('comprehensive');
+          }}
+          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-600 flex items-center justify-center">
@@ -277,8 +293,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {actionItems.slice(0, 6).map((item, idx) => (
                 <div
                   key={idx}
-                  onClick={() => onSelectCase(item.caseId)}
-                  className="p-3 rounded-xl bg-white/75 border border-slate-200/80 hover:border-sky-300 transition flex items-center justify-between gap-3 cursor-pointer group shadow-2xs"
+                  onClick={() => {
+                    haptic.light();
+                    onSelectCase(item.caseId);
+                  }}
+                  className="p-3 rounded-xl bg-white/75 border border-slate-200/80 hover:border-sky-300 transition flex items-center justify-between gap-3 cursor-pointer group shadow-2xs active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="text-sm">

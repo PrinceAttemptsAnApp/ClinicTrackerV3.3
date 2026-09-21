@@ -23,7 +23,7 @@ import { EvidenceUploadModal } from './EvidenceUploadModal';
 import { AddProcedureModal } from './AddProcedureModal';
 import { generateCaseMoodlePDF } from '../lib/pdfExport';
 import { getProcedureMacroStepStatus, resolveToothInfo } from '../lib/macroSteps';
-import confetti from 'canvas-confetti';
+import { haptic } from '../lib/haptics';
 
 interface TodayClinicViewProps {
   cases: DentalCase[];
@@ -85,16 +85,15 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
 
   // Toggle step completion chairside
   const handleToggleStep = (c: DentalCase, procId: string, stepId: string) => {
+    let completedTransition = false;
+    let allWillBeDone = false;
+
     const updatedProcedures = c.procedures.map((p) => {
       if (p.id !== procId) return p;
       const updatedSteps = p.steps.map((s) => {
         if (s.id !== stepId) return s;
         const newCompleted = !s.isCompleted;
-        if (newCompleted) {
-          try {
-            confetti({ particleCount: 30, spread: 60, origin: { y: 0.8 } });
-          } catch {}
-        }
+        completedTransition = newCompleted;
         return {
           ...s,
           isCompleted: newCompleted,
@@ -104,6 +103,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
 
       // Auto update procedure status
       const allStepsDone = updatedSteps.every((s) => s.isCompleted);
+      allWillBeDone = allStepsDone;
       const hasSignedRubric = p.rubrics.some((r) => r.status === 'Signed');
       let newStatus = p.status;
       if (allStepsDone && hasSignedRubric && p.moodleStatus === 'Submitted') {
@@ -122,6 +122,16 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
         status: newStatus,
       };
     });
+
+    if (completedTransition) {
+      if (allWillBeDone) {
+        haptic.success();
+      } else {
+        haptic.light();
+      }
+    } else {
+      haptic.selection();
+    }
 
     const updatedCase: DentalCase = {
       ...c,
@@ -158,6 +168,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
       };
     });
 
+    haptic.success();
     onUpdateCase({
       ...targetCase,
       procedures: updatedProcedures,
@@ -178,6 +189,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
       };
     });
 
+    haptic.success();
     onUpdateCase({
       ...targetCase,
       procedures: updatedProcedures,
@@ -190,6 +202,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
     if (!targetCase) return;
 
     const updatedProcedures = [...targetCase.procedures, newProc];
+    haptic.success();
     onUpdateCase({
       ...targetCase,
       procedures: updatedProcedures,
@@ -204,6 +217,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
       targetNextVisitDate: nextVisitModalData.date,
       targetNextVisitPlan: nextVisitModalData.plan,
     };
+    haptic.medium();
     onUpdateCase(updatedCase);
     setNextVisitModalData({ isOpen: false, dentalCase: null, date: '', plan: '' });
   };
@@ -245,8 +259,11 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
             {/* Clinic Place Pills (All clinics by default) */}
             <div className="flex items-center gap-1 neu-input p-1 rounded-xl">
               <button
-                onClick={() => setSelectedClinicFilter('ALL')}
-                className={`px-2.5 h-7 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center ${
+                onClick={() => {
+                  haptic.selection();
+                  setSelectedClinicFilter('ALL');
+                }}
+                className={`px-2.5 h-7 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 flex items-center justify-center ${
                   selectedClinicFilter === 'ALL'
                     ? 'bg-sky-600 text-white shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
@@ -259,10 +276,11 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                 <button
                   key={clinic}
                   onClick={() => {
+                    haptic.selection();
                     setSelectedClinicFilter(clinic);
                     onChangeClinicPlace(clinic);
                   }}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center ${
+                  className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 flex items-center justify-center ${
                     selectedClinicFilter === clinic
                       ? 'bg-sky-600 text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
@@ -277,8 +295,11 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
             {/* Chair Mode Toggle (Support having 2 patients at once chairside!) */}
             <div className="hidden sm:flex items-center gap-1 neu-input p-1 rounded-xl text-xs font-semibold">
               <button
-                onClick={() => setChairMode('dual')}
-                className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                onClick={() => {
+                  haptic.selection();
+                  setChairMode('dual');
+                }}
+                className={`px-2.5 py-1 rounded-lg transition cursor-pointer active:scale-95 ${
                   chairMode === 'dual' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600'
                 }`}
                 title="Dual Chair View (2 Patients at once)"
@@ -286,8 +307,11 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                 2 Chairs
               </button>
               <button
-                onClick={() => setChairMode('all')}
-                className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                onClick={() => {
+                  haptic.selection();
+                  setChairMode('all');
+                }}
+                className={`px-2.5 py-1 rounded-lg transition cursor-pointer active:scale-95 ${
                   chairMode === 'all' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600'
                 }`}
               >
@@ -459,7 +483,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleToggleStep(c, proc.id, statusInfo.nextStep!.id)}
-                                className="px-2 py-0.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-[10px] shadow-2xs transition cursor-pointer flex items-center gap-1"
+                                className="px-2 py-0.5 rounded-lg bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold text-[10px] shadow-2xs transition cursor-pointer flex items-center gap-1"
                               >
                                 <span>Advance: {statusInfo.nextStep.title} ✓</span>
                               </button>
@@ -474,16 +498,16 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                                 <button
                                   key={step.id}
                                   onClick={() => handleToggleStep(c, proc.id, step.id)}
-                                  className={`p-2 rounded-xl text-left text-xs font-medium flex items-center gap-2 transition cursor-pointer ${
+                                  className={`p-2 rounded-xl text-left text-xs font-medium flex items-center gap-2 transition-all duration-150 cursor-pointer active:scale-[0.98] touch-manipulation select-none ${
                                     step.isCompleted
-                                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-300/80'
+                                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-300/80 shadow-2xs'
                                       : statusInfo.nextStep?.id === step.id
-                                      ? 'bg-sky-50 text-sky-950 border border-sky-400 font-bold'
+                                      ? 'bg-sky-50 text-sky-950 border border-sky-400 font-bold shadow-2xs'
                                       : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-white'
                                   }`}
                                 >
                                   {step.isCompleted ? (
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 animate-checkmark stroke-[2.5]" />
                                   ) : (
                                     <Circle className="w-4 h-4 text-slate-400 flex-shrink-0" />
                                   )}
@@ -631,8 +655,8 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
 
       {/* Next Visit Scheduling Modal */}
       {nextVisitModalData.isOpen && nextVisitModalData.dentalCase && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative animate-modal-pop shadow-2xl">
             <h3 className="text-base font-bold text-slate-800 mb-1">Plan Next Clinical Visit</h3>
             <p className="text-xs text-slate-500 mb-4">
               Set date and what you will do next session for{' '}

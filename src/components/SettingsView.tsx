@@ -487,8 +487,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 if (
                   meta.studentName &&
                   (!profile.studentName ||
-                    profile.studentName === 'Dental Student' ||
-                    profile.studentName.includes('Amir'))
+                    profile.studentName === 'Dental Student')
                 ) {
                   updatedProfile.studentName = meta.studentName;
                 }

@@ -86,8 +86,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
       if (
         meta.studentName &&
         (!profile.studentName ||
-          profile.studentName === 'Dental Student' ||
-          profile.studentName.includes('Amir'))
+          profile.studentName === 'Dental Student')
       ) {
         updatedProfile.studentName = meta.studentName;
       }

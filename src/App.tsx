@@ -27,8 +27,11 @@ import {
   getClinicSchedule, 
   saveClinicSchedule, 
   getProcedureTemplates,
-  DEFAULT_TEMPLATES 
+  DEFAULT_TEMPLATES,
+  safeLocalStorage,
+  initStorage
 } from './lib/storage';
+import { haptic } from './lib/haptics';
 
 import { HeaderBar } from './components/HeaderBar';
 import { PrivacyBanner } from './components/PrivacyBanner';
@@ -65,13 +68,13 @@ export default function App() {
   const [activeClinicPlace, setActiveClinicPlace] = useState<ClinicPlace>('A');
   const [activeSemester, setActiveSemester] = useState<Semester>('Semester 1');
 
-  // Modals
+  // Modals & Startup State
   const [isAddCaseModalOpen, setIsAddCaseModalOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load all initial data from IndexedDB
+  // Reload clinical data into React state without re-evaluating startup modals
   const refreshData = useCallback(async () => {
     try {
       const [dbCases, dbProfile, dbSchedule, dbTemplates] = await Promise.all([
@@ -84,41 +87,110 @@ export default function App() {
       if (dbProfile) {
         setProfile(dbProfile);
         setActiveSemester(dbProfile.currentSemester || 'Semester 1');
-
-        // Check if student name needs to be prompted
-        if (!dbProfile.studentName || dbProfile.studentName.trim() === '' || dbProfile.studentName === 'Dr. Amir') {
-          setIsNameModalOpen(true);
-        }
-      } else {
-        setIsNameModalOpen(true);
       }
       if (dbSchedule.length > 0) setSchedule(dbSchedule);
       if (dbTemplates.length > 0) setTemplates(dbTemplates);
     } catch (err) {
-      console.error('Failed to load clinical data from IndexedDB', err);
+      console.error('Failed to reload clinical data from IndexedDB', err);
+    }
+  }, []);
+
+  // Single authoritative startup session flow
+  const initAppSession = useCallback(async () => {
+    try {
+      setLoading(true);
+      await initStorage();
+
+      const [dbCases, dbProfile, dbSchedule, dbTemplates] = await Promise.all([
+        getAllCases(),
+        getStudentProfile(),
+        getClinicSchedule(),
+        getProcedureTemplates(),
+      ]);
+
+      setCases(dbCases);
+      if (dbSchedule.length > 0) setSchedule(dbSchedule);
+      if (dbTemplates.length > 0) setTemplates(dbTemplates);
+
+      const activeProfile = dbProfile || {
+        studentName: '',
+        academicYear: '2026–2027',
+        currentSemester: 'Semester 1',
+        pointsTarget: 200,
+        toothNotation: 'palmer',
+      };
+      setProfile(activeProfile);
+      setActiveSemester(activeProfile.currentSemester || 'Semester 1');
+
+      // Authoritative evaluation:
+      const hasName = Boolean(activeProfile.studentName && activeProfile.studentName.trim().length > 0);
+      const isOnboardingComplete = Boolean(
+        activeProfile.onboardingCompleted ||
+        safeLocalStorage.getItem('dentatrack_onboarding_completed') === 'true' ||
+        safeLocalStorage.getItem('dentatrack_tutorial_shown') === 'true'
+      );
+
+      if (!hasName) {
+        // Step 1: Prompt for name first. Do NOT open tutorial yet.
+        setIsNameModalOpen(true);
+        setIsTutorialOpen(false);
+      } else if (!isOnboardingComplete) {
+        // Step 2: Name exists but onboarding guide not completed yet
+        setIsNameModalOpen(false);
+        setIsTutorialOpen(true);
+      } else {
+        // Step 3: Returning user ready to work
+        setIsNameModalOpen(false);
+        setIsTutorialOpen(false);
+      }
+    } catch (err) {
+      console.error('Failed to initialize app session', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refreshData();
-    // Check if first-time user tutorial prompt
-    const hasSeenTutorial = localStorage.getItem('dentatrack_tutorial_shown');
-    if (!hasSeenTutorial) {
-      setIsTutorialOpen(true);
-      localStorage.setItem('dentatrack_tutorial_shown', 'true');
-    }
-  }, [refreshData]);
+    initAppSession();
+  }, [initAppSession]);
 
   const handleSaveFirstTimeName = async (name: string) => {
+    const trimmed = name.trim();
     const updated: StudentProfile = {
       ...profile,
-      studentName: name,
+      studentName: trimmed,
     };
     setProfile(updated);
     await saveStudentProfile(updated);
+    safeLocalStorage.setItem('dentatrack_student_name', trimmed);
+
+    // Dismiss name modal
     setIsNameModalOpen(false);
+
+    // Transition cleanly to onboarding guide if not already completed
+    const isOnboardingComplete = Boolean(
+      updated.onboardingCompleted ||
+      safeLocalStorage.getItem('dentatrack_onboarding_completed') === 'true' ||
+      safeLocalStorage.getItem('dentatrack_tutorial_shown') === 'true'
+    );
+
+    if (!isOnboardingComplete) {
+      setIsTutorialOpen(true);
+    }
+  };
+
+  const handleCloseTutorial = async () => {
+    setIsTutorialOpen(false);
+    safeLocalStorage.setItem('dentatrack_onboarding_completed', 'true');
+    safeLocalStorage.setItem('dentatrack_tutorial_shown', 'true');
+    if (!profile.onboardingCompleted) {
+      const updated: StudentProfile = {
+        ...profile,
+        onboardingCompleted: true,
+      };
+      setProfile(updated);
+      await saveStudentProfile(updated);
+    }
   };
 
   // Handle Case Update
@@ -202,12 +274,10 @@ export default function App() {
                 <button
                   key={item.id}
                   onClick={() => {
-                    if (item.id === 'cases' && activeTab === 'case-detail') {
-                      // remain on case detail or go to cases
-                    }
+                    haptic.selection();
                     setActiveTab(item.id);
                   }}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer active:scale-[0.98] ${
                     isActive
                       ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
@@ -240,7 +310,7 @@ export default function App() {
               Loading 5th-Year Clinical Database...
             </div>
           ) : (
-            <>
+            <div key={activeTab + (activeTab === 'case-detail' ? `-${selectedCaseId}` : '')} className="animate-view-enter">
               {/* Dashboard */}
               {activeTab === 'dashboard' && (
                 <DashboardView
@@ -339,7 +409,7 @@ export default function App() {
                   onNavigateToSchedule={() => setActiveTab('schedule')}
                 />
               )}
-            </>
+            </div>
           )}
         </main>
       </div>
@@ -352,13 +422,19 @@ export default function App() {
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center justify-center p-1.5 rounded-xl min-w-[54px] min-h-[44px] transition cursor-pointer ${
-                isActive ? 'text-sky-600 font-bold' : 'text-slate-500 hover:text-slate-800'
+              onClick={() => {
+                haptic.selection();
+                setActiveTab(item.id);
+              }}
+              className={`relative flex flex-col items-center justify-center p-1.5 rounded-xl min-w-[54px] min-h-[44px] transition-all duration-150 cursor-pointer active:scale-90 ${
+                isActive ? 'text-sky-600 font-extrabold' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-[1.75]'}`} />
-              <span className="text-[10px] mt-0.5">{item.label}</span>
+              <Icon className={`w-5 h-5 transition-transform duration-150 ${isActive ? 'stroke-[2.5] scale-110' : 'stroke-[1.75]'}`} />
+              <span className="text-[10px] mt-0.5 font-semibold">{item.label}</span>
+              {isActive && (
+                <span className="w-1 h-1 rounded-full bg-sky-600 mt-0.5 animate-checkmark" />
+              )}
             </button>
           );
         })}
@@ -377,14 +453,14 @@ export default function App() {
 
       {/* Global Interactive Clinical Tutorial Modal */}
       <TutorialModal
-        isOpen={isTutorialOpen}
-        onClose={() => setIsTutorialOpen(false)}
+        isOpen={isTutorialOpen && !isNameModalOpen}
+        onClose={handleCloseTutorial}
         profile={profile}
         onUpdateProfile={handleUpdateProfile}
       />
 
       {/* First-Time Doctor Name Prompt */}
-      {isNameModalOpen && !isTutorialOpen && (
+      {isNameModalOpen && (
         <FirstTimeNameModal
           isOpen={isNameModalOpen}
           onSaveName={handleSaveFirstTimeName}

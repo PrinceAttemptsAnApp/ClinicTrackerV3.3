@@ -7,29 +7,52 @@
     color: #1e293b;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Optimize touch responsiveness and eliminate mobile 300ms tap delay */
+  button, 
+  a, 
+  input, 
+  select, 
+  textarea, 
+  [role="button"] {
+    touch-action: manipulation;
+  }
 }
 
-/* Frosted-Soft UI & Neumorphic Styles */
+/* Frosted-Soft UI & Neumorphic Styles with Tactile Micro-Interactions */
 .frosted-card {
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.76);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   box-shadow: 6px 6px 18px rgba(163, 177, 198, 0.28), -6px -6px 18px rgba(255, 255, 255, 0.85);
+  transition: transform 0.14s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.14s ease, border-color 0.14s ease;
 }
 
 .frosted-glass {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
+/* Tactile Interactive Card Press */
+.interactive-card {
+  transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.12s ease, border-color 0.12s ease;
+  will-change: transform;
+}
+
+.interactive-card:active {
+  transform: scale(0.992);
+}
+
+/* Standard Tactile Button */
 .neu-btn {
   background: #eaf0f6;
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: 4px 4px 10px rgba(163, 177, 198, 0.35), -4px -4px 10px rgba(255, 255, 255, 0.9);
-  transition: all 0.15s ease-in-out;
+  transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+  will-change: transform;
 }
 
 .neu-btn:hover {
@@ -37,14 +60,17 @@
 }
 
 .neu-btn:active {
+  transform: scale(0.975);
   box-shadow: inset 3px 3px 6px rgba(163, 177, 198, 0.35), inset -3px -3px 6px rgba(255, 255, 255, 0.8);
 }
 
+/* Primary Action Button */
 .neu-btn-primary {
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #ffffff;
   box-shadow: 4px 4px 12px rgba(2, 132, 199, 0.35), -2px -2px 8px rgba(255, 255, 255, 0.7);
-  transition: all 0.15s ease-in-out;
+  transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.12s ease, background 0.12s ease;
+  will-change: transform;
 }
 
 .neu-btn-primary:hover {
@@ -53,14 +79,16 @@
 }
 
 .neu-btn-primary:active {
+  transform: scale(0.975);
   box-shadow: inset 2px 2px 6px rgba(3, 105, 161, 0.6);
 }
 
+/* Input Fields */
 .neu-input {
   background: rgba(234, 240, 246, 0.6);
   border: 1px solid rgba(203, 213, 225, 0.6);
   box-shadow: inset 2px 2px 5px rgba(163, 177, 198, 0.25), inset -2px -2px 5px rgba(255, 255, 255, 0.7);
-  transition: all 0.2s ease;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
 }
 
 .neu-input:focus {
@@ -68,6 +96,93 @@
   border-color: #0284c7;
   outline: none;
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18);
+}
+
+/* Badge and Status Transitions */
+.badge-transition {
+  transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+}
+
+/* Keyframe Animations for Micro-Interactions */
+@keyframes checkmark-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-checkmark {
+  animation: checkmark-pop 0.16s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes row-complete-glow {
+  0% {
+    background-color: rgba(16, 185, 129, 0.22);
+  }
+  100% {
+    background-color: rgba(240, 253, 244, 0.6);
+  }
+}
+
+.animate-row-complete {
+  animation: row-complete-glow 0.45s ease-out forwards;
+}
+
+@keyframes view-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-view-enter {
+  animation: view-enter 0.14s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes modal-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-pop {
+  animation: modal-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes sheet-slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
 }
 
 /* Custom smooth scrollbar */
@@ -84,4 +199,16 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.7);
+}
+
+/* Accessibility: Respect Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

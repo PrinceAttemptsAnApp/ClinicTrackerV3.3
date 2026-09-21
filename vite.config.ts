@@ -6,7 +6,7 @@ import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
-    base: '/ClinicTrackerV3.3/',
+    base: './',
     plugins: [
       react(),
       tailwindcss(),

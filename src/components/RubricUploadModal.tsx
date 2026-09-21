@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { RubricDocument, SignatureStatus } from '../types';
+import { haptic } from '../lib/haptics';
 
 interface RubricUploadModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
     setFileName(file.name);
     setFileType(file.type);
     setError(null);
+    haptic.medium();
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -50,10 +52,12 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
 
   const handleSave = () => {
     if (!fileDataUrl) {
+      haptic.warning();
       setError('Please upload or photograph the clinical rubric first.');
       return;
     }
     if (isSigned === null) {
+      haptic.warning();
       setError('Please answer: Is this document signed?');
       return;
     }
@@ -72,13 +76,14 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
       notes: notes.trim(),
     };
 
+    haptic.success();
     onSaveRubric(newRubric);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="frosted-card w-full max-w-lg rounded-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+      <div className="frosted-card w-full max-w-lg rounded-2xl p-6 relative max-h-[90vh] overflow-y-auto animate-modal-pop shadow-2xl">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/70 transition cursor-pointer"
@@ -189,8 +194,11 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setIsSigned(true)}
-                className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                onClick={() => {
+                  haptic.selection();
+                  setIsSigned(true);
+                }}
+                className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer ${
                   isSigned === true
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
                     : 'neu-btn text-slate-700 hover:bg-white'
@@ -201,8 +209,11 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setIsSigned(false)}
-                className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                onClick={() => {
+                  haptic.selection();
+                  setIsSigned(false);
+                }}
+                className={`py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer ${
                   isSigned === false
                     ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
                     : 'neu-btn text-slate-700 hover:bg-white'

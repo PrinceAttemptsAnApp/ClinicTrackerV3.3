@@ -3,6 +3,7 @@ import { Sparkles, Wifi, WifiOff, Stethoscope } from 'lucide-react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { PWAInstallButton } from './PWAInstallButton';
 import { StudentProfile } from '../types';
+import { haptic } from '../lib/haptics';
 
 interface HeaderBarProps {
   profile: StudentProfile;
@@ -90,8 +91,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
           {/* Workflow Guide / Tutorial Button */}
           <button
-            onClick={onOpenTutorial}
-            className="neu-btn px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-sky-700 cursor-pointer flex items-center gap-1"
+            onClick={() => {
+              haptic.light();
+              onOpenTutorial();
+            }}
+            className="neu-btn px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-sky-700 cursor-pointer flex items-center gap-1 active:scale-95"
             title="Open Interactive Clinical Workflow Tutorial"
           >
             <span className="hidden sm:inline">Guide</span>

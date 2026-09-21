@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ClinicSession } from '../types';
 import { extractScheduleFromDoctorPdf, ExtractedScheduleResult } from '../lib/pdfScheduleExtractor';
+import { haptic } from '../lib/haptics';
 
 interface SchedulePdfUploaderProps {
   onScheduleExtracted: (
@@ -90,9 +91,11 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
     }
 
     if (!isRealPdf) {
+      haptic.error();
       setErrorMsg('Please select a valid PDF document (.pdf) of your official timetable.');
       return;
     }
+    haptic.medium();
     setSelectedFile(file);
   };
 
@@ -117,6 +120,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
   const handleExtract = async () => {
     if (!selectedFile) return;
 
+    haptic.light();
     setIsExtracting(true);
     setErrorMsg(null);
     setSuccessNotice(null);
@@ -124,9 +128,11 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
 
     try {
       const result = await extractScheduleFromDoctorPdf(selectedFile);
+      haptic.success();
       setExtractionResult(result);
     } catch (err: any) {
       console.error('Schedule PDF extraction error:', err);
+      haptic.error();
       setErrorMsg(
         err.message || 'Failed to extract schedule from this PDF. Please verify the document format.'
       );
@@ -154,6 +160,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
       semester: extractionResult.studentMeta?.semester,
     };
 
+    haptic.success();
     onScheduleExtracted(sessionsToApply, meta);
     setSuccessNotice(
       `Successfully loaded ${sessionsToApply.length} sessions from "${selectedFile.name}"!`

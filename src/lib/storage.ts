@@ -1,6 +1,7 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { DentalCase, ProcedureTemplate, ClinicScheduleItem, StudentProfile, DisciplineType } from '../types';
 import { safeLocalStorage } from './safeStorage';
+export { safeLocalStorage };
 
 interface DentaTrackDB extends DBSchema {
   cases: {
@@ -793,6 +794,7 @@ export const INITIAL_PROFILE: StudentProfile = {
   currentSemester: 'Semester 1',
   pointsTarget: 200,
   toothNotation: 'palmer',
+  onboardingCompleted: false,
 };
 
 // Seed initial database if empty or sync updated macro templates
@@ -895,27 +897,65 @@ export async function deleteSchedule(id: string): Promise<void> {
 export async function getProfile(): Promise<StudentProfile> {
   const db = await getDB();
   const allProfiles = await db.getAll('profile');
+  let profile: StudentProfile;
+
   if (allProfiles && allProfiles.length > 0) {
-    const profile = allProfiles[0];
-    if (profile.studentName === 'Dr. Amir') {
-      profile.studentName = '';
-      await db.put('profile', profile);
-    }
-    if (!profile.toothNotation) {
-      profile.toothNotation = 'palmer';
-    }
-    return profile;
+    profile = allProfiles[0];
+  } else {
+    profile = { ...INITIAL_PROFILE };
   }
-  return INITIAL_PROFILE;
+
+  // Ensure toothNotation default
+  if (!profile.toothNotation) {
+    profile.toothNotation = 'palmer';
+  }
+
+  // Check and migrate name from safeLocalStorage if missing in DB
+  const cachedName = safeLocalStorage.getItem('dentatrack_student_name');
+  if ((!profile.studentName || profile.studentName.trim() === '') && cachedName && cachedName.trim() !== '') {
+    profile.studentName = cachedName.trim();
+    await db.put('profile', profile);
+  } else if (profile.studentName && profile.studentName.trim() !== '') {
+    // Keep cached name in sync
+    safeLocalStorage.setItem('dentatrack_student_name', profile.studentName.trim());
+  }
+
+  // Check and migrate onboarding completion flag
+  const legacyTutorialShown = safeLocalStorage.getItem('dentatrack_tutorial_shown');
+  const cachedOnboarding = safeLocalStorage.getItem('dentatrack_onboarding_completed');
+  if (profile.onboardingCompleted === undefined) {
+    if (cachedOnboarding === 'true' || legacyTutorialShown === 'true') {
+      profile.onboardingCompleted = true;
+      safeLocalStorage.setItem('dentatrack_onboarding_completed', 'true');
+      await db.put('profile', profile);
+    } else {
+      profile.onboardingCompleted = false;
+    }
+  } else if (profile.onboardingCompleted) {
+    safeLocalStorage.setItem('dentatrack_onboarding_completed', 'true');
+  }
+
+  return profile;
 }
 
 export async function saveProfile(profile: StudentProfile): Promise<void> {
   const db = await getDB();
-  const studentWithId = {
+  const now = new Date().toISOString();
+  const studentWithId: StudentProfile = {
     ...profile,
     studentId: profile.studentId || '2101233',
+    updatedAt: now,
   };
   await db.put('profile', studentWithId);
+
+  // Authoritative synchronous mirror in safe storage for instant hydration and multi-tab/PWA reliability
+  if (profile.studentName && profile.studentName.trim() !== '') {
+    safeLocalStorage.setItem('dentatrack_student_name', profile.studentName.trim());
+  }
+  if (profile.onboardingCompleted) {
+    safeLocalStorage.setItem('dentatrack_onboarding_completed', 'true');
+    safeLocalStorage.setItem('dentatrack_tutorial_shown', 'true');
+  }
 }
 
 // Blob / Evidence Files Storage
@@ -994,6 +1034,13 @@ export async function restoreFullBackup(jsonString: string): Promise<{ success: 
       await tx.objectStore('profile').clear();
       for (const p of data.profile) {
         await tx.objectStore('profile').put(p);
+        if (p.studentName && p.studentName.trim() !== '') {
+          safeLocalStorage.setItem('dentatrack_student_name', p.studentName.trim());
+        }
+        if (p.onboardingCompleted) {
+          safeLocalStorage.setItem('dentatrack_onboarding_completed', 'true');
+          safeLocalStorage.setItem('dentatrack_tutorial_shown', 'true');
+        }
       }
     }
     if (Array.isArray(data.blobs)) {
@@ -1014,6 +1061,12 @@ export async function restoreFullBackup(jsonString: string): Promise<{ success: 
 // Reset to demo data
 export async function resetDemoData(): Promise<void> {
   const db = await getDB();
+  const existingProfiles = await db.getAll('profile');
+  const currentProfile = existingProfiles[0];
+  const currentName = currentProfile?.studentName || safeLocalStorage.getItem('dentatrack_student_name') || '';
+  const currentNotation = currentProfile?.toothNotation || 'palmer';
+  const currentOnboarding = currentProfile?.onboardingCompleted ?? (safeLocalStorage.getItem('dentatrack_onboarding_completed') === 'true');
+
   const tx = db.transaction(['cases', 'templates', 'schedules', 'profile', 'blobs'], 'readwrite');
   await tx.objectStore('cases').clear();
   for (const c of INITIAL_DEMO_CASES) {
@@ -1028,7 +1081,12 @@ export async function resetDemoData(): Promise<void> {
     await tx.objectStore('schedules').put(s);
   }
   await tx.objectStore('profile').clear();
-  await tx.objectStore('profile').put(INITIAL_PROFILE);
+  await tx.objectStore('profile').put({
+    ...INITIAL_PROFILE,
+    studentName: currentName,
+    toothNotation: currentNotation,
+    onboardingCompleted: currentOnboarding,
+  });
   await tx.objectStore('blobs').clear();
   await tx.done;
 }
@@ -1051,6 +1109,7 @@ export async function clearAllData(): Promise<void> {
     currentSemester: 'Semester 1',
     pointsTarget: 200,
     toothNotation: 'palmer',
+    onboardingCompleted: false,
   };
   await tx.objectStore('profile').put(blankProfile);
   await tx.objectStore('blobs').clear();

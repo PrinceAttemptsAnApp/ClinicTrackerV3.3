@@ -140,6 +140,9 @@ export interface StudentProfile {
   pointsTarget: number;
   university?: string;
   toothNotation?: 'palmer' | 'fdi';
+  onboardingCompleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   schedulePdfUploaded?: boolean;
   schedulePdfMeta?: {
     fileName: string;

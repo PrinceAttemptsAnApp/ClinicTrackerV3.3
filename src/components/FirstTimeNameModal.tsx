@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Stethoscope, Sparkles, ArrowRight } from 'lucide-react';
+import { haptic } from '../lib/haptics';
 
 interface FirstTimeNameModalProps {
   isOpen: boolean;
@@ -19,17 +20,19 @@ export const FirstTimeNameModal: React.FC<FirstTimeNameModalProps> = ({
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) {
+      haptic.warning();
       setError('Please enter your name or title to proceed.');
       return;
     }
     // Prefix with Dr. if user just entered their first/last name
     const formatted = trimmed.startsWith('Dr.') ? trimmed : `Dr. ${trimmed}`;
+    haptic.success();
     onSaveName(formatted);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative shadow-2xl border border-sky-200/80">
+      <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative shadow-2xl border border-sky-200/80 animate-modal-pop">
         <div className="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center shadow-lg shadow-sky-600/30 mb-4 mx-auto">
           <Stethoscope className="w-6 h-6 text-white" />
         </div>

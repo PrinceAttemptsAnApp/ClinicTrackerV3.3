@@ -18,6 +18,46 @@ DentaTrack runs **entirely in the browser** using client-side **IndexedDB** and 
 
 ---
 
+## 🚀 3 Ways to Host & Share for Free with Friends
+
+### Option 1: GitHub Pages (Automated via GitHub Actions) — *Recommended*
+
+This repository includes a pre-configured GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically builds and deploys your app for free whenever you push code!
+
+1. **Create a new repository** on [GitHub](https://github.com/new) (e.g. `dentatrack`).
+2. **Push your code to GitHub**:
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit of DentaTrack"
+   git branch -M main
+   git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO_NAME>.git
+   git push -u origin main
+   ```
+3. **Enable GitHub Pages**:
+   - In your GitHub repository, navigate to **Settings** → **Pages** (in the left sidebar).
+   - Under **Build and deployment** → **Source**, select **GitHub Actions**.
+4. **Done!**
+   - GitHub Actions will automatically run the build and publish your app.
+   - Your live link will be: `https://<YOUR_USERNAME>.github.io/<YOUR_REPO_NAME>/`
+   - Share this link with your clinic group and classmates!
+
+---
+
+### Option 2: Vercel (1-Click Free Hosting)
+
+1. Go to [Vercel](https://vercel.com/) and sign in with GitHub.
+2. Click **"Add New Project"** and select your `dentatrack` repository.
+3. Keep default settings (Vercel automatically detects the included `vercel.json` and Vite framework).
+4. Click **Deploy**. Your app will be live on a free `*.vercel.app` URL with automatic SSL.
+
+---
+
+### Option 3: Netlify (1-Click Free Hosting)
+
+1. Go to [Netlify](https://www.netlify.com/) and connect your GitHub repository.
+2. The included `netlify.toml` automatically sets the build command (`npm run build`) and publish directory (`dist`).
+3. Click **Deploy site**. Your app will be live on a free `*.netlify.app` URL.
 
 ---
 
@@ -103,5 +143,3 @@ All data entered into DentaTrack is stored locally in your browser's **IndexedDB
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE) — feel free to use, modify, test, and share with your colleagues.
-
-ENJOY ASSHOLES

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, AlertCircle } from 'lucide-react';
 import { EvidenceFile } from '../types';
+import { haptic } from '../lib/haptics';
 
 interface EvidenceUploadModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export const EvidenceUploadModal: React.FC<EvidenceUploadModalProps> = ({
     setFileType(file.type);
     setFileSize(file.size);
     setError(null);
+    haptic.medium();
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -50,6 +52,7 @@ export const EvidenceUploadModal: React.FC<EvidenceUploadModalProps> = ({
 
   const handleSave = () => {
     if (!fileDataUrl) {
+      haptic.warning();
       setError('Please choose or photograph an image/document.');
       return;
     }
@@ -67,13 +70,14 @@ export const EvidenceUploadModal: React.FC<EvidenceUploadModalProps> = ({
       notes: notes.trim(),
     };
 
+    haptic.success();
     onSaveEvidence(newEvidence);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative max-h-[90vh] overflow-y-auto">
+      <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative max-h-[90vh] overflow-y-auto animate-modal-pop shadow-2xl">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/70 transition cursor-pointer"
@@ -113,8 +117,11 @@ export const EvidenceUploadModal: React.FC<EvidenceUploadModalProps> = ({
                 <button
                   key={cat}
                   type="button"
-                  onClick={() => setCategory(cat)}
-                  className={`py-1.5 px-2 rounded-lg font-semibold text-[11px] transition cursor-pointer ${
+                  onClick={() => {
+                    haptic.selection();
+                    setCategory(cat);
+                  }}
+                  className={`py-1.5 px-2 rounded-lg font-semibold text-[11px] transition active:scale-95 cursor-pointer ${
                     category === cat
                       ? 'bg-sky-600 text-white shadow-sm'
                       : 'neu-btn text-slate-700 hover:bg-white'
