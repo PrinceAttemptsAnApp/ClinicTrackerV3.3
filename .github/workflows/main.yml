@@ -1,42 +1,42 @@
-```yaml
 name: Deploy DentaTrack
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+push:
+branches:
+- main
+workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+contents: read
+pages: write
+id-token: write
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+deploy:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Get source code
-        uses: actions/checkout@v4
+```
+steps:
+  - name: Get source code
+    uses: actions/checkout@v4
 
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
+  - name: Install Bun
+    uses: oven-sh/setup-bun@v2
 
-      - name: Install dependencies
-        run: bun install
+  - name: Install dependencies
+    run: bun install
 
-      - name: Build app
-        run: bun run build
+  - name: Build app
+    run: bun run build
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+  - name: Configure Pages
+    uses: actions/configure-pages@v5
 
-      - name: Upload app
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
+  - name: Upload app
+    uses: actions/upload-pages-artifact@v3
+    with:
+      path: ./dist
 
-      - name: Deploy to Pages
-        uses: actions/deploy-pages@v4
+  - name: Deploy to Pages
+    uses: actions/deploy-pages@v4
 ```
