@@ -14,10 +14,11 @@ id-token: write
 jobs:
 build:
 runs-on: ubuntu-latest
-steps:
-- uses: actions/checkout@v4
 
 ```
+steps:
+  - uses: actions/checkout@v4
+
   - uses: oven-sh/setup-bun@v2
 
   - run: bun install
@@ -34,8 +35,12 @@ steps:
 deploy:
 needs: build
 runs-on: ubuntu-latest
+
+```
 environment:
-name: github-pages
+  name: github-pages
+
 steps:
-- id: deployment
-uses: actions/deploy-pages@v4
+  - id: deployment
+    uses: actions/deploy-pages@v4
+```
