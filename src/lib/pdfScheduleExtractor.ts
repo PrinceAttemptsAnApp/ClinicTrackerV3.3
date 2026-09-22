@@ -1,4 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs';
 import { ClinicSession, ClinicPlace, DisciplineType } from '../types';
 
 if (typeof Promise.try !== 'function') {
@@ -758,12 +759,17 @@ async function parsePdfDocItems(doc: any): Promise<PdfItemWithCoord[]> {
   return items;
 }
 
+interface PdfExtractionResult {
+  items: PdfItemWithCoord[];
+  openedSuccessfully: boolean;
+  errorReason?: 'encrypted' | 'corrupted' | 'unreadable';
+  errorDetails?: string;
+}
+
 /**
- * Extracts structured items with coordinates using PDF.js (100% Offline with bundled worker & fallback)
+ * Extracts structured items with coordinates using PDF.js (100% Offline with bundled worker & main-thread fallback)
  */
-async function extractItemsWithPdfJs(
-  arrayBuffer: ArrayBuffer
-): Promise<{ items: PdfItemWithCoord[]; openedSuccessfully: boolean }> {
+async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtractionResult> {
   const safeData = new Uint8Array(arrayBuffer.slice(0));
 
   // Stage 1: Try normal PDF.js loading with configured workerSrc
@@ -776,47 +782,48 @@ async function extractItemsWithPdfJs(
     const doc = await Promise.race([
       loadingTask.promise,
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 5000)
+        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 2500)
       ),
     ]);
 
     const items = await parsePdfDocItems(doc);
     return { items, openedSuccessfully: true };
-  } catch (stage1Err) {
-    console.warn('PDF.js Stage 1 (Worker) failed, attempting Stage 2 (Inline/Blob fallback):', stage1Err);
+  } catch (stage1Err: any) {
+    console.warn('PDF.js Stage 1 (Worker) failed, attempting Stage 2 (Main-Thread Fallback):', stage1Err);
   }
 
-  // Stage 2: Blob worker or main-thread fallback
+  // Stage 2: PDF.js Main-Thread Fallback (uses imported pdfjsWorker directly in UI thread)
   try {
-    if (typeof window !== 'undefined' && pdfWorkerUrl) {
-      const resp = await fetch(pdfWorkerUrl);
-      if (resp.ok) {
-        const workerText = await resp.text();
-        const blob = new Blob([workerText], { type: 'text/javascript' });
-        const blobUrl = URL.createObjectURL(blob);
-        pdfjsLib.GlobalWorkerOptions.workerSrc = blobUrl;
+    (globalThis as any).pdfjsWorker = pdfjsWorker;
+    const loadingTask = pdfjsLib.getDocument({
+      data: safeData,
+      useSystemFonts: true,
+    });
 
-        const loadingTask = pdfjsLib.getDocument({
-          data: safeData,
-          useSystemFonts: true,
-        });
+    const doc = await loadingTask.promise;
+    const items = await parsePdfDocItems(doc);
+    return { items, openedSuccessfully: true };
+  } catch (stage2Err: any) {
+    console.warn('PDF.js Stage 2 (Main-Thread) failed:', stage2Err);
 
-        const doc = await Promise.race([
-          loadingTask.promise,
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('PDF.js Blob fallback timeout')), 5000)
-          ),
-        ]);
+    const errMsg = (stage2Err?.message || stage2Err?.name || String(stage2Err)).toLowerCase();
+    let errorReason: 'encrypted' | 'corrupted' | 'unreadable' = 'unreadable';
 
-        const items = await parsePdfDocItems(doc);
-        return { items, openedSuccessfully: true };
-      }
+    if (stage2Err?.name === 'PasswordException' || errMsg.includes('password') || errMsg.includes('encrypt')) {
+      errorReason = 'encrypted';
+    } else if (
+      stage2Err?.name === 'InvalidPDFException' ||
+      stage2Err?.name === 'FormatError' ||
+      errMsg.includes('invalid') ||
+      errMsg.includes('corrupt') ||
+      errMsg.includes('structure') ||
+      errMsg.includes('pdf header')
+    ) {
+      errorReason = 'corrupted';
     }
-  } catch (stage2Err) {
-    console.warn('PDF.js Stage 2 (Blob Worker) failed:', stage2Err);
-  }
 
-  return { items: [], openedSuccessfully: false };
+    return { items: [], openedSuccessfully: false, errorReason, errorDetails: stage2Err?.message };
+  }
 }
 
 /**
@@ -828,18 +835,22 @@ export async function extractScheduleFromDoctorPdf(file: File): Promise<Extracte
 
   let pdfItems: PdfItemWithCoord[] = [];
   let openedSuccessfully = false;
+  let extractionErrorReason: 'encrypted' | 'corrupted' | 'unreadable' | undefined;
+  let extractionErrorDetails: string | undefined;
 
-  // Tier 1: Try PDF.js (100% offline with bundled worker & Blob fallback)
+  // Tier 1: Try PDF.js (Worker + Main-Thread Fallback)
   try {
     const result = await extractItemsWithPdfJs(arrayBuffer);
     pdfItems = result.items;
     openedSuccessfully = result.openedSuccessfully;
-  } catch (err) {
+    extractionErrorReason = result.errorReason;
+    extractionErrorDetails = result.errorDetails;
+  } catch (err: any) {
     console.warn('PDF.js extraction error:', err);
   }
 
   // Tier 2: Native PDF stream decoder
-  if (pdfItems.length === 0) {
+  if (pdfItems.length === 0 && extractionErrorReason !== 'encrypted') {
     try {
       pdfItems = await extractPdfItemsNatively(arrayBuffer);
       if (pdfItems.length > 0) {
@@ -886,15 +897,24 @@ export async function extractScheduleFromDoctorPdf(file: File): Promise<Extracte
 
   // Error Classification
   if (pdfItems.length === 0) {
+    if (extractionErrorReason === 'encrypted') {
+      throw new Error(
+        `The PDF document "${fileName}" is password-protected or encrypted. Please remove password protection or paste your schedule text directly.`
+      );
+    }
+    if (extractionErrorReason === 'corrupted') {
+      throw new Error(
+        `The PDF document "${fileName}" appears to be damaged or formatted incorrectly (${extractionErrorDetails || 'Invalid PDF structure'}). Try re-saving the PDF or paste your schedule text directly.`
+      );
+    }
     if (openedSuccessfully) {
       throw new Error(
         `The PDF document "${fileName}" appears to be scanned or image-based with no selectable text. Please upload a text-based schedule PDF or paste your schedule text directly.`
       );
-    } else {
-      throw new Error(
-        `Could not read PDF document "${fileName}". The file may be encrypted, corrupted, or in an unreadable format. Try pasting your schedule text directly.`
-      );
     }
+    throw new Error(
+      `Could not read PDF document "${fileName}". Try pasting your schedule text directly.`
+    );
   }
 
   throw new Error(

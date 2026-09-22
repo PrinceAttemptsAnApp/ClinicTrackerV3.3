@@ -1,3 +1,8 @@
+import { webcrypto } from 'node:crypto';
+if (!globalThis.crypto || !(globalThis.crypto as any).subtle) {
+  (globalThis as any).crypto = webcrypto as any;
+}
+
 import { 
   extractScheduleFromText, 
   extractScheduleFromDoctorPdf,
@@ -214,6 +219,130 @@ startxref
     assert(pdfRes.sessions[0].clinicPlace === 'A', 'Test 11c: PDF session clinic is Clinic A');
   } catch (e: any) {
     assert(false, `Test 11 Exception: ${e.message}`);
+  }
+
+  // TEST 12: Stage 2 Main-Thread Fallback Execution (simulated worker failure)
+  try {
+    const rawPdfString = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [3 0 R] >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 75 >>
+stream
+BT
+50 700 Td
+(Sunday 10:00 - 12:00 Endo Clinic B) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000208 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+320
+%%EOF`;
+
+    const pdfBuffer = new TextEncoder().encode(rawPdfString).buffer;
+    const pdfFile = new File([pdfBuffer], 'Fallback_Schedule.pdf', { type: 'application/pdf' });
+
+    // Intentionally break workerSrc to simulate iPad WebKit worker failure
+    const { GlobalWorkerOptions } = await import('pdfjs-dist');
+    const origWorkerSrc = GlobalWorkerOptions.workerSrc;
+    GlobalWorkerOptions.workerSrc = 'http://invalid-worker-domain-for-testing.local/worker.js';
+
+    try {
+      const pdfRes = await extractScheduleFromDoctorPdf(pdfFile);
+      assert(pdfRes.sessions.length > 0, 'Test 12a: Main-thread fallback extracted sessions despite worker failure');
+      assert(pdfRes.sessions[0].dayOfWeek === 'Sunday', 'Test 12b: Day extracted correctly as Sunday');
+      assert(pdfRes.sessions[0].clinicPlace === 'B', 'Test 12c: Clinic extracted correctly as Clinic B');
+    } finally {
+      GlobalWorkerOptions.workerSrc = origWorkerSrc;
+    }
+  } catch (e: any) {
+    assert(false, `Test 12 Exception: ${e.message}`);
+  }
+
+  // TEST 13: Corrupted / Invalid PDF File Handling
+  try {
+    const invalidBuffer = new TextEncoder().encode('THIS_IS_NOT_A_VALID_PDF_HEADER').buffer;
+    const invalidFile = new File([invalidBuffer], 'Corrupted.pdf', { type: 'application/pdf' });
+
+    let caught = false;
+    try {
+      await extractScheduleFromDoctorPdf(invalidFile);
+    } catch (err: any) {
+      caught = true;
+      assert(
+        err.message.includes('damaged') || err.message.includes('Could not read'),
+        `Test 13a: Clear error for corrupted file (got: "${err.message}")`
+      );
+    }
+    assert(caught, 'Test 13b: Corrupted PDF threw exception as expected');
+  } catch (e: any) {
+    assert(false, `Test 13 Exception: ${e.message}`);
+  }
+
+  // TEST 14: Blank / Image-Only / Scanned PDF Handling
+  try {
+    const blankPdfString = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [3 0 R] >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 12 >>
+stream
+BT
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000208 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+257
+%%EOF`;
+
+    const blankBuffer = new TextEncoder().encode(blankPdfString).buffer;
+    const blankFile = new File([blankBuffer], 'Blank_Scanned.pdf', { type: 'application/pdf' });
+
+    let caught = false;
+    try {
+      await extractScheduleFromDoctorPdf(blankFile);
+    } catch (err: any) {
+      caught = true;
+      assert(
+        err.message.includes('scanned or image-based') || err.message.includes('Could not read PDF'),
+        `Test 14a: Identified blank/image-only PDF clearly (got: "${err.message}")`
+      );
+    }
+    assert(caught, 'Test 14b: Image-only PDF threw exception as expected');
+  } catch (e: any) {
+    assert(false, `Test 14 Exception: ${e.message}`);
   }
 
   console.log(`\n=== REGRESSION SUITE RESULTS: ${passed} PASSED, ${failed} FAILED ===`);
