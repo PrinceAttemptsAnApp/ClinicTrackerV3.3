@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Stethoscope, 
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { 
   DentalCase, 
+  ClinicalProcedure,
   ClinicPlace, 
   Semester, 
   StudentProfile, 
@@ -22,6 +23,9 @@ import {
   getAllCases, 
   saveCase, 
   deleteCase as removeCaseFromDb, 
+  restoreCase,
+  deleteProcedureFromCase,
+  restoreProcedureToCase,
   getStudentProfile, 
   saveStudentProfile, 
   getClinicSchedule, 
@@ -45,6 +49,7 @@ import { CaseDetailView } from './components/CaseDetailView';
 import { DocumentsArchiveView } from './components/DocumentsArchiveView';
 import { ClinicScheduleView } from './components/ClinicScheduleView';
 import { SettingsView } from './components/SettingsView';
+import { UndoSnackbar, UndoNotification } from './components/UndoSnackbar';
 
 export default function App() {
   // Navigation & View State
@@ -73,6 +78,25 @@ export default function App() {
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Undo System State
+  const [undoNotification, setUndoNotification] = useState<UndoNotification | null>(null);
+  const pendingCaseDeletionsRef = useRef<Map<string, { timer: NodeJS.Timeout; snapshot: DentalCase }>>(new Map());
+  const pendingProcedureDeletionsRef = useRef<Map<string, { timer: NodeJS.Timeout; caseId: string; snapshot: ClinicalProcedure }>>(new Map());
+
+  // Flush any pending deletions on unmount so data is cleanly committed
+  useEffect(() => {
+    return () => {
+      pendingCaseDeletionsRef.current.forEach(({ timer, snapshot }) => {
+        clearTimeout(timer);
+        removeCaseFromDb(snapshot.id);
+      });
+      pendingProcedureDeletionsRef.current.forEach(({ timer, caseId, snapshot }) => {
+        clearTimeout(timer);
+        deleteProcedureFromCase(caseId, snapshot.id);
+      });
+    };
+  }, []);
 
   // Reload clinical data into React state without re-evaluating startup modals
   const refreshData = useCallback(async () => {
@@ -208,12 +232,234 @@ export default function App() {
     setActiveTab('case-detail');
   };
 
-  // Handle Case Deletion
-  const handleDeleteCase = async (caseId: string) => {
+  // Handle Case Deletion with Undo
+  const handleDeleteCase = (caseId: string) => {
+    // 1. Locate case snapshot before removing
+    const targetCase = cases.find((c) => c.id === caseId);
+    if (!targetCase) return;
+
+    // Deep clone snapshot so it cannot be mutated
+    const caseSnapshot: DentalCase = JSON.parse(JSON.stringify(targetCase));
+
+    // 2. Clear any active undo notification and commit previous pending deletion immediately
+    if (undoNotification) {
+      if (undoNotification.type === 'case') {
+        const prevPending = pendingCaseDeletionsRef.current.get(undoNotification.id);
+        if (prevPending) {
+          clearTimeout(prevPending.timer);
+          removeCaseFromDb(prevPending.snapshot.id);
+          pendingCaseDeletionsRef.current.delete(undoNotification.id);
+        }
+      } else if (undoNotification.type === 'procedure') {
+        const prevPending = pendingProcedureDeletionsRef.current.get(undoNotification.id);
+        if (prevPending) {
+          clearTimeout(prevPending.timer);
+          deleteProcedureFromCase(prevPending.caseId, prevPending.snapshot.id);
+          pendingProcedureDeletionsRef.current.delete(undoNotification.id);
+        }
+      }
+    }
+
+    // 3. Immediately update UI (optimistic deletion)
     setCases((prev) => prev.filter((c) => c.id !== caseId));
-    await removeCaseFromDb(caseId);
-    setSelectedCaseId(null);
-    setActiveTab('cases');
+    if (selectedCaseId === caseId) {
+      setSelectedCaseId(null);
+      setActiveTab('cases');
+    }
+
+    // 4. Schedule IndexedDB deletion after 6.5s window
+    const timer = setTimeout(async () => {
+      try {
+        await removeCaseFromDb(caseId);
+      } catch (err) {
+        console.error('Error committing case deletion to IndexedDB:', err);
+      } finally {
+        pendingCaseDeletionsRef.current.delete(caseId);
+      }
+    }, 6500);
+
+    pendingCaseDeletionsRef.current.set(caseId, { timer, snapshot: caseSnapshot });
+
+    // 5. Present the Undo notification
+    setUndoNotification({
+      id: caseId,
+      type: 'case',
+      title: caseSnapshot.patientName || `Case #${caseSnapshot.fileNumber}`,
+      subtitle: `Patient: ${caseSnapshot.patientName} (${caseSnapshot.procedures.length} procedure${caseSnapshot.procedures.length === 1 ? '' : 's'})`,
+      snapshot: caseSnapshot,
+      durationMs: 6500,
+    });
+  };
+
+  // Handle Procedure Deletion with Undo
+  const handleDeleteProcedure = (procId: string, snapshot?: ClinicalProcedure) => {
+    // Determine procedure and its parent case
+    let targetProcedure = snapshot;
+    let parentCase = selectedCaseId ? cases.find((c) => c.id === selectedCaseId) : undefined;
+
+    if (!parentCase) {
+      // Search all cases if not in selectedCaseId
+      parentCase = cases.find((c) => c.procedures.some((p) => p.id === procId));
+    }
+
+    if (!parentCase) return;
+
+    if (!targetProcedure) {
+      targetProcedure = parentCase.procedures.find((p) => p.id === procId);
+    }
+
+    if (!targetProcedure) return;
+
+    // Deep clone snapshot
+    const procedureSnapshot: ClinicalProcedure = JSON.parse(JSON.stringify(targetProcedure));
+    const targetCaseId = parentCase.id;
+
+    // Clear any previous undo notification and finalize its pending deletion
+    if (undoNotification) {
+      if (undoNotification.type === 'case') {
+        const prevPending = pendingCaseDeletionsRef.current.get(undoNotification.id);
+        if (prevPending) {
+          clearTimeout(prevPending.timer);
+          removeCaseFromDb(prevPending.snapshot.id);
+          pendingCaseDeletionsRef.current.delete(undoNotification.id);
+        }
+      } else if (undoNotification.type === 'procedure') {
+        const prevPending = pendingProcedureDeletionsRef.current.get(undoNotification.id);
+        if (prevPending) {
+          clearTimeout(prevPending.timer);
+          deleteProcedureFromCase(prevPending.caseId, prevPending.snapshot.id);
+          pendingProcedureDeletionsRef.current.delete(undoNotification.id);
+        }
+      }
+    }
+
+    // Immediately remove from parent case in memory
+    const updatedProcedures = parentCase.procedures.filter((p) => p.id !== procId);
+    const updatedCase: DentalCase = {
+      ...parentCase,
+      procedures: updatedProcedures,
+      disciplines: Array.from(new Set(updatedProcedures.map((p) => p.discipline))),
+    };
+
+    setCases((prev) => prev.map((c) => (c.id === targetCaseId ? updatedCase : c)));
+
+    // Schedule IndexedDB deletion after 6.5s window
+    const timer = setTimeout(async () => {
+      try {
+        await deleteProcedureFromCase(targetCaseId, procId);
+      } catch (err) {
+        console.error('Error committing procedure deletion to IndexedDB:', err);
+      } finally {
+        pendingProcedureDeletionsRef.current.delete(procId);
+      }
+    }, 6500);
+
+    pendingProcedureDeletionsRef.current.set(procId, {
+      timer,
+      caseId: targetCaseId,
+      snapshot: procedureSnapshot,
+    });
+
+    // Present the Undo notification
+    setUndoNotification({
+      id: procId,
+      type: 'procedure',
+      title: procedureSnapshot.title,
+      subtitle: `${procedureSnapshot.discipline}${procedureSnapshot.toothNumber ? ` • Tooth #${procedureSnapshot.toothNumber}` : ''}`,
+      snapshot: procedureSnapshot,
+      caseId: targetCaseId,
+      durationMs: 6500,
+    });
+  };
+
+  // Perform Undo Restoration
+  const handleUndo = async () => {
+    if (!undoNotification) return;
+
+    haptic.success();
+
+    if (undoNotification.type === 'case') {
+      const pending = pendingCaseDeletionsRef.current.get(undoNotification.id);
+      const caseToRestore: DentalCase = undoNotification.snapshot as DentalCase;
+
+      if (pending) {
+        clearTimeout(pending.timer);
+        pendingCaseDeletionsRef.current.delete(undoNotification.id);
+      }
+
+      // 1. Immediately restore to UI state
+      setCases((prev) => {
+        const exists = prev.some((c) => c.id === caseToRestore.id);
+        if (exists) return prev;
+        return [caseToRestore, ...prev];
+      });
+
+      // 2. Persist cleanly back into IndexedDB
+      try {
+        await restoreCase(caseToRestore);
+      } catch (err) {
+        console.error('Failed to restore case in IndexedDB:', err);
+      }
+    } else if (undoNotification.type === 'procedure') {
+      const pending = pendingProcedureDeletionsRef.current.get(undoNotification.id);
+      const procToRestore: ClinicalProcedure = undoNotification.snapshot as ClinicalProcedure;
+      const targetCaseId = undoNotification.caseId || (pending ? pending.caseId : undefined);
+
+      if (pending) {
+        clearTimeout(pending.timer);
+        pendingProcedureDeletionsRef.current.delete(undoNotification.id);
+      }
+
+      if (targetCaseId) {
+        // 1. Restore to UI state
+        setCases((prev) =>
+          prev.map((c) => {
+            if (c.id !== targetCaseId) return c;
+            const exists = c.procedures.some((p) => p.id === procToRestore.id);
+            if (exists) return c;
+            const updatedProcs = [...c.procedures, procToRestore];
+            return {
+              ...c,
+              procedures: updatedProcs,
+              disciplines: Array.from(new Set(updatedProcs.map((p) => p.discipline))),
+            };
+          })
+        );
+
+        // 2. Persist to IndexedDB
+        try {
+          await restoreProcedureToCase(targetCaseId, procToRestore);
+        } catch (err) {
+          console.error('Failed to restore procedure in IndexedDB:', err);
+        }
+      }
+    }
+
+    setUndoNotification(null);
+  };
+
+  // Dismiss Undo snackbar without waiting (or when time expires)
+  const handleDismissUndo = () => {
+    if (!undoNotification) return;
+
+    // Immediately commit the pending deletion in IndexedDB
+    if (undoNotification.type === 'case') {
+      const pending = pendingCaseDeletionsRef.current.get(undoNotification.id);
+      if (pending) {
+        clearTimeout(pending.timer);
+        pendingCaseDeletionsRef.current.delete(undoNotification.id);
+        removeCaseFromDb(undoNotification.id).catch(console.error);
+      }
+    } else if (undoNotification.type === 'procedure') {
+      const pending = pendingProcedureDeletionsRef.current.get(undoNotification.id);
+      if (pending) {
+        clearTimeout(pending.timer);
+        pendingProcedureDeletionsRef.current.delete(undoNotification.id);
+        deleteProcedureFromCase(pending.caseId, undoNotification.id).catch(console.error);
+      }
+    }
+
+    setUndoNotification(null);
   };
 
   // Handle Profile Update
@@ -367,6 +613,7 @@ export default function App() {
                   onBack={() => setActiveTab('cases')}
                   onUpdateCase={handleUpdateCase}
                   onDeleteCase={handleDeleteCase}
+                  onDeleteProcedure={handleDeleteProcedure}
                   templates={templates}
                 />
               )}
@@ -466,6 +713,13 @@ export default function App() {
           onSaveName={handleSaveFirstTimeName}
         />
       )}
+
+      {/* Global Clinical Undo Notification Snackbar */}
+      <UndoSnackbar
+        notification={undoNotification}
+        onUndo={handleUndo}
+        onDismiss={handleDismissUndo}
+      />
     </div>
   );
 }

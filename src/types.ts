@@ -71,12 +71,23 @@ export interface EvidenceFile {
   isSignedRubric?: boolean;
 }
 
+export interface RemovableArchSelection {
+  type: 'partial' | 'complete' | 'none';
+  replacedTeeth: string[]; // FDI tooth numbers (e.g. ['14', '15', '16'])
+}
+
+export interface RemovableCaseConfig {
+  maxillary: RemovableArchSelection;
+  mandibular: RemovableArchSelection;
+}
+
 export interface ClinicalProcedure {
   id: string;
   caseId: string;
   discipline: DisciplineType;
   title: string;
   toothNumber?: string;
+  removable?: RemovableCaseConfig;
   points?: number;
   status: ProcedureStatus;
   date: string;

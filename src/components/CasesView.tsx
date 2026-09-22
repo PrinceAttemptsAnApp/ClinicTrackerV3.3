@@ -468,12 +468,12 @@ export const CasesView: React.FC<CasesViewProps> = ({
             <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200/80 text-xs text-rose-800 space-y-1">
               <p className="font-bold flex items-center gap-1.5">
                 <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
-                <span>This action cannot be undone:</span>
+                <span>Removing clinical case:</span>
               </p>
               <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
-                <li>All {casePendingDelete.procedures.length} procedure(s) will be permanently deleted</li>
-                <li>All rubric attachments, signed evaluations, and milestone steps will be lost</li>
-                <li>All clinical photo evidence will be purged from the local database</li>
+                <li>All {casePendingDelete.procedures.length} procedure(s) and milestone steps will be removed</li>
+                <li>All rubric attachments and clinical photos will be removed</li>
+                <li>You will have an <strong>Undo</strong> window to restore this case if deleted by mistake</li>
               </ul>
             </div>
 

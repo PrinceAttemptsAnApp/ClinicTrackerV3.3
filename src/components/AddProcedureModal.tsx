@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { PlusCircle, X, AlertCircle, Layers } from 'lucide-react';
-import { ClinicalProcedure, DisciplineType, ProcedureTemplate } from '../types';
+import { ClinicalProcedure, DisciplineType, ProcedureTemplate, RemovableCaseConfig } from '../types';
 import { DEFAULT_TEMPLATES } from '../lib/storage';
 import { ToothDiagramSelector } from './ToothDiagramSelector';
+import { RemovableSelector, getDefaultRemovableConfig, formatRemovableSummary, validateRemovableConfig } from './RemovableSelector';
 import { haptic } from '../lib/haptics';
 
 interface AddProcedureModalProps {
@@ -39,6 +40,7 @@ export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('tmpl-fixed-single-crown');
   const [customTitle, setCustomTitle] = useState('');
   const [toothNumber, setToothNumber] = useState(defaultToothNumber || '');
+  const [removableConfig, setRemovableConfig] = useState<RemovableCaseConfig>(getDefaultRemovableConfig());
   const [error, setError] = useState<string | null>(null);
 
   // Sync defaultToothNumber when modal opens or changes
@@ -72,6 +74,21 @@ export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
       return;
     }
 
+    // If Removable discipline is selected, validate removable arch configuration
+    if (discipline === 'Removable') {
+      const validation = validateRemovableConfig(removableConfig);
+      if (!validation.isValid) {
+        haptic.warning();
+        setError(validation.errorMessage || 'Invalid removable prosthodontics configuration.');
+        return;
+      }
+    }
+
+    const finalToothNumber =
+      discipline === 'Removable'
+        ? formatRemovableSummary(removableConfig)
+        : toothNumber.trim() || undefined;
+
     const steps = template
       ? template.defaultSteps.map((s, idx) => ({
           id: `step-${Date.now()}-${idx}`,
@@ -88,8 +105,9 @@ export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
       id: `proc-${Date.now()}`,
       caseId,
       discipline,
-      title: title.trim(),
-      toothNumber: toothNumber.trim() || undefined,
+      title: title.trim() + (finalToothNumber ? ` (${finalToothNumber})` : ''),
+      toothNumber: finalToothNumber,
+      removable: discipline === 'Removable' ? removableConfig : undefined,
       points: template?.defaultPoints || 10,
       status: 'In Progress',
       date: new Date().toISOString().split('T')[0],
@@ -161,15 +179,6 @@ export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
                     setDiscipline(disc);
                     const match = templates.find((t) => t.discipline === disc);
                     if (match) setSelectedTemplateId(match.id);
-
-                    // If Removable is selected, automatically assign to entire jaw (maxillary or mandibular)
-                    if (disc === 'Removable') {
-                      if (!toothNumber || (!toothNumber.includes('Arch') && !toothNumber.includes('Jaw'))) {
-                        setToothNumber('Maxillary Arch (Upper Jaw)');
-                      }
-                    } else if (toothNumber.includes('Arch') || toothNumber.includes('Jaw')) {
-                      setToothNumber('');
-                    }
                   }}
                   className={`px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer ${
                     discipline === disc
@@ -254,64 +263,12 @@ export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
             </div>
           </div>
 
-          {/* Removable Jaw Assignment vs. Standard Tooth Selection Diagram */}
+          {/* Removable Independent Arch Selector vs. Standard Tooth Selection Diagram */}
           {discipline === 'Removable' ? (
-            <div className="rounded-2xl bg-white/95 border border-sky-200/90 shadow-xs p-3 sm:p-4 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4 text-sky-600" />
-                  <span>Jaw / Arch Assignment (Removable Prosthodontics)</span>
-                </span>
-                {toothNumber && (
-                  <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] sm:text-[11px] font-bold">
-                    {toothNumber}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-500 leading-tight">
-                Removable prosthodontic cases are automatically assigned to entire jaws (Maxillary or Mandibular). Select the target jaw:
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setToothNumber('Maxillary Arch (Upper Jaw)')}
-                  className={`p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer ${
-                    toothNumber === 'Maxillary Arch (Upper Jaw)'
-                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm font-bold'
-                      : 'bg-slate-50 hover:bg-sky-50 border-slate-200 text-slate-700 font-semibold'
-                  }`}
-                >
-                  <span className="block text-xs font-bold">Maxillary Arch</span>
-                  <span className="block text-[10px] opacity-80 mt-0.5">Upper Jaw</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setToothNumber('Mandibular Arch (Lower Jaw)')}
-                  className={`p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer ${
-                    toothNumber === 'Mandibular Arch (Lower Jaw)'
-                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm font-bold'
-                      : 'bg-slate-50 hover:bg-sky-50 border-slate-200 text-slate-700 font-semibold'
-                  }`}
-                >
-                  <span className="block text-xs font-bold">Mandibular Arch</span>
-                  <span className="block text-[10px] opacity-80 mt-0.5">Lower Jaw</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setToothNumber('Both Jaws (Maxillary & Mandibular)')}
-                  className={`p-2.5 sm:p-3 rounded-xl border text-center transition cursor-pointer ${
-                    toothNumber === 'Both Jaws (Maxillary & Mandibular)'
-                      ? 'bg-sky-600 text-white border-sky-600 shadow-sm font-bold'
-                      : 'bg-slate-50 hover:bg-sky-50 border-slate-200 text-slate-700 font-semibold'
-                  }`}
-                >
-                  <span className="block text-xs font-bold">Both Jaws</span>
-                  <span className="block text-[10px] opacity-80 mt-0.5">Complete Denture</span>
-                </button>
-              </div>
-            </div>
+            <RemovableSelector
+              config={removableConfig}
+              onChange={setRemovableConfig}
+            />
           ) : (
             <ToothDiagramSelector
               value={toothNumber}

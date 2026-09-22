@@ -33,7 +33,7 @@ interface ProcedureDetailViewProps {
   dentalCase: DentalCase;
   onBack: () => void;
   onUpdateCase: (updatedCase: DentalCase) => void;
-  onDeleteProcedure: (procedureId: string) => void;
+  onDeleteProcedure: (procedureId: string, procedureSnapshot?: ClinicalProcedure) => void;
   templates: ProcedureTemplate[];
 }
 
@@ -714,27 +714,37 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-200 mb-4">
-              ⚠️ This will permanently remove this procedure, its milestones, rubric documents, and clinical evidence from this case.
-            </p>
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 mb-4 text-xs text-rose-800 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                <span>Removing procedure:</span>
+              </p>
+              <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
+                <li>All milestone steps and clinical records for this procedure will be removed</li>
+                <li>Other procedures in this case will remain intact</li>
+                <li>You can <strong>Undo</strong> this action to restore the procedure immediately</li>
+              </ul>
+            </div>
 
             <div className="flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 rounded-xl neu-btn text-xs font-bold text-slate-700 cursor-pointer"
+                className="px-4 py-2 rounded-xl neu-btn text-xs font-bold text-slate-700 cursor-pointer active:scale-95"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => {
+                  haptic.error();
                   setIsDeleteModalOpen(false);
-                  onDeleteProcedure(procedure.id);
+                  onDeleteProcedure(procedure.id, procedure);
                 }}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-sm transition cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer flex items-center gap-1.5"
               >
-                Delete Procedure
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Procedure</span>
               </button>
             </div>
           </div>

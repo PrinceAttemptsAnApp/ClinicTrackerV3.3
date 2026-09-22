@@ -860,6 +860,61 @@ export async function deleteCase(id: string): Promise<void> {
   await db.delete('cases', id);
 }
 
+export async function restoreCase(dentalCase: DentalCase): Promise<void> {
+  await saveCase(dentalCase);
+}
+
+export async function deleteProcedureFromCase(caseId: string, procedureId: string): Promise<DentalCase | null> {
+  const dentalCase = await getCaseById(caseId);
+  if (!dentalCase) return null;
+
+  const updatedProcedures = dentalCase.procedures.filter(p => p.id !== procedureId);
+  const updatedCase: DentalCase = {
+    ...dentalCase,
+    procedures: updatedProcedures,
+    disciplines: Array.from(new Set(updatedProcedures.map(p => p.discipline))),
+    isComprehensive: computeIsComprehensive(updatedProcedures),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await saveCase(updatedCase);
+  return updatedCase;
+}
+
+export async function restoreProcedureToCase(
+  caseId: string, 
+  procedure: ClinicalProcedure, 
+  originalIndex?: number
+): Promise<DentalCase | null> {
+  const dentalCase = await getCaseById(caseId);
+  if (!dentalCase) return null;
+
+  // Prevent duplicate insertion if already exists
+  const existingIndex = dentalCase.procedures.findIndex(p => p.id === procedure.id);
+  let updatedProcedures = [...dentalCase.procedures];
+
+  if (existingIndex >= 0) {
+    // Replace with the restored snapshot to ensure pristine state
+    updatedProcedures[existingIndex] = procedure;
+  } else if (typeof originalIndex === 'number' && originalIndex >= 0 && originalIndex <= updatedProcedures.length) {
+    // Restore at the exact original index/position
+    updatedProcedures.splice(originalIndex, 0, procedure);
+  } else {
+    updatedProcedures.push(procedure);
+  }
+
+  const updatedCase: DentalCase = {
+    ...dentalCase,
+    procedures: updatedProcedures,
+    disciplines: Array.from(new Set(updatedProcedures.map(p => p.discipline))),
+    isComprehensive: computeIsComprehensive(updatedProcedures),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await saveCase(updatedCase);
+  return updatedCase;
+}
+
 // Templates CRUD
 export async function getAllTemplates(): Promise<ProcedureTemplate[]> {
   const db = await getDB();

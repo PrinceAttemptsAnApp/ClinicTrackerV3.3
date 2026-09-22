@@ -46,6 +46,7 @@ interface CaseDetailViewProps {
   onBack: () => void;
   onUpdateCase: (updatedCase: DentalCase) => void;
   onDeleteCase: (caseId: string) => void;
+  onDeleteProcedure?: (procedureId: string, deletedProcedure?: ClinicalProcedure) => void;
   templates: ProcedureTemplate[];
   initialProcedureId?: string | null;
 }
@@ -55,6 +56,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   onBack,
   onUpdateCase,
   onDeleteCase,
+  onDeleteProcedure,
   templates,
   initialProcedureId = null,
 }) => {
@@ -109,8 +111,8 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
         dentalCase={dentalCase}
         onBack={() => setSelectedProcedureId(null)}
         onUpdateCase={onUpdateCase}
-        onDeleteProcedure={(procId) => {
-          handleDeleteProcedure(procId);
+        onDeleteProcedure={(procId, snapshot) => {
+          handleDeleteProcedure(procId, snapshot);
           setSelectedProcedureId(null);
         }}
         templates={templates}
@@ -173,15 +175,21 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   };
 
   // Delete Procedure Execution
-  const handleDeleteProcedure = (procId: string) => {
-    const updated = dentalCase.procedures.filter((p) => p.id !== procId);
-    const disciplines = Array.from(new Set(updated.map((p) => p.discipline)));
-    onUpdateCase({
-      ...dentalCase,
-      procedures: updated,
-      disciplines,
-      isComprehensive: computeIsComprehensive(updated),
-    });
+  const handleDeleteProcedure = (procId: string, snapshot?: ClinicalProcedure) => {
+    const procedureToDelete = snapshot || dentalCase.procedures.find((p) => p.id === procId);
+    
+    if (onDeleteProcedure) {
+      onDeleteProcedure(procId, procedureToDelete);
+    } else {
+      const updated = dentalCase.procedures.filter((p) => p.id !== procId);
+      const disciplines = Array.from(new Set(updated.map((p) => p.discipline)));
+      onUpdateCase({
+        ...dentalCase,
+        procedures: updated,
+        disciplines,
+        isComprehensive: computeIsComprehensive(updated),
+      });
+    }
     setProcedurePendingDelete(null);
   };
 
@@ -784,9 +792,17 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-200 mb-4">
-              ⚠️ This will delete this procedure and its milestones, rubric documents, and clinical evidence. Other procedures in this case will remain intact.
-            </p>
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 mb-4 text-xs text-rose-800 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                <span>Removing procedure:</span>
+              </p>
+              <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
+                <li>All milestone steps and clinical records for this procedure will be removed</li>
+                <li>Other procedures in this case will remain intact</li>
+                <li>You will have an <strong>Undo</strong> option to restore this procedure</li>
+              </ul>
+            </div>
 
             <div className="flex items-center justify-end gap-2.5">
               <button
@@ -831,9 +847,17 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
               </div>
             </div>
 
-            <p className="text-xs text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-200 mb-4">
-              ⚠️ This will permanently delete this entire clinical case, including all {dentalCase.procedures.length} procedure(s), rubrics, and photo evidence. This cannot be undone.
-            </p>
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 mb-4 text-xs text-rose-800 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                <span>Removing clinical case:</span>
+              </p>
+              <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
+                <li>All {dentalCase.procedures.length} procedure(s) and milestone steps will be removed</li>
+                <li>All rubric documents and clinical photos will be removed</li>
+                <li>You will have an <strong>Undo</strong> window to restore this case immediately</li>
+              </ul>
+            </div>
 
             <div className="flex items-center justify-end gap-2.5">
               <button

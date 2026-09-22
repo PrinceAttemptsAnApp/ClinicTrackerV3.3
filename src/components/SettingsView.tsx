@@ -16,12 +16,11 @@ import {
   ShieldCheck,
   RotateCcw,
   Share2,
-  Globe,
-  Copy,
   Calendar,
   Trash2,
   Binary,
-  Check
+  Check,
+  ExternalLink
 } from 'lucide-react';
 import { StudentProfile, ProcedureTemplate, DentalCase, ClinicSession, Semester } from '../types';
 import { exportAllDataBackup, importDataBackup, resetToDefaultDemoData, clearAllData } from '../lib/storage';
@@ -69,7 +68,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [installDismissed, setInstallDismissed] = useState<boolean>(() => {
     return localStorage.getItem('dentatrack_install_dismissed') === 'true';
   });
-  const [copiedGitCmd, setCopiedGitCmd] = useState(false);
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -650,95 +649,88 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
-      {/* GitHub Repository & Free Sharing with Friends Card */}
+      {/* Share DentaTrack with Friends & Classmates Card */}
       <div className="frosted-card rounded-2xl p-5 sm:p-6 border border-sky-200/60">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-600 flex items-center justify-center border border-sky-500/30">
-            <Globe className="w-5 h-5" />
+            <Share2 className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold text-slate-800">
-              Share Free with Friends & Classmates
+              Share DentaTrack
             </h3>
             <p className="text-xs text-slate-500">
-              Deployable for free on GitHub Pages, Vercel, or Netlify with zero server costs
+              Free and accessible from any smartphone, tablet, or laptop
             </p>
           </div>
         </div>
 
-        <div className="mt-3 p-3.5 rounded-xl bg-sky-50/70 border border-sky-100 text-xs text-slate-700 space-y-2.5">
-          <p className="leading-relaxed">
-            DentaTrack has been streamlined with a pre-configured <strong>GitHub Actions</strong> workflow (<code className="text-sky-800 font-mono bg-white px-1.5 py-0.5 rounded border border-sky-200">.github/workflows/deploy.yml</code>), <strong>Vercel</strong> configuration (<code className="text-sky-800 font-mono bg-white px-1.5 py-0.5 rounded border border-sky-200">vercel.json</code>), and <strong>Netlify</strong> configuration (<code className="text-sky-800 font-mono bg-white px-1.5 py-0.5 rounded border border-sky-200">netlify.toml</code>).
+        <div className="mt-3 p-4 rounded-xl bg-sky-50/70 border border-sky-100 text-xs text-slate-700 space-y-3.5">
+          <p className="leading-relaxed text-slate-600">
+            DentaTrack is freely hosted on GitHub Pages, making it easy to share with classmates and access from any supported device without requiring downloads or purchases.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-1 text-[11px]">
-            <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs space-y-1">
-              <span className="font-bold text-slate-800 block">1. Push to GitHub</span>
-              <span className="text-slate-500 block leading-normal">
-                Upload your code to a new GitHub repo. Everything compiles automatically with relative asset links.
-              </span>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs space-y-1">
-              <span className="font-bold text-slate-800 block">2. Turn on GitHub Pages</span>
-              <span className="text-slate-500 block leading-normal">
-                In GitHub: <em>Settings → Pages → Source: GitHub Actions</em>. Your free HTTPS link deploys in 60 seconds!
-              </span>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs space-y-1">
-              <span className="font-bold text-slate-800 block">3. Friends Install & Test</span>
-              <span className="text-slate-500 block leading-normal">
-                Classmates open the link on iOS Safari or Android Chrome and install it directly to their home screen offline.
-              </span>
-            </div>
-          </div>
-
-          <div className="pt-2 flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
             <button
-              onClick={() => {
-                const cmd = 'git init && git add . && git commit -m "Initial commit of DentaTrack" && git branch -M main';
-                navigator.clipboard.writeText(cmd);
-                setCopiedGitCmd(true);
-                setTimeout(() => setCopiedGitCmd(false), 2500);
-              }}
-              className="neu-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-sky-700 flex items-center gap-1.5 cursor-pointer"
-            >
-              {copiedGitCmd ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-700">Copied Git Push Commands!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Copy Git Push Commands</span>
-                </>
-              )}
-            </button>
-
-            <button
+              type="button"
               onClick={async () => {
+                const currentAppUrl = window.location.href.split('#')[0].split('?')[0] || window.location.origin;
                 if (navigator.share) {
                   try {
                     await navigator.share({
                       title: 'DentaTrack - 5th Year Dental Clinical Tracker',
-                      text: 'Track dental requirements, signed rubrics, and Moodle submissions offline on iOS, Android, and PC.',
-                      url: window.location.origin,
+                      text: 'Track dental requirements, signed rubrics, and clinical cases on your phone, tablet, or PC.',
+                      url: currentAppUrl,
                     });
-                  } catch {
-                    // user cancelled
+                    return;
+                  } catch (err: unknown) {
+                    // If user cancelled, don't fallback to clipboard
+                    if (err instanceof Error && err.name === 'AbortError') {
+                      return;
+                    }
                   }
-                } else {
-                  await navigator.clipboard.writeText(window.location.origin);
-                  alert('App link copied to clipboard!');
+                }
+
+                // Fallback to clipboard
+                try {
+                  await navigator.clipboard.writeText(currentAppUrl);
+                  setShareLinkCopied(true);
+                  setTimeout(() => setShareLinkCopied(false), 2500);
+                } catch {
+                  // Fallback prompt if clipboard API blocked
+                  window.prompt('Copy DentaTrack URL:', currentAppUrl);
                 }
               }}
-              className="neu-btn-primary px-3 py-1.5 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              className="neu-btn-primary px-4 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 cursor-pointer shadow-xs transition hover:brightness-105 active:scale-[0.98]"
             >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>Share App Link with Colleagues</span>
+              {shareLinkCopied ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                  <span>Link copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-4 h-4" />
+                  <span>Share DentaTrack</span>
+                </>
+              )}
             </button>
+
+            <span className="text-[11px] text-slate-500 italic text-center sm:text-left">
+              DentaTrack is free to use and can be installed as a PWA from your browser.
+            </span>
+          </div>
+
+          <div className="pt-1 border-t border-sky-200/50 flex items-center justify-start">
+            <a
+              href="https://github.com/PrinceAttemptsAnApp/ClinicTrackerV3.3"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 hover:text-sky-700 transition py-1"
+            >
+              <span>View DentaTrack on GitHub</span>
+              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+            </a>
           </div>
         </div>
       </div>
