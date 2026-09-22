@@ -57,6 +57,8 @@ export interface RubricDocument {
   notes?: string;
 }
 
+export type EndoStageKey = 'preOp' | 'estimatedWorkingLength' | 'masterCone' | 'postOp';
+
 export interface EvidenceFile {
   id: string;
   caseId: string;
@@ -64,11 +66,13 @@ export interface EvidenceFile {
   fileName: string;
   fileType: string;
   fileSize: number;
-  category: 'X-Ray' | 'Pre-Op' | 'Intra-Op' | 'Post-Op' | 'Rubric' | 'Moodle Screenshot' | 'Other';
+  category: 'X-Ray' | 'Pre-Op' | 'Intra-Op' | 'Post-Op' | 'Rubric' | 'Moodle Screenshot' | 'Other' | 'Endo Radiograph';
   fileDataUrl: string; // Base64 or Object URL for local presentation
   uploadedAt: string;
   notes?: string;
   isSignedRubric?: boolean;
+  endoToothNumber?: string; // Tooth associated with this radiograph (e.g. "36", "UR6")
+  endoStage?: EndoStageKey;  // 'preOp' | 'estimatedWorkingLength' | 'masterCone' | 'postOp'
 }
 
 export interface RemovableArchSelection {

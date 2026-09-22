@@ -38,11 +38,48 @@ import './index.css';
 // Safely register service worker for offline functionality and instant updates
 try {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    let refreshing = false;
+    const hadController = !!navigator.serviceWorker.controller;
+
+    // Reload once when a new service worker takes control (prevents stale cached assets on iOS/standalone PWA)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController && !refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+
     const updateSW = registerSW({ 
       immediate: true,
       onNeedRefresh() {
         // Automatically activate new service worker so users see updates immediately
         updateSW(true);
+      },
+      onRegisteredSW(_swScriptUrl, registration) {
+        if (!registration) return;
+
+        const checkSWUpdate = () => {
+          if (registration.installing || !navigator.onLine) return;
+          registration.update().catch((err) => {
+            console.warn('Service worker update check failed:', err);
+          });
+        };
+
+        // Check for updates on initial registration
+        checkSWUpdate();
+
+        // Check for SW updates when iOS Home Screen app becomes visible or focused
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            checkSWUpdate();
+          }
+        });
+
+        window.addEventListener('pageshow', checkSWUpdate);
+        window.addEventListener('focus', checkSWUpdate);
+
+        // Periodic background update check every hour
+        setInterval(checkSWUpdate, 60 * 60 * 1000);
       },
       onRegisterError(error) {
         console.warn('Service worker registration error:', error);

@@ -268,3 +268,40 @@ export function groupProceduresByTooth(procedures: ClinicalProcedure[]): ToothGr
 
   return Array.from(groupsMap.values());
 }
+
+export const ENDO_STAGES = [
+  { key: 'preOp', label: 'Pre-operative X-ray', shortLabel: 'Pre-op', category: 'Pre-Op' },
+  { key: 'estimatedWorkingLength', label: 'Estimated Working Length X-ray', shortLabel: 'Working Length', category: 'Intra-Op' },
+  { key: 'masterCone', label: 'Master Cone X-ray', shortLabel: 'Master Cone', category: 'Intra-Op' },
+  { key: 'postOp', label: 'Post-operative X-ray', shortLabel: 'Post-op', category: 'Post-Op' },
+] as const;
+
+export type EndoStageKey = typeof ENDO_STAGES[number]['key'];
+
+/**
+ * Splits procedure.toothNumber into clean individual tooth identifiers.
+ * e.g., "36, 37" -> ["Tooth #36", "Tooth #37"]
+ */
+export function parseProcedureTeeth(toothNumber?: string): string[] {
+  if (!toothNumber || !toothNumber.trim()) return ['Tooth #1'];
+  const formatted = formatTeethDisplay(toothNumber);
+  if (!formatted) return ['Tooth #1'];
+
+  if (/maxillary|mandibular|arch|jaw|full\s*mouth/i.test(formatted) && !/\d/.test(formatted)) {
+    return [formatted];
+  }
+
+  const parts = formatted
+    .split(/\s*·\s*|\s*,\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) return ['Tooth #1'];
+
+  return parts.map((p) => {
+    if (/^tooth/i.test(p)) return p;
+    if (/^(u[lr]|l[lr])/i.test(p)) return `Tooth ${p.toUpperCase()}`;
+    if (p.startsWith('#')) return `Tooth ${p}`;
+    return `Tooth #${p}`;
+  });
+}

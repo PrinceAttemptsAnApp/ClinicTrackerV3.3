@@ -24,6 +24,7 @@ import {
 import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, EvidenceFile, MoodleStatus } from '../types';
 import { RubricUploadModal } from './RubricUploadModal';
 import { EvidenceUploadModal } from './EvidenceUploadModal';
+import { EndoRadiographSection } from './EndoRadiographSection';
 import { getProcedureMacroStepStatus, formatTeethDisplay, cleanProcedureTitle } from '../lib/macroSteps';
 import { computeIsComprehensive } from '../lib/storage';
 import { haptic } from '../lib/haptics';
@@ -580,6 +581,16 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
             </div>
           )}
         </div>
+
+        {/* Endodontic Radiographic Workflow Section (when applicable) */}
+        {procedure.discipline === 'Endo' && (
+          <EndoRadiographSection
+            procedure={procedure}
+            dentalCase={dentalCase}
+            onUpdateCase={onUpdateCase}
+            onOpenPreview={(url, title) => setPreviewImage({ url, title })}
+          />
+        )}
 
         {/* Evidence & Photography Workspace */}
         <div className="frosted-card rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
