@@ -123,13 +123,7 @@ export function sendAnalyticsEvent(eventType: AnalyticsEventType): void {
 
     const jsonStr = JSON.stringify(payload);
 
-    // Prefer sendBeacon if available, otherwise fetch keepalive
-    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const sent = navigator.sendBeacon(endpoint, blob);
-      if (sent) return;
-    }
-
+    // Primary analytics transport using fetch with keepalive and standard JSON headers
     fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
