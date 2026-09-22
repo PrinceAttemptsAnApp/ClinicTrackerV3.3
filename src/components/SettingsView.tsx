@@ -40,6 +40,7 @@ interface SettingsViewProps {
   onNavigateToSchedule?: () => void;
   activeSemester?: Semester;
   onSemesterChange?: (sem: Semester) => void;
+  onOpenAdminAnalytics?: () => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
@@ -53,6 +54,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onNavigateToSchedule,
   activeSemester,
   onSemesterChange,
+  onOpenAdminAnalytics,
 }) => {
   const { isInstalled, isIOS } = usePWAInstall();
   const [studentName, setStudentName] = useState(profile.studentName);
@@ -721,16 +723,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </span>
           </div>
 
-          <div className="pt-1 border-t border-sky-200/50 flex items-center justify-start">
+          <div className="pt-1 border-t border-sky-200/50 flex items-center justify-between text-[11px]">
             <a
               href="https://github.com/PrinceAttemptsAnApp/ClinicTrackerV3.3"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 hover:text-sky-700 transition py-1"
+              className="inline-flex items-center gap-1.5 font-semibold text-slate-600 hover:text-sky-700 transition py-1"
             >
               <span>View DentaTrack on GitHub</span>
               <ExternalLink className="w-3.5 h-3.5 opacity-70" />
             </a>
+
+            {onOpenAdminAnalytics && (
+              <button
+                type="button"
+                onClick={onOpenAdminAnalytics}
+                className="text-slate-400 hover:text-slate-600 font-medium transition cursor-pointer py-1 text-[10px]"
+              >
+                Owner Portal
+              </button>
+            )}
           </div>
         </div>
       </div>

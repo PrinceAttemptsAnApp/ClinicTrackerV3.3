@@ -50,12 +50,13 @@ import { CaseDetailView } from './components/CaseDetailView';
 import { DocumentsArchiveView } from './components/DocumentsArchiveView';
 import { ClinicScheduleView } from './components/ClinicScheduleView';
 import { SettingsView } from './components/SettingsView';
+import { AdminAnalyticsView } from './components/AdminAnalyticsView';
 import { UndoSnackbar, UndoNotification } from './components/UndoSnackbar';
 
 export default function App() {
   // Navigation & View State
   const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'today' | 'cases' | 'case-detail' | 'documents' | 'schedule' | 'settings'
+    'dashboard' | 'today' | 'cases' | 'case-detail' | 'documents' | 'schedule' | 'settings' | 'admin-analytics'
   >('dashboard');
   const [casesFilter, setCasesFilter] = useState<string>('all');
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -656,6 +657,13 @@ export default function App() {
                   onUpdateProfile={handleUpdateProfile}
                   onRefreshData={refreshData}
                   onNavigateToSchedule={() => setActiveTab('schedule')}
+                  onOpenAdminAnalytics={() => setActiveTab('admin-analytics')}
+                />
+              )}
+
+              {activeTab === 'admin-analytics' && (
+                <AdminAnalyticsView
+                  onBack={() => setActiveTab('settings')}
                 />
               )}
             </div>
