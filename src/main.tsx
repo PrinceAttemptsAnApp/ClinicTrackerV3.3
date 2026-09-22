@@ -34,6 +34,14 @@ import {createRoot} from 'react-dom/client';
 import {registerSW} from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
+import { initAnalyticsHeartbeat } from './lib/analytics';
+
+// Initialize anonymous usage analytics and heartbeat
+try {
+  initAnalyticsHeartbeat();
+} catch (err) {
+  // Fail-silent
+}
 
 // Safely register service worker for offline functionality and instant updates
 try {

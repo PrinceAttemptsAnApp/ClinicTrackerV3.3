@@ -5,6 +5,7 @@ import { DEFAULT_TEMPLATES } from '../lib/storage';
 import { ToothDiagramSelector } from './ToothDiagramSelector';
 import { RemovableSelector, getDefaultRemovableConfig, formatRemovableSummary, validateRemovableConfig } from './RemovableSelector';
 import { haptic } from '../lib/haptics';
+import { sendAnalyticsEvent } from '../lib/analytics';
 
 interface AddProcedureModalProps {
   isOpen: boolean;
@@ -129,6 +130,7 @@ export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
     };
 
     haptic.success();
+    sendAnalyticsEvent('procedure_created');
     onProcedureAdded(newProc);
     onClose();
   };

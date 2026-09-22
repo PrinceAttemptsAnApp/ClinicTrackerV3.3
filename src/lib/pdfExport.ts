@@ -3,6 +3,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { DentalCase, ClinicalProcedure, EvidenceFile } from '../types';
 import { ENDO_STAGES, formatTeethDisplay, parseProcedureTeeth } from './macroSteps';
+import { sendAnalyticsEvent } from './analytics';
 
 interface ProcessedPdfImage {
   dataUrl: string;
@@ -603,6 +604,7 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
   const safePatientName = dentalCase.patientName.replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `Case_File_${dentalCase.fileNumber}_${safePatientName}_Moodle.pdf`;
   doc.save(filename);
+  sendAnalyticsEvent('case_exported');
 }
 
 export async function exportCaseAsZip(dentalCase: DentalCase): Promise<void> {
@@ -681,4 +683,5 @@ ${i + 1}. [${p.discipline}] ${p.title}
 
   const blob = await zip.generateAsync({ type: 'blob' });
   saveAs(blob, `${folderName}_Archive.zip`);
+  sendAnalyticsEvent('case_exported');
 }

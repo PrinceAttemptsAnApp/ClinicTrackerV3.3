@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { sendAnalyticsEvent } from '../lib/analytics';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -32,6 +33,7 @@ export function usePWAInstall() {
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      sendAnalyticsEvent('pwa_installed');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);

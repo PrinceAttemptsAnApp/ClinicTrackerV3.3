@@ -36,6 +36,7 @@ import {
   initStorage
 } from './lib/storage';
 import { haptic } from './lib/haptics';
+import { sendAnalyticsEvent } from './lib/analytics';
 
 import { HeaderBar } from './components/HeaderBar';
 import { PrivacyBanner } from './components/PrivacyBanner';
@@ -228,6 +229,7 @@ export default function App() {
   const handleCaseCreated = async (newCase: DentalCase) => {
     setCases((prev) => [newCase, ...prev]);
     await saveCase(newCase);
+    sendAnalyticsEvent('case_created');
     setSelectedCaseId(newCase.id);
     setActiveTab('case-detail');
   };
