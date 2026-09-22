@@ -66,28 +66,39 @@ interface AnalyticsPayload {
   timestamp: string;
 }
 
+const PUBLIC_PRODUCTION_ANALYTICS_ENDPOINT =
+  'https://dentatrack-analytics.amirsameh04.workers.dev/api/analytics/event';
+
 /**
- * Resolves the analytics endpoint if properly configured.
- * Keeps analytics fail-safe and disabled if no endpoint is specified.
+ * Resolves the analytics endpoint.
+ * - Uses VITE_ANALYTICS_ENDPOINT if defined and valid.
+ * - Uses local/preview relative endpoint when running on localhost, 127.0.0.1, or run.app.
+ * - Uses public Cloudflare Worker event endpoint as fallback for GitHub Pages or production builds.
  */
 function getAnalyticsEndpoint(): string | null {
   const rawEndpoint = (import.meta.env.VITE_ANALYTICS_ENDPOINT as string || '').trim();
 
-  // If a custom worker/server URL is explicitly provided
+  // If a custom worker/server URL is explicitly provided via environment variable
   if (rawEndpoint && !rawEndpoint.includes('YOUR_') && rawEndpoint !== 'placeholder') {
     return rawEndpoint;
   }
 
-  // In local development or node container preview, use the relative Express endpoint
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
+
+    // In local development or node container preview, use the relative Express endpoint
     if (host === 'localhost' || host === '127.0.0.1' || host.includes('run.app')) {
       return '/api/analytics/event';
     }
+
+    // On GitHub Pages or production web hosting, default to the public Cloudflare Worker endpoint
+    if (host.includes('github.io') || host.includes('dentatrack')) {
+      return PUBLIC_PRODUCTION_ANALYTICS_ENDPOINT;
+    }
   }
 
-  // Static hosting (e.g. GitHub Pages) with no endpoint configured: remain disabled
-  return null;
+  // Built-in fallback for production static builds where .env is absent
+  return PUBLIC_PRODUCTION_ANALYTICS_ENDPOINT;
 }
 
 /**
