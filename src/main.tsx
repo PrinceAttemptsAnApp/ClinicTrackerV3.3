@@ -35,11 +35,15 @@ import {registerSW} from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
 
-// Safely register service worker for offline functionality
+// Safely register service worker for offline functionality and instant updates
 try {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    registerSW({ 
+    const updateSW = registerSW({ 
       immediate: true,
+      onNeedRefresh() {
+        // Automatically activate new service worker so users see updates immediately
+        updateSW(true);
+      },
       onRegisterError(error) {
         console.warn('Service worker registration error:', error);
       }

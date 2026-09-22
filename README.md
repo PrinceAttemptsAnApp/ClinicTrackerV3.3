@@ -22,7 +22,7 @@ DentaTrack runs **entirely in the browser** using client-side **IndexedDB** and 
 
 ### Option 1: GitHub Pages (Automated via GitHub Actions) — *Recommended*
 
-This repository includes a pre-configured GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically builds and deploys your app for free whenever you push code!
+This repository includes a pre-configured GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically builds and deploys your app for free whenever you push or sync code!
 
 1. **Create a new repository** on [GitHub](https://github.com/new) (e.g. `dentatrack`).
 2. **Push your code to GitHub**:
@@ -36,11 +36,15 @@ This repository includes a pre-configured GitHub Actions workflow (`.github/work
    ```
 3. **Enable GitHub Pages**:
    - In your GitHub repository, navigate to **Settings** → **Pages** (in the left sidebar).
-   - Under **Build and deployment** → **Source**, select **GitHub Actions**.
+   - Under **Build and deployment** → **Source**, change the dropdown from *Deploy from a branch* to **GitHub Actions**.
 4. **Done!**
-   - GitHub Actions will automatically run the build and publish your app.
+   - Every time you push or sync changes to GitHub, the GitHub Action automatically runs `npm run build` and updates your live site.
    - Your live link will be: `https://<YOUR_USERNAME>.github.io/<YOUR_REPO_NAME>/`
-   - Share this link with your clinic group and classmates!
+
+> **⚡ Why users might not see changes right away & how it's resolved:**
+> 1. **GitHub Pages Source Setting**: If your repository's *Settings → Pages* is set to "Deploy from a branch", GitHub will not build your Vite app when you sync. You must switch **Source** to **GitHub Actions** so the included workflow runs.
+> 2. **Check Actions Tab**: Click the **Actions** tab on GitHub to make sure the workflow run finished with a green checkmark.
+> 3. **PWA Service Worker Update**: Because DentaTrack is an offline-first Progressive Web App, returning users have previous assets cached in their browser. We've enabled `skipWaiting: true`, `clientsClaim: true`, and automatic service-worker refresh so new builds are pulled in immediately. Users can also hard-refresh (Ctrl+Shift+R or Cmd+Shift+R) or restart their PWA.
 
 ---
 
