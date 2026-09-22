@@ -6,7 +6,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   RefreshCw, 
-  Calendar,
   X,
   ArrowRight,
   Clock,
@@ -14,11 +13,33 @@ import {
   User,
   GraduationCap,
   Building2,
-  Check
+  Check,
+  Plus,
+  Trash2,
+  Edit3,
+  AlignLeft,
+  FileCode
 } from 'lucide-react';
-import { ClinicSession } from '../types';
-import { extractScheduleFromDoctorPdf, ExtractedScheduleResult } from '../lib/pdfScheduleExtractor';
+import { ClinicSession, ClinicPlace, DisciplineType } from '../types';
+import { 
+  extractScheduleFromDoctorPdf, 
+  extractScheduleFromText, 
+  ExtractedScheduleResult,
+  CLINICS,
+  DAYS
+} from '../lib/pdfScheduleExtractor';
 import { haptic } from '../lib/haptics';
+
+const DISCIPLINES: DisciplineType[] = [
+  'Operative',
+  'Fixed',
+  'Endo',
+  'Removable',
+  'Perio',
+  'Oral Surgery',
+  'Pediatric Dentistry',
+  'Orthodontics',
+];
 
 interface SchedulePdfUploaderProps {
   onScheduleExtracted: (
@@ -56,7 +77,9 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
   variant = 'schedule',
   onNavigateToSchedule,
 }) => {
+  const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pastedText, setPastedText] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -65,6 +88,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
 
   // Extracted preview state before committing
   const [extractionResult, setExtractionResult] = useState<ExtractedScheduleResult | null>(null);
+  const [editableSessions, setEditableSessions] = useState<ClinicSession[]>([]);
   const [includeLectures, setIncludeLectures] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,31 +96,8 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
   const handleFileSelect = async (file: File) => {
     setErrorMsg(null);
     setExtractionResult(null);
-
-    const fileName = file.name.toLowerCase();
-    const isPdfName = fileName.endsWith('.pdf');
-    const isPdfType = file.type === 'application/pdf' || file.type.includes('pdf');
-
-    let isRealPdf = isPdfName || isPdfType;
-    if (!isRealPdf) {
-      try {
-        const slice = await file.slice(0, 5).arrayBuffer();
-        const header = new TextDecoder('latin1').decode(slice);
-        if (header.startsWith('%PDF')) {
-          isRealPdf = true;
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    if (!isRealPdf) {
-      haptic.error();
-      setErrorMsg('Please select a valid PDF document (.pdf) of your official timetable.');
-      return;
-    }
-    haptic.medium();
     setSelectedFile(file);
+    haptic.medium();
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -107,18 +108,9 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
   const handleExtract = async () => {
-    if (!selectedFile) return;
+    if (activeTab === 'upload' && !selectedFile) return;
+    if (activeTab === 'paste' && !pastedText.trim()) return;
 
     haptic.light();
     setIsExtracting(true);
@@ -127,51 +119,104 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
     setExtractionResult(null);
 
     try {
-      const result = await extractScheduleFromDoctorPdf(selectedFile);
+      let result: ExtractedScheduleResult;
+      if (activeTab === 'upload' && selectedFile) {
+        if (selectedFile.name.toLowerCase().endsWith('.txt') || selectedFile.type.includes('text')) {
+          const text = await selectedFile.text();
+          result = extractScheduleFromText(text, selectedFile.name);
+        } else {
+          result = await extractScheduleFromDoctorPdf(selectedFile);
+        }
+      } else {
+        result = extractScheduleFromText(pastedText, 'Pasted_Schedule.txt');
+      }
+
       haptic.success();
       setExtractionResult(result);
+      setEditableSessions(result.sessions);
     } catch (err: any) {
-      console.error('Schedule PDF extraction error:', err);
+      console.error('Schedule extraction error:', err);
       haptic.error();
       setErrorMsg(
-        err.message || 'Failed to extract schedule from this PDF. Please verify the document format.'
+        err.message || 'Failed to extract schedule. Please check the file or paste plain text.'
       );
     } finally {
       setIsExtracting(false);
     }
   };
 
-  const handleConfirmApply = () => {
-    if (!extractionResult || !selectedFile) return;
+  const handleToggleIncludeLectures = (checked: boolean) => {
+    setIncludeLectures(checked);
+    if (extractionResult) {
+      setEditableSessions(checked ? extractionResult.allSessions : extractionResult.sessions);
+    }
+  };
 
-    const sessionsToApply =
-      includeLectures && extractionResult.allSessions?.length
-        ? extractionResult.allSessions
-        : extractionResult.sessions;
+  const handleSessionChange = (index: number, field: keyof ClinicSession, value: any) => {
+    setEditableSessions((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const handleAddSession = () => {
+    const newSession: ClinicSession = {
+      id: `sess-manual-${Date.now()}`,
+      dayOfWeek: 'Sunday',
+      startTime: '08:00',
+      endTime: '10:00',
+      clinicPlace: 'A',
+      discipline: 'Operative',
+      chairCount: 2,
+      notes: 'Manually added session',
+    };
+    setEditableSessions((prev) => [...prev, newSession]);
+  };
+
+  const handleDeleteSession = (index: number) => {
+    setEditableSessions((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleConfirmApply = () => {
+    if (editableSessions.length === 0) {
+      setErrorMsg('Please keep at least one valid session before applying.');
+      return;
+    }
+
+    // Validate that times are valid HH:MM
+    for (let i = 0; i < editableSessions.length; i++) {
+      const s = editableSessions[i];
+      if (!/^\d{2}:\d{2}$/.test(s.startTime) || !/^\d{2}:\d{2}$/.test(s.endTime)) {
+        setErrorMsg(`Session #${i + 1} (${s.discipline}) has invalid times. Please use HH:MM format.`);
+        return;
+      }
+    }
+
+    const sourceName =
+      activeTab === 'upload' && selectedFile ? selectedFile.name : 'Pasted Schedule Text';
 
     const meta = {
-      fileName: selectedFile.name,
+      fileName: sourceName,
       uploadedAt: new Date().toISOString(),
-      sessionCount: sessionsToApply.length,
-      studentName: extractionResult.studentMeta?.studentName,
-      studentId: extractionResult.studentMeta?.studentId,
-      university: extractionResult.studentMeta?.university,
-      faculty: extractionResult.studentMeta?.faculty,
-      semester: extractionResult.studentMeta?.semester,
+      sessionCount: editableSessions.length,
+      studentName: extractionResult?.studentMeta?.studentName,
+      studentId: extractionResult?.studentMeta?.studentId,
+      university: extractionResult?.studentMeta?.university,
+      faculty: extractionResult?.studentMeta?.faculty,
+      semester: extractionResult?.studentMeta?.semester,
     };
 
     haptic.success();
-    onScheduleExtracted(sessionsToApply, meta);
-    setSuccessNotice(
-      `Successfully loaded ${sessionsToApply.length} sessions from "${selectedFile.name}"!`
-    );
+    onScheduleExtracted(editableSessions, meta);
+    setSuccessNotice(`Successfully saved ${editableSessions.length} sessions to your clinical timetable!`);
     setSelectedFile(null);
+    setPastedText('');
     setExtractionResult(null);
     setShowUploaderWhenUploaded(false);
   };
 
-  // When already uploaded and not in active re-upload edit mode:
-  // Show clean "Update Schedule" presentation (hiding the heavy extractor form as requested)
+  // When already uploaded and not in active re-upload edit mode
   if (isAlreadyUploaded && !showUploaderWhenUploaded) {
     return (
       <div className="rounded-xl bg-sky-50/80 border border-sky-200/80 p-4 transition-all">
@@ -186,14 +231,14 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
                   Doctor&apos;s Clinical Schedule Active
                 </h4>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300/80">
-                  Offline PDF Loaded
+                  Offline Schedule Loaded
                 </span>
               </div>
               <p className="text-xs text-slate-600 mt-0.5">
                 {metadata?.fileName ? (
                   <span className="font-semibold text-slate-700">{metadata.fileName}</span>
                 ) : (
-                  'Doctor Timetable PDF'
+                  'Doctor Timetable'
                 )}{' '}
                 • {metadata?.sessionCount ?? 'Configured'} clinical sessions mapped
               </p>
@@ -215,7 +260,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
                 <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   <span>
-                    Uploaded {new Date(metadata.uploadedAt).toLocaleDateString()} at{' '}
+                    Loaded {new Date(metadata.uploadedAt).toLocaleDateString()} at{' '}
                     {new Date(metadata.uploadedAt).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -235,7 +280,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
                 setSelectedFile(null);
               }}
               className="neu-btn px-3.5 py-2 rounded-xl text-xs font-bold text-sky-700 hover:text-sky-900 hover:bg-sky-100/70 border border-sky-300/70 flex items-center gap-1.5 transition cursor-pointer"
-              title="Upload an updated Doctor Schedule PDF"
+              title="Upload or paste an updated Doctor Schedule"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Update Schedule</span>
@@ -265,22 +310,20 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
     );
   }
 
-  // Active Extractor / Upload UI (Initial state OR when "Update Schedule" is clicked)
+  // Active Extractor / Upload UI
   return (
     <div className="rounded-xl bg-white/80 border border-slate-200/90 p-4 transition-all">
-      <div className="flex items-center justify-between gap-2 mb-2">
+      <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
             <h4 className="font-bold text-xs text-slate-800">
-              {isAlreadyUploaded ? 'Update Schedule' : 'Upload Schedule'}
+              {isAlreadyUploaded ? 'Update Schedule' : 'Import Clinical Schedule'}
             </h4>
             <p className="text-[11px] text-slate-500">
-              {isAlreadyUploaded
-                ? 'Select or drop a new Doctor Schedule PDF to update your clinical sessions.'
-                : '100% Offline • Designed for university timetable grids (MIU, Egyptian & international dental schedules).'}
+              100% Offline • Processed locally on this device without internet connection.
             </p>
           </div>
         </div>
@@ -302,12 +345,43 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
         )}
       </div>
 
-      {/* Drag and Drop Zone */}
+      {/* Tabs: PDF Upload vs Paste Text */}
       {!extractionResult && (
+        <div className="flex items-center gap-2 mb-3 border-b border-slate-200 pb-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('upload')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+              activeTab === 'upload'
+                ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Upload File (PDF / TXT)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('paste')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+              activeTab === 'paste'
+                ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <AlignLeft className="w-3.5 h-3.5" />
+            <span>Paste Schedule Text</span>
+          </button>
+        </div>
+      )}
+
+      {/* Drag and Drop File Zone */}
+      {!extractionResult && activeTab === 'upload' && (
         <div
           onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
           onClick={() => fileInputRef.current?.click()}
           className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors ${
             isDragging
@@ -320,7 +394,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,application/pdf"
+            accept=".pdf,.txt,application/pdf,text/plain"
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) handleFileSelect(file);
@@ -336,7 +410,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
               <div className="text-left">
                 <p className="text-xs font-bold text-slate-800">{selectedFile.name}</p>
                 <p className="text-[11px] text-slate-500">
-                  {(selectedFile.size / 1024).toFixed(1)} KB • Ready for Local Offline Extraction
+                  {(selectedFile.size / 1024).toFixed(1)} KB • Ready for Offline Extraction
                 </p>
               </div>
               <button
@@ -357,37 +431,41 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
             <div className="space-y-1">
               <Upload className="w-7 h-7 mx-auto text-sky-600 mb-1" />
               <p className="text-xs font-bold text-slate-700">
-                Click to choose Doctor&apos;s Schedule PDF or drag & drop here
+                Click to select Schedule PDF or drag & drop here
               </p>
               <p className="text-[11px] text-slate-400">
-                100% Offline • Processed directly inside your browser on this device
+                Supports Egyptian & international university timetable PDFs (MIU, Cairo, Ain Shams, etc.)
               </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Selected file extract trigger */}
-      {selectedFile && !extractionResult && (
+      {/* Paste Schedule Text Area */}
+      {!extractionResult && activeTab === 'paste' && (
+        <div className="space-y-2">
+          <textarea
+            value={pastedText}
+            onChange={(e) => setPastedText(e.target.value)}
+            rows={5}
+            placeholder={`Paste schedule text here, for example:\nSaturday 08:00 - 10:00 Operative Clinic A\nSunday 10:00 - 12:00 Endo Clinic B\nMonday 12:00 - 02:00 Oral Surgery Clinic C`}
+            className="w-full rounded-xl border border-slate-300 p-3 text-xs font-mono focus:ring-2 focus:ring-sky-500 focus:border-sky-500 bg-white"
+          />
+          <p className="text-[11px] text-slate-400">
+            Paste raw schedule lines copied from portal or email. Extractor will parse days, times, and clinics.
+          </p>
+        </div>
+      )}
+
+      {/* Extraction trigger button */}
+      {!extractionResult && ((activeTab === 'upload' && selectedFile) || (activeTab === 'paste' && pastedText.trim())) && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] text-slate-500 flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Parsed locally without internet connection • Completely private</span>
+            <span>Parsed 100% on-device • Completely private</span>
           </span>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedFile(null);
-                setExtractionResult(null);
-              }}
-              disabled={isExtracting}
-              className="neu-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 cursor-pointer disabled:opacity-50"
-            >
-              Clear
-            </button>
-
             <button
               type="button"
               onClick={handleExtract}
@@ -410,7 +488,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
         </div>
       )}
 
-      {/* Interactive Extraction Review & Confirmation Panel */}
+      {/* Interactive Extraction Review & Verification Safety Barrier */}
       {extractionResult && (
         <div className="mt-3 space-y-3 p-3.5 rounded-xl bg-slate-50/90 border border-slate-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
@@ -419,7 +497,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
                 <Check className="w-3.5 h-3.5" />
               </div>
               <h5 className="text-xs font-extrabold text-slate-800">
-                Extraction Preview & Verification
+                Schedule Verification & Interactive Preview
               </h5>
             </div>
 
@@ -428,7 +506,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
               onClick={() => setExtractionResult(null)}
               className="text-[11px] text-slate-500 hover:text-slate-800 self-start sm:self-auto cursor-pointer"
             >
-              Change file
+              Re-extract / Change input
             </button>
           </div>
 
@@ -453,66 +531,143 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
                   <span>{extractionResult.studentMeta.university}</span>
                 </div>
               )}
-              {extractionResult.studentMeta.semester && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">
-                  {extractionResult.studentMeta.semester}
-                </span>
-              )}
             </div>
           )}
 
-          {/* Extracted Sessions List */}
+          {/* Interactive Editable Sessions Table */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-slate-700">
-                Clinical Sessions Found ({extractionResult.sessions.length}):
+                Verify Clinical Sessions ({editableSessions.length}):
               </span>
 
-              {extractionResult.allSessions.length > extractionResult.sessions.length && (
-                <label className="flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeLectures}
-                    onChange={(e) => setIncludeLectures(e.target.checked)}
-                    className="rounded text-sky-600 focus:ring-sky-500"
-                  />
-                  <span>
-                    Include Lectures & Labs ({extractionResult.allSessions.length} total)
-                  </span>
-                </label>
-              )}
+              <div className="flex items-center gap-3">
+                {extractionResult.allSessions.length > extractionResult.sessions.length && (
+                  <label className="flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeLectures}
+                      onChange={(e) => handleToggleIncludeLectures(e.target.checked)}
+                      className="rounded text-sky-600 focus:ring-sky-500"
+                    />
+                    <span>
+                      Include Lectures ({extractionResult.allSessions.length} total)
+                    </span>
+                  </label>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleAddSession}
+                  className="px-2 py-1 rounded-lg text-[11px] font-bold bg-sky-100 text-sky-800 hover:bg-sky-200 border border-sky-300 flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Add Session</span>
+                </button>
+              </div>
             </div>
 
-            <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-              {(includeLectures ? extractionResult.allSessions : extractionResult.sessions).map(
-                (sess, idx) => (
-                  <div
-                    key={sess.id || idx}
-                    className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white border border-slate-200/80 text-xs"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="px-2 py-0.5 rounded-md font-extrabold text-[11px] bg-slate-100 text-slate-700 min-w-[72px] text-center">
-                        {sess.dayOfWeek}
-                      </span>
-                      <div className="truncate">
-                        <span className="font-bold text-slate-800">{sess.discipline}</span>
-                        <span className="text-slate-400 text-[11px] ml-1.5 truncate">
-                          {sess.notes}
-                        </span>
-                      </div>
+            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+              {editableSessions.map((sess, idx) => (
+                <div
+                  key={sess.id || idx}
+                  className="p-2.5 rounded-xl bg-white border border-slate-200 text-xs space-y-2 shadow-2xs"
+                >
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-center">
+                    {/* Day Dropdown */}
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">Day</label>
+                      <select
+                        value={sess.dayOfWeek}
+                        onChange={(e) => handleSessionChange(idx, 'dayOfWeek', e.target.value as any)}
+                        className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg p-1 text-slate-800"
+                      >
+                        {DAYS.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[11px] font-mono text-slate-600 font-semibold">
-                        {sess.startTime} - {sess.endTime}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800 border border-sky-200">
-                        Clinic {sess.clinicPlace}
-                      </span>
+                    {/* Start Time */}
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">Start</label>
+                      <input
+                        type="text"
+                        value={sess.startTime}
+                        onChange={(e) => handleSessionChange(idx, 'startTime', e.target.value)}
+                        placeholder="08:00"
+                        className="w-full text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-lg p-1 text-slate-800"
+                      />
+                    </div>
+
+                    {/* End Time */}
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">End</label>
+                      <input
+                        type="text"
+                        value={sess.endTime}
+                        onChange={(e) => handleSessionChange(idx, 'endTime', e.target.value)}
+                        placeholder="10:00"
+                        className="w-full text-xs font-mono font-bold bg-slate-50 border border-slate-200 rounded-lg p-1 text-slate-800"
+                      />
+                    </div>
+
+                    {/* Clinic Place */}
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">Clinic Place</label>
+                      <select
+                        value={sess.clinicPlace}
+                        onChange={(e) => handleSessionChange(idx, 'clinicPlace', e.target.value as ClinicPlace)}
+                        className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg p-1 text-slate-800"
+                      >
+                        {CLINICS.map((c) => (
+                          <option key={c} value={c}>
+                            Clinic {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Discipline Dropdown */}
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="text-[10px] text-slate-400 font-semibold block mb-0.5">Discipline</label>
+                      <select
+                        value={sess.discipline}
+                        onChange={(e) => handleSessionChange(idx, 'discipline', e.target.value)}
+                        className="w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg p-1 text-slate-800"
+                      >
+                        {DISCIPLINES.map((disc) => (
+                          <option key={disc} value={disc}>
+                            {disc}
+                          </option>
+                        ))}
+                        <option value="Comprehensive Clinic">Comprehensive Clinic</option>
+                      </select>
                     </div>
                   </div>
-                )
-              )}
+
+                  {/* Notes & Delete Row */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={sess.notes || ''}
+                      onChange={(e) => handleSessionChange(idx, 'notes', e.target.value)}
+                      placeholder="Notes / Room info..."
+                      className="flex-1 text-[11px] bg-slate-50 border border-slate-200 rounded-lg p-1 text-slate-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSession(idx)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                      title="Delete session"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -520,13 +675,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
           <div className="pt-2 flex items-center justify-between border-t border-slate-200/80">
             <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>
-                Ready to import{' '}
-                {includeLectures
-                  ? extractionResult.allSessions.length
-                  : extractionResult.sessions.length}{' '}
-                sessions
-              </span>
+              <span>Ready to save {editableSessions.length} verified sessions</span>
             </span>
 
             <button
@@ -535,9 +684,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
               className="neu-btn-primary px-4 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 shadow-sm cursor-pointer"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>
-                Apply to My Clinical Timetable
-              </span>
+              <span>Apply to My Clinical Timetable</span>
             </button>
           </div>
         </div>
