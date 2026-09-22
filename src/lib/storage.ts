@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { DentalCase, ProcedureTemplate, ClinicScheduleItem, StudentProfile, DisciplineType } from '../types';
+import { DentalCase, ClinicalProcedure, ProcedureTemplate, ClinicScheduleItem, StudentProfile, DisciplineType } from '../types';
 import { safeLocalStorage } from './safeStorage';
 export { safeLocalStorage };
 
