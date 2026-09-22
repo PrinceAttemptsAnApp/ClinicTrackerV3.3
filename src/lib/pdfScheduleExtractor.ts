@@ -1,13 +1,23 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { ClinicSession, ClinicPlace, DisciplineType } from '../types';
 
+if (typeof Promise.try !== 'function') {
+  (Promise as any).try = function (fn: (...args: any[]) => any, ...args: any[]) {
+    return new Promise((resolve) => resolve(fn(...args)));
+  };
+}
+
+let pdfWorkerUrl = '';
+try {
+  pdfWorkerUrl = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
+} catch (e) {
+  console.warn('PDF worker URL resolution warning:', e);
+}
+
 // Set PDF.js workerSrc to the locally bundled asset (100% Offline, zero CDN)
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && pdfWorkerUrl) {
   try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url
-    ).toString();
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   } catch (e) {
     console.warn('PDF.js workerSrc initialization warning:', e);
   }
@@ -724,24 +734,7 @@ async function extractPdfItemsNatively(arrayBuffer: ArrayBuffer): Promise<PdfIte
   return items;
 }
 
-/**
- * Extracts structured items with coordinates using PDF.js (100% Offline with bundled worker)
- */
-async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfItemWithCoord[]> {
-  const safeData = new Uint8Array(arrayBuffer.slice(0));
-
-  const loadingTask = pdfjsLib.getDocument({
-    data: safeData,
-    useSystemFonts: true,
-  });
-
-  const doc = await Promise.race([
-    loadingTask.promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('PDF.js loading timeout')), 5000)
-    ),
-  ]);
-
+async function parsePdfDocItems(doc: any): Promise<PdfItemWithCoord[]> {
   const items: PdfItemWithCoord[] = [];
 
   for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
@@ -766,6 +759,67 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfItemW
 }
 
 /**
+ * Extracts structured items with coordinates using PDF.js (100% Offline with bundled worker & fallback)
+ */
+async function extractItemsWithPdfJs(
+  arrayBuffer: ArrayBuffer
+): Promise<{ items: PdfItemWithCoord[]; openedSuccessfully: boolean }> {
+  const safeData = new Uint8Array(arrayBuffer.slice(0));
+
+  // Stage 1: Try normal PDF.js loading with configured workerSrc
+  try {
+    const loadingTask = pdfjsLib.getDocument({
+      data: safeData,
+      useSystemFonts: true,
+    });
+
+    const doc = await Promise.race([
+      loadingTask.promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 5000)
+      ),
+    ]);
+
+    const items = await parsePdfDocItems(doc);
+    return { items, openedSuccessfully: true };
+  } catch (stage1Err) {
+    console.warn('PDF.js Stage 1 (Worker) failed, attempting Stage 2 (Inline/Blob fallback):', stage1Err);
+  }
+
+  // Stage 2: Blob worker or main-thread fallback
+  try {
+    if (typeof window !== 'undefined' && pdfWorkerUrl) {
+      const resp = await fetch(pdfWorkerUrl);
+      if (resp.ok) {
+        const workerText = await resp.text();
+        const blob = new Blob([workerText], { type: 'text/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = blobUrl;
+
+        const loadingTask = pdfjsLib.getDocument({
+          data: safeData,
+          useSystemFonts: true,
+        });
+
+        const doc = await Promise.race([
+          loadingTask.promise,
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('PDF.js Blob fallback timeout')), 5000)
+          ),
+        ]);
+
+        const items = await parsePdfDocItems(doc);
+        return { items, openedSuccessfully: true };
+      }
+    }
+  } catch (stage2Err) {
+    console.warn('PDF.js Stage 2 (Blob Worker) failed:', stage2Err);
+  }
+
+  return { items: [], openedSuccessfully: false };
+}
+
+/**
  * Main Offline Extractor Entry Point for Schedule Files (PDFs)
  */
 export async function extractScheduleFromDoctorPdf(file: File): Promise<ExtractedScheduleResult> {
@@ -773,18 +827,24 @@ export async function extractScheduleFromDoctorPdf(file: File): Promise<Extracte
   const arrayBuffer = await file.arrayBuffer();
 
   let pdfItems: PdfItemWithCoord[] = [];
+  let openedSuccessfully = false;
 
-  // Tier 1: Try PDF.js (100% offline with bundled worker)
+  // Tier 1: Try PDF.js (100% offline with bundled worker & Blob fallback)
   try {
-    pdfItems = await extractItemsWithPdfJs(arrayBuffer);
+    const result = await extractItemsWithPdfJs(arrayBuffer);
+    pdfItems = result.items;
+    openedSuccessfully = result.openedSuccessfully;
   } catch (err) {
-    console.warn('PDF.js extraction fallback trigger:', err);
+    console.warn('PDF.js extraction error:', err);
   }
 
   // Tier 2: Native PDF stream decoder
   if (pdfItems.length === 0) {
     try {
       pdfItems = await extractPdfItemsNatively(arrayBuffer);
+      if (pdfItems.length > 0) {
+        openedSuccessfully = true;
+      }
     } catch (err) {
       console.warn('Native PDF decoder error:', err);
     }
@@ -808,22 +868,37 @@ export async function extractScheduleFromDoctorPdf(file: File): Promise<Extracte
   }
 
   // Strategy 2: Agenda Section Headers / Line Extractor
-  const lines = pdfItems.map((it) => it.str);
-  const { clinicalSessions: agendaClin, allSessions: agendaAll } = extractAgendaSchedule(lines);
+  if (pdfItems.length > 0) {
+    const lines = pdfItems.map((it) => it.str);
+    const { clinicalSessions: agendaClin, allSessions: agendaAll } = extractAgendaSchedule(lines);
 
-  if (agendaClin.length > 0 || agendaAll.length > 0) {
-    return {
-      sessions: agendaClin.length > 0 ? agendaClin : agendaAll,
-      allSessions: agendaAll,
-      studentMeta,
-      fileName,
-      source: 'offline-pdf-parser',
-      message: `Extracted ${agendaAll.length} sessions from ${fileName}`,
-    };
+    if (agendaClin.length > 0 || agendaAll.length > 0) {
+      return {
+        sessions: agendaClin.length > 0 ? agendaClin : agendaAll,
+        allSessions: agendaAll,
+        studentMeta,
+        fileName,
+        source: 'offline-pdf-parser',
+        message: `Extracted ${agendaAll.length} sessions from ${fileName}`,
+      };
+    }
+  }
+
+  // Error Classification
+  if (pdfItems.length === 0) {
+    if (openedSuccessfully) {
+      throw new Error(
+        `The PDF document "${fileName}" appears to be scanned or image-based with no selectable text. Please upload a text-based schedule PDF or paste your schedule text directly.`
+      );
+    } else {
+      throw new Error(
+        `Could not read PDF document "${fileName}". The file may be encrypted, corrupted, or in an unreadable format. Try pasting your schedule text directly.`
+      );
+    }
   }
 
   throw new Error(
-    `No schedule sessions could be parsed from "${fileName}". Please verify the document format or paste your schedule text directly.`
+    `Extracted ${pdfItems.length} text items from "${fileName}", but no valid schedule sessions (days, times, clinics) were recognized. Please check the document format or paste your schedule text directly.`
   );
 }
 

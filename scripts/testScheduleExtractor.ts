@@ -1,5 +1,6 @@
 import { 
   extractScheduleFromText, 
+  extractScheduleFromDoctorPdf,
   parseTimeInterval, 
   detectClinicPlace, 
   detectDiscipline, 
@@ -7,7 +8,7 @@ import {
   convertArabicNumerals 
 } from '../src/lib/pdfScheduleExtractor';
 
-function runTests() {
+async function runTests() {
   console.log('=== RUNNING SCHEDULE EXTRACTOR REGRESSION SUITE ===\n');
   let passed = 0;
   let failed = 0;
@@ -168,6 +169,51 @@ function runTests() {
     assert(res10.source === 'text-parser', 'Test 10c: Source identified as text-parser');
   } catch (e: any) {
     assert(false, `Test 10 Exception: ${e.message}`);
+  }
+
+  // TEST 11: PDF File Pipeline Execution
+  try {
+    const rawPdfString = `%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 1 /Kids [3 0 R] >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 75 >>
+stream
+BT
+50 700 Td
+(Saturday 08:00 - 10:00 Operative Clinic A) Tj
+ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000208 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+320
+%%EOF`;
+
+    const pdfBuffer = new TextEncoder().encode(rawPdfString).buffer;
+    const pdfFile = new File([pdfBuffer], 'Test_Schedule.pdf', { type: 'application/pdf' });
+
+    const pdfRes = await extractScheduleFromDoctorPdf(pdfFile);
+    assert(pdfRes.sessions.length > 0, 'Test 11a: PDF file successfully extracted sessions via extractScheduleFromDoctorPdf');
+    assert(pdfRes.sessions[0].dayOfWeek === 'Saturday', 'Test 11b: PDF session day is Saturday');
+    assert(pdfRes.sessions[0].clinicPlace === 'A', 'Test 11c: PDF session clinic is Clinic A');
+  } catch (e: any) {
+    assert(false, `Test 11 Exception: ${e.message}`);
   }
 
   console.log(`\n=== REGRESSION SUITE RESULTS: ${passed} PASSED, ${failed} FAILED ===`);
