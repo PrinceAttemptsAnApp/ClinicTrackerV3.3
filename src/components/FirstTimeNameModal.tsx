@@ -54,6 +54,12 @@ export const FirstTimeNameModal: React.FC<FirstTimeNameModalProps> = ({
             <div className="relative">
               <input
                 type="text"
+                name="student-fullname"
+                autoComplete="name"
+                inputMode="text"
+                autoCapitalize="words"
+                autoCorrect="off"
+                spellCheck={false}
                 autoFocus
                 value={name}
                 onChange={(e) => {
