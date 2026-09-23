@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { RubricDocument, SignatureStatus } from '../types';
 import { haptic } from '../lib/haptics';
+import { ModalPortal } from './ModalPortal';
 
 interface RubricUploadModalProps {
   isOpen: boolean;
@@ -81,8 +82,11 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+    <ModalPortal isOpen={isOpen}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
       <div className="frosted-card w-full max-w-lg rounded-2xl p-6 relative max-h-[90vh] overflow-y-auto animate-modal-pop shadow-2xl">
         <button
           onClick={onClose}
@@ -302,5 +306,6 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { haptic } from '../lib/haptics';
+import { ModalPortal } from './ModalPortal';
 
 interface TutorialModalProps {
   isOpen: boolean;
@@ -218,8 +219,11 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+    <ModalPortal isOpen={isOpen}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
       <div className="frosted-card w-full max-w-lg rounded-2xl p-5 sm:p-6 relative flex flex-col max-h-[92vh] shadow-2xl animate-modal-pop">
         <button
           onClick={onClose}
@@ -305,5 +309,6 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };

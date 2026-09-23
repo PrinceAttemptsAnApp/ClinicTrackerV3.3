@@ -24,6 +24,7 @@ import {
 import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, EvidenceFile, MoodleStatus } from '../types';
 import { RubricUploadModal } from './RubricUploadModal';
 import { EvidenceUploadModal } from './EvidenceUploadModal';
+import { ModalPortal } from './ModalPortal';
 import { EndoRadiographSection } from './EndoRadiographSection';
 import { getProcedureMacroStepStatus, formatTeethDisplay, cleanProcedureTitle } from '../lib/macroSteps';
 import { computeIsComprehensive } from '../lib/storage';
@@ -708,113 +709,117 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
       {/* MODAL: DELETE PROCEDURE CONFIRMATION */}
       {/* ========================================================================= */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="frosted-card w-full max-w-md rounded-2xl p-6 shadow-xl border border-rose-200 animate-modal-pop">
-            <div className="flex items-start gap-3.5 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6" />
+        <ModalPortal isOpen={isDeleteModalOpen}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+            <div className="frosted-card w-full max-w-md rounded-2xl p-6 shadow-xl border border-rose-200 animate-modal-pop">
+              <div className="flex items-start gap-3.5 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    Delete Procedure?
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Are you sure you want to delete <strong className="text-slate-800">{displayTitle}</strong>
+                    {teethFormatted ? ` on ${teethFormatted}` : ''}?
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">
-                  Delete Procedure?
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Are you sure you want to delete <strong className="text-slate-800">{displayTitle}</strong>
-                  {teethFormatted ? ` on ${teethFormatted}` : ''}?
+
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 mb-4 text-xs text-rose-800 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
+                  <span>Removing procedure:</span>
                 </p>
+                <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
+                  <li>All milestone steps and clinical records for this procedure will be removed</li>
+                  <li>Other procedures in this case will remain intact</li>
+                  <li>You can <strong>Undo</strong> this action to restore the procedure immediately</li>
+                </ul>
               </div>
-            </div>
 
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 mb-4 text-xs text-rose-800 space-y-1">
-              <p className="font-bold flex items-center gap-1.5">
-                <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
-                <span>Removing procedure:</span>
-              </p>
-              <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
-                <li>All milestone steps and clinical records for this procedure will be removed</li>
-                <li>Other procedures in this case will remain intact</li>
-                <li>You can <strong>Undo</strong> this action to restore the procedure immediately</li>
-              </ul>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 rounded-xl neu-btn text-xs font-bold text-slate-700 cursor-pointer active:scale-95"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  haptic.error();
-                  setIsDeleteModalOpen(false);
-                  onDeleteProcedure(procedure.id, procedure);
-                }}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer flex items-center gap-1.5"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete Procedure</span>
-              </button>
+              <div className="flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-4 py-2 rounded-xl neu-btn text-xs font-bold text-slate-700 cursor-pointer active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic.error();
+                    setIsDeleteModalOpen(false);
+                    onDeleteProcedure(procedure.id, procedure);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Procedure</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* ========================================================================= */}
       {/* MODAL: ADD CUSTOM MILESTONE STEP */}
       {/* ========================================================================= */}
       {isAddStepModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="frosted-card w-full max-w-md rounded-2xl p-6 shadow-xl border border-sky-200 animate-modal-pop">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <PlusCircle className="w-5 h-5 text-sky-600" />
-                <span>Add Custom Milestone</span>
-              </h3>
-              <button
-                onClick={() => setIsAddStepModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCustomStep} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Milestone Title:
-                </label>
-                <input
-                  type="text"
-                  autoFocus
-                  required
-                  value={customStepTitle}
-                  onChange={(e) => setCustomStepTitle(e.target.value)}
-                  placeholder="e.g. Master cast pouring & die trimming..."
-                  className="neu-input w-full p-2.5 rounded-xl text-xs font-semibold text-slate-800"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2">
+        <ModalPortal isOpen={isAddStepModalOpen}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+            <div className="frosted-card w-full max-w-md rounded-2xl p-6 shadow-xl border border-sky-200 animate-modal-pop">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <PlusCircle className="w-5 h-5 text-sky-600" />
+                  <span>Add Custom Milestone</span>
+                </h3>
                 <button
-                  type="button"
                   onClick={() => setIsAddStepModalOpen(false)}
-                  className="px-4 py-2 rounded-xl neu-btn text-xs font-bold text-slate-600 cursor-pointer"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm cursor-pointer"
-                >
-                  Add Milestone
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleAddCustomStep} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Milestone Title:
+                  </label>
+                  <input
+                    type="text"
+                    autoFocus
+                    required
+                    value={customStepTitle}
+                    onChange={(e) => setCustomStepTitle(e.target.value)}
+                    placeholder="e.g. Master cast pouring & die trimming..."
+                    className="neu-input w-full p-2.5 rounded-xl text-xs font-semibold text-slate-800"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddStepModalOpen(false)}
+                    className="px-4 py-2 rounded-xl neu-btn text-xs font-bold text-slate-600 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-sm cursor-pointer"
+                  >
+                    Add Milestone
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
 
       {/* ========================================================================= */}
@@ -848,28 +853,30 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
       {/* MODAL: IMAGE LIGHTBOX PREVIEW */}
       {/* ========================================================================= */}
       {previewImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-150">
-          <div className="frosted-card max-w-3xl w-full rounded-2xl p-4 overflow-hidden relative shadow-2xl animate-modal-pop">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h4 className="font-extrabold text-sm text-slate-900 truncate">
-                {previewImage.title}
-              </h4>
-              <button
-                onClick={() => setPreviewImage(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="mt-3 max-h-[75vh] flex items-center justify-center bg-slate-900/10 rounded-xl overflow-hidden">
-              <img
-                src={previewImage.url}
-                alt={previewImage.title}
-                className="max-h-[72vh] max-w-full object-contain rounded-lg"
-              />
+        <ModalPortal isOpen={Boolean(previewImage)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-150">
+            <div className="frosted-card max-w-3xl w-full rounded-2xl p-4 overflow-hidden relative shadow-2xl animate-modal-pop">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                <h4 className="font-extrabold text-sm text-slate-900 truncate">
+                  {previewImage.title}
+                </h4>
+                <button
+                  onClick={() => setPreviewImage(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="mt-3 max-h-[75vh] flex items-center justify-center bg-slate-900/10 rounded-xl overflow-hidden">
+                <img
+                  src={previewImage.url}
+                  alt={previewImage.title}
+                  className="max-h-[72vh] max-w-full object-contain rounded-lg"
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

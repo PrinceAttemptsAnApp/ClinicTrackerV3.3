@@ -14,6 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { ModalPortal } from './ModalPortal';
 
 interface PWAInstallButtonProps {
   forceShowModal?: boolean;
@@ -169,10 +170,11 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
 
       {/* Guide Modal with Detailed iOS Steps and Offline Local Storage details */}
       {showModal && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={handleCloseModal}
-        >
+        <ModalPortal isOpen={showModal}>
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+            onClick={handleCloseModal}
+          >
           <div 
             className="frosted-card w-full max-w-lg rounded-2xl p-5 sm:p-6 relative max-h-[92vh] overflow-y-auto shadow-2xl border border-white/80"
             onClick={(e) => e.stopPropagation()}
@@ -476,7 +478,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             </div>
           </div>
         </div>
-      )}
-    </>
+      </ModalPortal>
+    )}
+  </>
   );
 };

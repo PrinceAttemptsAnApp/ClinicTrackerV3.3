@@ -26,6 +26,7 @@ import {
   cleanProcedureTitle 
 } from '../lib/macroSteps';
 import { haptic } from '../lib/haptics';
+import { ModalPortal } from './ModalPortal';
 
 interface CasesViewProps {
   cases: DentalCase[];
@@ -446,8 +447,9 @@ export const CasesView: React.FC<CasesViewProps> = ({
 
       {/* In-App Delete Case Confirmation Modal */}
       {casePendingDelete && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-100 space-y-4 animate-modal-pop">
+        <ModalPortal isOpen={Boolean(casePendingDelete)}>
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-100 space-y-4 animate-modal-pop">
             <div className="flex items-start justify-between gap-3">
               <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
@@ -509,7 +511,8 @@ export const CasesView: React.FC<CasesViewProps> = ({
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </ModalPortal>
+    )}
+  </div>
   );
 };

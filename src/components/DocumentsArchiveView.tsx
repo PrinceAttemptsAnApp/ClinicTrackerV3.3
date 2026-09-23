@@ -14,6 +14,7 @@ import {
 import { DentalCase, RubricDocument, EvidenceFile } from '../types';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { ModalPortal } from './ModalPortal';
 
 interface DocumentsArchiveViewProps {
   cases: DentalCase[];
@@ -287,7 +288,8 @@ export const DocumentsArchiveView: React.FC<DocumentsArchiveViewProps> = ({ case
 
       {/* Full Preview Modal */}
       {previewDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-150">
+        <ModalPortal isOpen={Boolean(previewDoc)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-150">
           <div className="relative max-w-3xl w-full max-h-[90vh] flex flex-col items-center">
             <button
               onClick={() => setPreviewDoc(null)}
@@ -321,7 +323,8 @@ export const DocumentsArchiveView: React.FC<DocumentsArchiveViewProps> = ({ case
             )}
           </div>
         </div>
-      )}
-    </div>
+      </ModalPortal>
+    )}
+  </div>
   );
 };

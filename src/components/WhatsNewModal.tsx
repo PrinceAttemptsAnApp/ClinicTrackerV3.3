@@ -2,6 +2,7 @@ import React from 'react';
 import { Sparkles, Info, Check, ShieldAlert } from 'lucide-react';
 import { PATCH_NOTES, APP_VERSION } from '../lib/patchNotes';
 import { haptic } from '../lib/haptics';
+import { ModalPortal } from './ModalPortal';
 
 interface WhatsNewModalProps {
   isOpen: boolean;
@@ -20,7 +21,8 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300">
+    <ModalPortal isOpen={isOpen}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-300">
       <div 
         className="w-full max-w-lg bg-white/95 rounded-2xl border border-slate-200/80 shadow-2xl flex flex-col max-h-[90vh] md:max-h-[85vh] animate-in fade-in zoom-in-95 duration-200 motion-reduce:transition-none motion-reduce:animate-none"
         role="dialog"
@@ -86,5 +88,6 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose })
         </div>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };

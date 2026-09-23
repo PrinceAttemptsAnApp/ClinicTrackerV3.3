@@ -23,6 +23,7 @@ import { EvidenceUploadModal } from './EvidenceUploadModal';
 import { AddProcedureModal } from './AddProcedureModal';
 import { generateCaseMoodlePDF } from '../lib/pdfExport';
 import { getProcedureMacroStepStatus, resolveToothInfo } from '../lib/macroSteps';
+import { ModalPortal } from './ModalPortal';
 import { haptic } from '../lib/haptics';
 
 interface TodayClinicViewProps {
@@ -655,8 +656,9 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
 
       {/* Next Visit Scheduling Modal */}
       {nextVisitModalData.isOpen && nextVisitModalData.dentalCase && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative animate-modal-pop shadow-2xl">
+        <ModalPortal isOpen={true}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+            <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative animate-modal-pop shadow-2xl">
             <h3 className="text-base font-bold text-slate-800 mb-1">Plan Next Clinical Visit</h3>
             <p className="text-xs text-slate-500 mb-4">
               Set date and what you will do next session for{' '}
@@ -710,7 +712,8 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </ModalPortal>
+    )}
+  </div>
   );
 };

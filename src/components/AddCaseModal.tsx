@@ -5,6 +5,7 @@ import { DEFAULT_TEMPLATES, computeIsComprehensive } from '../lib/storage';
 import { ToothDiagramSelector } from './ToothDiagramSelector';
 import { RemovableSelector, getDefaultRemovableConfig, formatRemovableSummary, validateRemovableConfig } from './RemovableSelector';
 import { haptic } from '../lib/haptics';
+import { ModalPortal } from './ModalPortal';
 
 interface AddCaseModalProps {
   isOpen: boolean;
@@ -141,9 +142,12 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-      <div className="frosted-card w-full max-w-2xl rounded-2xl p-5 sm:p-6 relative max-h-[92vh] overflow-y-auto animate-modal-pop shadow-2xl">
+    <ModalPortal isOpen={isOpen}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+        <div className="frosted-card w-full max-w-2xl rounded-2xl p-5 sm:p-6 relative max-h-[92vh] overflow-y-auto animate-modal-pop shadow-2xl">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100/70 transition cursor-pointer"
@@ -359,5 +363,6 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
         </form>
       </div>
     </div>
-  );
+  </ModalPortal>
+);
 };
