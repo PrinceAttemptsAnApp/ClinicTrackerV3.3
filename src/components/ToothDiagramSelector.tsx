@@ -672,6 +672,20 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
     return currentTeeth.filter((t) => t.quadrant === quadId);
   }, [currentTeeth, isPediatric]);
 
+  // Split permanent quadrant teeth into 2 rows for mobile layout (4 columns per row)
+  // Keep 44px+ touch targets on 360px-430px mobile screens without horizontal scrolling
+  const qUpperRightRow1 = useMemo(() => qUpperRight.slice(0, 4), [qUpperRight]);
+  const qUpperRightRow2 = useMemo(() => qUpperRight.slice(4, 8), [qUpperRight]);
+
+  const qUpperLeftRow1 = useMemo(() => qUpperLeft.slice(4, 8), [qUpperLeft]);
+  const qUpperLeftRow2 = useMemo(() => qUpperLeft.slice(0, 4), [qUpperLeft]);
+
+  const qLowerRightRow1 = useMemo(() => qLowerRight.slice(4, 8), [qLowerRight]);
+  const qLowerRightRow2 = useMemo(() => qLowerRight.slice(0, 4), [qLowerRight]);
+
+  const qLowerLeftRow1 = useMemo(() => qLowerLeft.slice(0, 4), [qLowerLeft]);
+  const qLowerLeftRow2 = useMemo(() => qLowerLeft.slice(4, 8), [qLowerLeft]);
+
   // Format the resulting string representation according to the chosen notation
   const updateToothString = (fdiList: string[], surface: string = selectedSurface) => {
     if (fdiList.length === 0) {
@@ -782,21 +796,13 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
     updateToothString(selectedFdis, nextSurface);
   };
 
-  // Renders a single tooth card displaying both Buccal & Occlusal views + single chosen notation below
+  // Renders a single tooth card with minimum 44px touch targets and concise visual label
   const renderToothCard = (tooth: ToothInfo, isUpper: boolean) => {
     const isSelected = selectedFdis.includes(tooth.fdi);
 
-    // Authentic Palmer Bracket borders:
-    let palmerBracketClass = '';
-    if (tooth.quadrant === 1 || tooth.quadrant === 5) {
-      palmerBracketClass = 'border-b sm:border-b-2 border-r sm:border-r-2 pr-0.5 pb-0.5';
-    } else if (tooth.quadrant === 2 || tooth.quadrant === 6) {
-      palmerBracketClass = 'border-b sm:border-b-2 border-l sm:border-l-2 pl-0.5 pb-0.5';
-    } else if (tooth.quadrant === 4 || tooth.quadrant === 8) {
-      palmerBracketClass = 'border-t sm:border-t-2 border-r sm:border-r-2 pr-0.5 pt-0.5';
-    } else if (tooth.quadrant === 3 || tooth.quadrant === 7) {
-      palmerBracketClass = 'border-t sm:border-t-2 border-l sm:border-l-2 pl-0.5 pt-0.5';
-    }
+    // Display label: in Palmer mode (default), show concise tooth number/letter ("1", "2", "A", etc.)
+    // In FDI mode, show "#11", "#12", etc. Internal IDs (UR1, UL1, etc.) remain unchanged.
+    const displayLabel = effectiveNotation === 'palmer' ? tooth.palmer : `#${tooth.fdi}`;
 
     return (
       <button
@@ -809,10 +815,11 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
         }}
         onMouseEnter={() => setHoveredTooth(tooth)}
         onMouseLeave={() => setHoveredTooth(null)}
-        className={`w-full min-w-0 p-0.5 sm:p-1 rounded-md sm:rounded-xl flex flex-col items-center justify-between transition-colors cursor-pointer relative select-none touch-manipulation active:opacity-85 ${
+        aria-label={`Quadrant ${tooth.quadrantName}, tooth ${tooth.palmer} (${tooth.name})`}
+        className={`w-full min-w-[36px] xs:min-w-[40px] min-h-[44px] xs:min-h-[48px] sm:min-h-[56px] p-0.5 sm:p-1 rounded-xl flex flex-col items-center justify-between transition-colors cursor-pointer relative select-none touch-manipulation active:scale-95 ${
           isSelected
-            ? 'bg-sky-100 border-2 border-sky-500 shadow-sm ring-1 ring-sky-300 z-10'
-            : 'bg-white hover:bg-sky-50/50 border border-slate-200 hover:border-sky-300'
+            ? 'bg-sky-500 text-white border-2 border-sky-600 shadow-sm ring-2 ring-sky-300/80 z-10'
+            : 'bg-white hover:bg-sky-50/80 border border-slate-200/90 hover:border-sky-300'
         }`}
         title={`${tooth.name} • Digital Palmer: ${tooth.digitalPalmer} • FDI #${tooth.fdi} • Universal #${tooth.universal}`}
       >
@@ -820,83 +827,55 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
         {isUpper ? (
           <>
             {/* 1. Buccal Aspect */}
-            <div className="w-full h-7 xs:h-8 sm:h-11 flex items-center justify-center pointer-events-none relative">
+            <div className="w-full h-5 xs:h-6 sm:h-9 flex items-center justify-center pointer-events-none relative">
               <ToothBuccalSVG tooth={tooth} isUpper={true} isSelected={isSelected} />
-              <span className="hidden md:block absolute top-0 right-0 text-[6px] text-slate-400 font-bold bg-slate-100/90 px-0.5 rounded pointer-events-none">
-                B
-              </span>
             </div>
 
             {/* 2. Occlusal Aspect */}
-            <div className="w-full h-4 xs:h-5 sm:h-7 flex items-center justify-center my-0.5 pointer-events-none relative">
+            <div className="w-full h-3.5 xs:h-4 sm:h-6 flex items-center justify-center my-0.5 pointer-events-none relative">
               <ToothOcclusalSVG tooth={tooth} isUpper={true} isSelected={isSelected} />
-              <span className="hidden md:block absolute top-0 right-0 text-[6px] text-slate-400 font-bold bg-slate-100/90 px-0.5 rounded pointer-events-none">
-                O
-              </span>
             </div>
 
-            {/* 3. Notation Labeled Below the Picture (Digital Palmer OR FDI) */}
-            <div className="w-full pt-0.5 sm:pt-1 border-t border-slate-100 flex items-center justify-center pointer-events-none min-h-[22px]">
-              {effectiveNotation === 'palmer' ? (
-                <span 
-                  className={`font-black text-[10px] sm:text-[12px] leading-tight tracking-tight ${
-                    isSelected ? 'text-sky-700 font-extrabold' : 'text-slate-800'
-                  }`}
-                >
-                  {tooth.digitalPalmer}
-                </span>
-              ) : (
-                <span className={`font-black text-[11px] sm:text-[12px] leading-none ${
-                  isSelected ? 'text-sky-700' : 'text-slate-800'
-                }`}>
-                  #{tooth.fdi}
-                </span>
-              )}
+            {/* 3. Shortened Display Label */}
+            <div className="w-full pt-0.5 border-t border-slate-100/80 flex items-center justify-center pointer-events-none">
+              <span 
+                className={`font-black text-[11px] xs:text-[12px] sm:text-[13px] leading-tight tracking-tight ${
+                  isSelected ? 'text-white font-extrabold' : 'text-slate-800'
+                }`}
+              >
+                {displayLabel}
+              </span>
             </div>
           </>
         ) : (
           /* LOWER ARCH: Occlusal on top, Buccal below */
           <>
             {/* 1. Occlusal Aspect */}
-            <div className="w-full h-4 xs:h-5 sm:h-7 flex items-center justify-center my-0.5 pointer-events-none relative">
+            <div className="w-full h-3.5 xs:h-4 sm:h-6 flex items-center justify-center my-0.5 pointer-events-none relative">
               <ToothOcclusalSVG tooth={tooth} isUpper={false} isSelected={isSelected} />
-              <span className="hidden md:block absolute top-0 right-0 text-[6px] text-slate-400 font-bold bg-slate-100/90 px-0.5 rounded pointer-events-none">
-                O
-              </span>
             </div>
 
             {/* 2. Buccal Aspect */}
-            <div className="w-full h-7 xs:h-8 sm:h-11 flex items-center justify-center pointer-events-none relative">
+            <div className="w-full h-5 xs:h-6 sm:h-9 flex items-center justify-center pointer-events-none relative">
               <ToothBuccalSVG tooth={tooth} isUpper={false} isSelected={isSelected} />
-              <span className="hidden md:block absolute bottom-0 right-0 text-[6px] text-slate-400 font-bold bg-slate-100/90 px-0.5 rounded pointer-events-none">
-                B
-              </span>
             </div>
 
-            {/* 3. Notation Labeled Below the Picture (Digital Palmer OR FDI) */}
-            <div className="w-full pt-0.5 sm:pt-1 border-t border-slate-100 flex items-center justify-center pointer-events-none min-h-[22px]">
-              {effectiveNotation === 'palmer' ? (
-                <span 
-                  className={`font-black text-[10px] sm:text-[12px] leading-tight tracking-tight ${
-                    isSelected ? 'text-sky-700 font-extrabold' : 'text-slate-800'
-                  }`}
-                >
-                  {tooth.digitalPalmer}
-                </span>
-              ) : (
-                <span className={`font-black text-[11px] sm:text-[12px] leading-none ${
-                  isSelected ? 'text-sky-700' : 'text-slate-800'
-                }`}>
-                  #{tooth.fdi}
-                </span>
-              )}
+            {/* 3. Shortened Display Label */}
+            <div className="w-full pt-0.5 border-t border-slate-100/80 flex items-center justify-center pointer-events-none">
+              <span 
+                className={`font-black text-[11px] xs:text-[12px] sm:text-[13px] leading-tight tracking-tight ${
+                  isSelected ? 'text-white font-extrabold' : 'text-slate-800'
+                }`}
+              >
+                {displayLabel}
+              </span>
             </div>
           </>
         )}
 
         {/* Selection Checkmark Badge */}
         {isSelected && (
-          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-sky-600 text-white rounded-full flex items-center justify-center text-[8px] sm:text-[9px] shadow-xs pointer-events-none font-bold">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-white text-sky-700 rounded-full flex items-center justify-center text-[10px] font-black shadow-xs pointer-events-none border border-sky-300">
             ✓
           </span>
         )}
@@ -951,42 +930,44 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
       </div>
 
       {isExpanded && (
-        <div className="space-y-2 sm:space-y-3 animate-in fade-in duration-150 w-full">
+        <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-150 w-full">
           {/* Quick Presets & Clear */}
-          <div className="flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
-            <div className="flex flex-wrap items-center gap-1 text-slate-600">
-              <span className="font-semibold text-slate-400 mr-0.5">Quick Presets:</span>
-              <button
-                type="button"
-                onClick={() => handleSelectArch('upper')}
-                className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-sky-50 hover:text-sky-700 border border-slate-200/80 transition cursor-pointer font-medium text-[10px] sm:text-[11px]"
-              >
-                Maxillary (Upper)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectArch('lower')}
-                className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-sky-50 hover:text-sky-700 border border-slate-200/80 transition cursor-pointer font-medium text-[10px] sm:text-[11px]"
-              >
-                Mandibular (Lower)
-              </button>
-              <button
-                type="button"
-                onClick={handleSelectFullMouth}
-                className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 border border-slate-200/80 transition cursor-pointer font-medium text-[10px] sm:text-[11px]"
-              >
-                Full Mouth
-              </button>
+          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 border-b border-slate-100 pb-2 text-[11px]">
+            <div className="flex flex-wrap items-center gap-1.5 text-slate-600 w-full xs:w-auto">
+              <span className="font-bold text-slate-400 uppercase tracking-wider text-[10px]">Quick Presets:</span>
+              <div className="grid grid-cols-3 xs:flex xs:flex-wrap gap-1.5 w-full xs:w-auto">
+                <button
+                  type="button"
+                  onClick={() => handleSelectArch('upper')}
+                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 border border-slate-200/80 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
+                >
+                  Maxillary
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectArch('lower')}
+                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 border border-slate-200/80 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
+                >
+                  Mandibular
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectFullMouth}
+                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800 border border-slate-200/80 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
+                >
+                  Full Mouth
+                </button>
+              </div>
             </div>
 
             {selectedFdis.length > 0 && (
               <button
                 type="button"
                 onClick={handleClear}
-                className="text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 font-semibold cursor-pointer ml-auto text-[10px] sm:text-[11px]"
+                className="min-h-[38px] px-2.5 py-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl border border-rose-200/70 flex items-center justify-center gap-1 font-bold text-xs cursor-pointer active:scale-95 touch-manipulation self-end xs:self-auto"
               >
-                <RotateCcw className="w-3 h-3" />
-                <span>Clear</span>
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Clear All</span>
               </button>
             )}
           </div>
@@ -1010,18 +991,17 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
 
           {/* 
             DENTAL ODONTOGRAM GRID:
-            Guaranteed responsive fit on all screens (mobile to desktop) with ZERO horizontal scrolling needed!
-            The horizontal line separating upper and lower is the border-b-2 of the upper arch.
-            The vertical midline separating right and left is the border-r-2 of the right quadrants.
+            Responsive fit on all screens (mobile to desktop) with ZERO horizontal scrolling needed!
+            On mobile (<640px), 8-tooth permanent quadrants wrap into 2 rows of 4 teeth with 44px+ touch targets.
           */}
           <div className="rounded-xl sm:rounded-2xl bg-[#f8fbfe] border border-sky-200 p-1 sm:p-2.5 w-full overflow-hidden">
             <div className="w-full mx-auto select-none space-y-0">
               
               {/* UPPER ARCH (MAXILLARY) */}
-              <div className="grid grid-cols-2 border-b-2 border-sky-400 pb-1 sm:pb-2">
+              <div className="grid grid-cols-2 border-b-2 border-sky-400 pb-1.5 sm:pb-2">
                 {/* Quadrant 1 / 5: Upper Right */}
                 <div className="border-r-2 border-sky-400 pr-1 sm:pr-2 flex flex-col justify-between">
-                  <div className="w-full flex items-center justify-between pb-0.5 px-0.5">
+                  <div className="w-full flex items-center justify-between pb-1 px-0.5">
                     <button
                       type="button"
                       onClick={() => handleSelectQuadrant(qUpperRight)}
@@ -1032,15 +1012,34 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                     </button>
                     <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">Midline →</span>
                   </div>
-                  {/* Teeth columns */}
-                  <div className={`grid ${isPediatric ? 'grid-cols-5' : 'grid-cols-8'} gap-0.5 sm:gap-1 w-full`}>
-                    {qUpperRight.map((tooth) => renderToothCard(tooth, true))}
-                  </div>
+
+                  {/* Mobile 2-row layout vs Desktop 1-row layout */}
+                  {isPediatric ? (
+                    <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full">
+                      {qUpperRight.map((tooth) => renderToothCard(tooth, true))}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Mobile (<640px): 2 rows x 4 cols */}
+                      <div className="grid grid-cols-4 gap-1 sm:hidden w-full space-y-1">
+                        <div className="col-span-4 grid grid-cols-4 gap-1">
+                          {qUpperRightRow1.map((tooth) => renderToothCard(tooth, true))}
+                        </div>
+                        <div className="col-span-4 grid grid-cols-4 gap-1">
+                          {qUpperRightRow2.map((tooth) => renderToothCard(tooth, true))}
+                        </div>
+                      </div>
+                      {/* Desktop (>=640px): 1 row x 8 cols */}
+                      <div className="hidden sm:grid sm:grid-cols-8 gap-1 w-full">
+                        {qUpperRight.map((tooth) => renderToothCard(tooth, true))}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Quadrant 2 / 6: Upper Left */}
                 <div className="pl-1 sm:pl-2 flex flex-col justify-between">
-                  <div className="w-full flex items-center justify-between pb-0.5 px-0.5">
+                  <div className="w-full flex items-center justify-between pb-1 px-0.5">
                     <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">← Midline</span>
                     <button
                       type="button"
@@ -1051,29 +1050,70 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                       <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q6: UL' : 'Q6 (61-65)') : (effectiveNotation === 'palmer' ? 'Q2: UL' : 'Q2 (21-28)')}</span>
                     </button>
                   </div>
-                  {/* Teeth columns */}
-                  <div className={`grid ${isPediatric ? 'grid-cols-5' : 'grid-cols-8'} gap-0.5 sm:gap-1 w-full`}>
-                    {qUpperLeft.map((tooth) => renderToothCard(tooth, true))}
-                  </div>
+
+                  {/* Mobile 2-row layout vs Desktop 1-row layout */}
+                  {isPediatric ? (
+                    <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full">
+                      {qUpperLeft.map((tooth) => renderToothCard(tooth, true))}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Mobile (<640px): 2 rows x 4 cols */}
+                      <div className="grid grid-cols-4 gap-1 sm:hidden w-full space-y-1">
+                        <div className="col-span-4 grid grid-cols-4 gap-1">
+                          {qUpperLeftRow1.map((tooth) => renderToothCard(tooth, true))}
+                        </div>
+                        <div className="col-span-4 grid grid-cols-4 gap-1">
+                          {qUpperLeftRow2.map((tooth) => renderToothCard(tooth, true))}
+                        </div>
+                      </div>
+                      {/* Desktop (>=640px): 1 row x 8 cols */}
+                      <div className="hidden sm:grid sm:grid-cols-8 gap-1 w-full">
+                        {qUpperLeft.map((tooth) => renderToothCard(tooth, true))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* HORIZONTAL OCCLUSAL DIVIDER LABEL */}
-              <div className="relative h-3.5 sm:h-4 flex items-center justify-center my-0.5">
-                <span className="bg-sky-100 text-sky-800 border border-sky-300 text-[8px] sm:text-[9px] font-black uppercase px-1.5 sm:px-2 py-0.2 rounded-full tracking-wider shadow-2xs z-10">
-                  Occlusal Plane (Midline)
-                </span>
+              {/* OCCLUSAL PLANE / MIDLINE DIVIDER */}
+              <div className="relative flex items-center justify-center my-2 py-0.5">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t-2 border-dashed border-sky-300/80" />
+                </div>
+                <div className="relative z-10 flex items-center gap-1.5 bg-sky-600 text-white text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs border border-sky-700">
+                  <span>Occlusal Plane (Midline)</span>
+                </div>
               </div>
 
               {/* LOWER ARCH (MANDIBULAR) */}
-              <div className="grid grid-cols-2 border-t-2 border-sky-400 pt-1 sm:pt-2">
+              <div className="grid grid-cols-2 border-t-2 border-sky-400 pt-1.5 sm:pt-2">
                 {/* Quadrant 4 / 8: Lower Right */}
                 <div className="border-r-2 border-sky-400 pr-1 sm:pr-2 flex flex-col justify-between">
-                  {/* Teeth columns */}
-                  <div className={`grid ${isPediatric ? 'grid-cols-5' : 'grid-cols-8'} gap-0.5 sm:gap-1 w-full`}>
-                    {qLowerRight.map((tooth) => renderToothCard(tooth, false))}
-                  </div>
-                  <div className="w-full flex items-center justify-between pt-0.5 px-0.5">
+                  {/* Mobile 2-row layout vs Desktop 1-row layout */}
+                  {isPediatric ? (
+                    <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full">
+                      {qLowerRight.map((tooth) => renderToothCard(tooth, false))}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Mobile (<640px): 2 rows x 4 cols */}
+                      <div className="grid grid-cols-4 gap-1 sm:hidden w-full space-y-1">
+                        <div className="col-span-4 grid grid-cols-4 gap-1">
+                          {qLowerRightRow1.map((tooth) => renderToothCard(tooth, false))}
+                        </div>
+                        <div className="col-span-4 grid grid-cols-4 gap-1">
+                          {qLowerRightRow2.map((tooth) => renderToothCard(tooth, false))}
+                        </div>
+                      </div>
+                      {/* Desktop (>=640px): 1 row x 8 cols */}
+                      <div className="hidden sm:grid sm:grid-cols-8 gap-1 w-full">
+                        {qLowerRight.map((tooth) => renderToothCard(tooth, false))}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="w-full flex items-center justify-between pt-1 px-0.5">
                     <button
                       type="button"
                       onClick={() => handleSelectQuadrant(qLowerRight)}
@@ -1088,11 +1128,30 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
 
                 {/* Quadrant 3 / 7: Lower Left */}
                 <div className="pl-1 sm:pl-2 flex flex-col justify-between">
-                  {/* Teeth columns */}
-                  <div className={`grid ${isPediatric ? 'grid-cols-5' : 'grid-cols-8'} gap-0.5 sm:gap-1 w-full`}>
-                    {qLowerLeft.map((tooth) => renderToothCard(tooth, false))}
-                  </div>
-                  <div className="w-full flex items-center justify-between pt-0.5 px-0.5">
+                  {/* Mobile 2-row layout vs Desktop 1-row layout */}
+                  {isPediatric ? (
+                    <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full">
+                      {qLowerLeft.map((tooth) => renderToothCard(tooth, false))}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Mobile (<640px): 2 rows x 4 cols */}
+                      <div className="grid grid-cols-4 gap-1 sm:hidden w-full space-y-1">
+                        <div className="col-span-4 grid grid-cols-4 gap-1">
+                          {qLowerLeftRow1.map((tooth) => renderToothCard(tooth, false))}
+                        </div>
+                        <div className="col-span-4 grid grid-cols-4 gap-1">
+                          {qLowerLeftRow2.map((tooth) => renderToothCard(tooth, false))}
+                        </div>
+                      </div>
+                      {/* Desktop (>=640px): 1 row x 8 cols */}
+                      <div className="hidden sm:grid sm:grid-cols-8 gap-1 w-full">
+                        {qLowerLeft.map((tooth) => renderToothCard(tooth, false))}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="w-full flex items-center justify-between pt-1 px-0.5">
                     <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">← Midline</span>
                     <button
                       type="button"
@@ -1130,22 +1189,22 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
 
           {/* Cavity / Restoration Surface Chips */}
           {allowSurfaces && (
-            <div className="pt-2 border-t border-slate-100 space-y-1.5">
+            <div className="pt-2.5 border-t border-slate-100 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-700">
+                <span className="text-xs font-bold text-slate-700">
                   Cavity / Surface Classification (Optional):
                 </span>
                 {selectedSurface && (
                   <button
                     type="button"
                     onClick={() => handleSelectSurface('')}
-                    className="text-[10px] text-slate-400 hover:text-rose-600 hover:underline cursor-pointer"
+                    className="text-xs text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer"
                   >
                     Clear Surface
                   </button>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-1">
+              <div className="grid grid-cols-4 xs:grid-cols-6 sm:flex sm:flex-wrap gap-1.5">
                 {COMMON_SURFACES.map((surf) => {
                   const isSurfSelected = selectedSurface === surf;
                   return (
@@ -1153,10 +1212,10 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                       key={surf}
                       type="button"
                       onClick={() => handleSelectSurface(surf)}
-                      className={`px-2 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                      className={`min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center justify-center active:scale-95 touch-manipulation ${
                         isSurfSelected
-                          ? 'bg-purple-600 text-white shadow-2xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          ? 'bg-purple-600 text-white shadow-xs ring-2 ring-purple-300'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
                       }`}
                     >
                       {surf}

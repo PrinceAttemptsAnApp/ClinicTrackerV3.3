@@ -1,6 +1,7 @@
 import { safeLocalStorage } from './safeStorage';
+import { APP_VERSION } from './patchNotes';
 
-export const APP_VERSION = '3.3.0';
+export { APP_VERSION };
 const ANON_ID_STORAGE_KEY = 'dt_anon_inst_id';
 
 /**

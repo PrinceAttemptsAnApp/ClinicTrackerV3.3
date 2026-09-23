@@ -12,25 +12,119 @@ interface HeaderBarProps {
   onOpenTutorial: () => void;
 }
 
-const GREETINGS = [
-  'Ready for clinical sessions today, Doctor?',
-  'Precision & care, Doctor. Let\'s conquer today\'s cases!',
-  'Keep rubber dam isolated and chairside ergonomics sharp.',
-  'Remember to photograph rubrics right after instructor sign-off.',
-  'Target: 1+ Comprehensive Case per semester. You\'ve got this!',
-  'Excellence in every margin and prep, Doctor.',
+const MOTIVATIONAL_QUOTES = [
+  "One case at a time.",
+  "Keep moving.",
+  "Small progress still counts.",
+  "Do the work. Then go home.",
+  "Future you will appreciate this.",
+  "One more procedure.",
+  "Keep the momentum.",
+  "Make today's clinic count.",
+  "Progress, not perfection.",
+  "Get it done.",
+  "You've got this.",
+  "Stay consistent.",
+  "Keep your records clean.",
+  "One requirement closer.",
+  "Finish what you started.",
+  "Make the next visit easier.",
+  "Keep the case moving.",
+  "Do good work. Document it.",
+  "Another day, another requirement.",
+  "Slowly turning into a competent dentist."
 ];
+
+const HUMOR_QUOTES = [
+  "Another day in the operatory.",
+  "The patient is waiting. Probably.",
+  "Document it before you forget it.",
+  "Future you is going to need those records.",
+  "Your requirements aren't going to finish themselves.",
+  "At least the rubber dam is cooperating.",
+  "One more signature.",
+  "Another tooth enters the spreadsheet.",
+  "The clinic awaits.",
+  "Somewhere, a rubric needs a signature.",
+  "You came here voluntarily. Allegedly.",
+  "Keep calm and check the occlusion.",
+  "Trust the process. Verify the margins.",
+  "Your case history remembers everything.",
+  "Nothing says progress like another completed checkbox.",
+  "One day this will all be worth it. Probably.",
+  "Dentistry: where 'almost done' means three more visits."
+];
+
+const TROLL_QUOTES = [
+  "hey loser, im watching you",
+  "You opened DentaTrack instead of studying. Interesting.",
+  "Your requirements are still there.",
+  "I saw that unfinished procedure.",
+  "Nice of you to finally show up.",
+  "You could be studying right now.",
+  "Another day of pretending you're on top of things.",
+  "The rubric knows what you did.",
+  "You have 14 unfinished things. Good luck.",
+  "Don't worry, I'll wait.",
+  "That case isn't going to finish itself.",
+  "You thought you were done?",
+  "Back to work, champion.",
+  "Your future self has filed a complaint.",
+  "I checked. You still have requirements.",
+  "You can't escape the checklist.",
+  "The clinic remembers.",
+  "One more checkbox. You know you want to.",
+  "You opened the app. Might as well do something.",
+  "Impressive. You actually documented it.",
+  "Somewhere, an instructor is asking for your signature.",
+  "This is your sign to finish that case.",
+  "You're not procrastinating if you're inside the clinical tracker.",
+  "Technically, opening the app counts as progress. Technically.",
+  "I have nothing to add. Your case speaks for itself.",
+  "Congratulations on doing the bare minimum. Keep going.",
+  "The tooth isn't going to treat itself.",
+  "You can leave when the checklist says you can.",
+  "I believe in you. Unfortunately.",
+  "Your clinical requirements have noticed your absence."
+];
+
+function getRandomQuote(previousQuote: string): string {
+  const rand = Math.random();
+  let pool = MOTIVATIONAL_QUOTES;
+
+  if (rand < 0.05) {
+    pool = TROLL_QUOTES;
+  } else if (rand < 0.30) { // 0.05 + 0.25 = 0.30
+    pool = HUMOR_QUOTES;
+  } else {
+    pool = MOTIVATIONAL_QUOTES;
+  }
+
+  let selected = pool[Math.floor(Math.random() * pool.length)];
+  let attempts = 0;
+  while (selected === previousQuote && attempts < 10) {
+    selected = pool[Math.floor(Math.random() * pool.length)];
+    attempts++;
+  }
+  return selected;
+}
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
   profile,
   onOpenTutorial,
 }) => {
   const isOnline = useOnlineStatus();
-  const [greetingIndex, setGreetingIndex] = useState(0);
+  const [currentQuote, setCurrentQuote] = useState(() => getRandomQuote(''));
+  const [fade, setFade] = useState(true);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setGreetingIndex((prev) => (prev + 1) % GREETINGS.length);
+      setFade(false);
+      const timeout = setTimeout(() => {
+        setCurrentQuote((prev) => getRandomQuote(prev));
+        setFade(true);
+      }, 400);
+      return () => clearTimeout(timeout);
     }, 9000);
     return () => clearInterval(interval);
   }, []);
@@ -39,11 +133,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     <header className="frosted-glass sticky top-0 z-30 px-4 py-2.5 sm:px-6 border-b border-white/60">
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
         {/* Left: App Identity & Rotating Doctor Greeting */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 max-w-full sm:max-w-[65%] md:max-w-[70%]">
           <div className="w-10 h-10 rounded-2xl bg-sky-600 text-white flex items-center justify-center shadow-md shadow-sky-600/30 flex-shrink-0">
             <Stethoscope className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-slate-800">
                 DentaTrack
@@ -53,12 +147,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
               </span>
             </div>
             {/* Rotating Doctor Greeting */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium transition-all duration-500">
-              <Sparkles className="w-3.5 h-3.5 text-sky-500 flex-shrink-0 animate-pulse" />
-              <span className="font-semibold text-slate-700">{profile.studentName || 'Doctor'}:</span>
-              <span className="truncate max-w-[200px] sm:max-w-md text-slate-500">
-                {GREETINGS[greetingIndex]}
-              </span>
+            <div className={`flex items-start gap-1.5 text-xs text-slate-600 font-medium transition-opacity duration-300 motion-reduce:transition-none ${fade ? 'opacity-100' : 'opacity-0'}`}>
+              <Sparkles className="w-3.5 h-3.5 text-sky-500 flex-shrink-0 animate-pulse mt-0.5 motion-reduce:animate-none" />
+              <div className="text-slate-500 leading-normal">
+                <span className="font-semibold text-slate-700 mr-1">{profile.studentName || 'Doctor'}:</span>
+                <span className="break-words">
+                  {currentQuote}
+                </span>
+              </div>
             </div>
           </div>
         </div>

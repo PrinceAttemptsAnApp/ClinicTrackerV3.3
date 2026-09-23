@@ -107,6 +107,7 @@ export interface ClinicalProcedure {
 
 export interface DentalCase {
   id: string;
+  isDemo?: boolean;
   patientName: string;
   fileNumber: string;
   patientPhone?: string;

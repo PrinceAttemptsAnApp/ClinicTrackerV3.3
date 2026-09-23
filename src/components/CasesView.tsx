@@ -288,6 +288,13 @@ export const CasesView: React.FC<CasesViewProps> = ({
                             Comprehensive ({c.disciplines.length} Disciplines)
                           </span>
                         )}
+
+                        {c.isDemo && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            Demo Case
+                          </span>
+                        )}
                       </div>
 
                       {/* Involved Teeth & Procedures Summary */}

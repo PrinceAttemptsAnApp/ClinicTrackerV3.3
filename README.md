@@ -1,151 +1,68 @@
 # 🦷 DentaTrack — 5th Year Dental Clinical Tracker
 
-> **A fast, offline-first Progressive Web App (PWA) built specifically for 5th-year dental students to monitor clinical patient cases, supervisor rubric sign-offs, clinical requirement quotas, and Moodle submissions.**
+DentaTrack is a clinical case-management and academic requirement tracking application designed for dental students. It helps future dental professionals organize patient records, track multi-specialty clinical milestones, monitor supervisor rubric signatures, and prepare academic portfolios for department submissions.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![PWA Ready](https://img.shields.io/badge/PWA-Ready-emerald.svg)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
-[![Offline First](https://img.shields.io/badge/Offline-100%25%20Local-sky.svg)](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
-[![Hosting](https://img.shields.io/badge/Hosting-100%25%20Free-green.svg)](https://pages.github.com/)
+Built as an offline-first, private-by-design solution, DentaTrack ensures that students can record crucial clinical details directly chairside—even in hospital clinics with poor or zero network connectivity.
 
 ---
 
-## 🌟 Overview & Why It's 100% Free
+## What DentaTrack Does
 
-DentaTrack runs **entirely in the browser** using client-side **IndexedDB** and a **Workbox Service Worker**. 
-- **Zero Cloud Costs**: No external servers, no paid database subscriptions, and no backend maintenance required.
-- **100% Private**: Patient records, supervisor rubric signatures, and clinical photos never leave the student's device.
-- **Hospital/Clinic-Ready**: Functions completely offline during clinical sessions with poor or zero Wi-Fi reception.
+DentaTrack streamlines the complex clinical workflow of senior dental clinical semesters by providing specialized tracking systems:
 
----
-
-## 🚀 3 Ways to Host & Share for Free with Friends
-
-### Option 1: GitHub Pages (Automated via GitHub Actions) — *Recommended*
-
-This repository includes a pre-configured GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically builds and deploys your app for free whenever you push or sync code!
-
-1. **Create a new repository** on [GitHub](https://github.com/new) (e.g. `dentatrack`).
-2. **Push your code to GitHub**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit of DentaTrack"
-   git branch -M main
-   git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO_NAME>.git
-   git push -u origin main
-   ```
-3. **Enable GitHub Pages**:
-   - In your GitHub repository, navigate to **Settings** → **Pages** (in the left sidebar).
-   - Under **Build and deployment** → **Source**, change the dropdown from *Deploy from a branch* to **GitHub Actions**.
-4. **Done!**
-   - Every time you push or sync changes to GitHub, the GitHub Action automatically runs `npm run build` and updates your live site.
-   - Your live link will be: `https://<YOUR_USERNAME>.github.io/<YOUR_REPO_NAME>/`
-
-> **⚡ Why users might not see changes right away & how it's resolved:**
-> 1. **GitHub Pages Source Setting**: If your repository's *Settings → Pages* is set to "Deploy from a branch", GitHub will not build your Vite app when you sync. You must switch **Source** to **GitHub Actions** so the included workflow runs.
-> 2. **Check Actions Tab**: Click the **Actions** tab on GitHub to make sure the workflow run finished with a green checkmark.
-> 3. **PWA Service Worker Update**: Because DentaTrack is an offline-first Progressive Web App, returning users have previous assets cached in their browser. We've enabled `skipWaiting: true`, `clientsClaim: true`, and automatic service-worker refresh so new builds are pulled in immediately. Users can also hard-refresh (Ctrl+Shift+R or Cmd+Shift+R) or restart their PWA.
+* **Clinical Case Tracking**: Keep detailed, structured records of your patients, file numbers, active clinical semesters, and treatment plans.
+* **Tooth-Level Milestones**: Track treatment steps at the individual tooth level using universal dental notation systems (Palmer & FDI notation systems).
+* **Multi-Specialty Procedure Checklists**: Interactive step-by-step clinical milestones optimized for Fixed Prosthodontics, Endodontics, Operative Dentistry, and Pedodontics.
+* **Supervisor Rubric & Signature Monitoring**: Log instructor evaluations, feedback, and verification signatures right at the dental chair.
+* **X-Ray & Evidence Documentation**: Document endodontic stages (Pre-Op, Working Length, Master Cone, Post-Op) with clinical photos or radiographic references stored securely in the browser.
+* **Interactive Clinic Timetable**: Manage clinical sessions, target point quotas, and weekly schedules.
+* **Export Options**: One-click professional PDF and Moodle-ready reports compiling entire case dossiers for course evaluations.
+* **Offline-Ready Progressive Web App (PWA)**: Installable on Windows, macOS, Android, and iOS Safari for zero-latency, offline-capable clinic usage.
 
 ---
 
-### Option 2: Vercel (1-Click Free Hosting)
+## Designed For
 
-1. Go to [Vercel](https://vercel.com/) and sign in with GitHub.
-2. Click **"Add New Project"** and select your `dentatrack` repository.
-3. Keep default settings (Vercel automatically detects the included `vercel.json` and Vite framework).
-4. Click **Deploy**. Your app will be live on a free `*.vercel.app` URL with automatic SSL.
+DentaTrack was designed specifically for **dental students and clinical interns** to manage the rigorous demands of fifth-year clinical curricula, licensing requirements, and clinical competencies. It acts as a personal clinical companion to prevent missing supervisor sign-offs, track points progress, and automate the tedious end-of-term portfolio compilation.
 
 ---
 
-### Option 3: Netlify (1-Click Free Hosting)
+## Key Features
 
-1. Go to [Netlify](https://www.netlify.com/) and connect your GitHub repository.
-2. The included `netlify.toml` automatically sets the build command (`npm run build`) and publish directory (`dist`).
-3. Click **Deploy site**. Your app will be live on a free `*.netlify.app` URL.
-
----
-
-## 📱 How Your Friends Can Install & Test (PWA)
-
-Once hosted, open the link on any device to use it just like a native app:
-
-### 🍎 iOS (iPhone & iPad)
-1. Open your shared link in **Apple Safari**.
-2. Tap the **Share** button (📤) at the bottom toolbar (on iPad, top-right).
-3. Scroll down and tap **"Add to Home Screen"** (➕).
-4. Tap **"Add"** in the top-right corner.
-5. The DentaTrack icon will appear on your home screen and open full-screen offline without browser bars.
-
-### 🤖 Android (Google Chrome / Edge / Samsung Internet)
-1. Open the shared link in **Chrome**.
-2. Tap the in-app **"Install App"** button at the top header, or tap the browser menu (⋮) → **"Install app"** / **"Add to Home screen"**.
-3. Confirm installation. The app will be added to your home screen and app drawer.
-
-### 💻 PC & Mac (Chrome / Edge / Brave)
-1. Open the link in **Chrome** or **Edge**.
-2. Click the **Install** icon (💻) on the right side of the URL address bar, or open the browser menu (⋮) → **"Install DentaTrack"**.
-3. It will launch in its own standalone desktop window.
+* **High-Fidelity UI**: Clean, responsive, frosted-glass neumorphic dashboard tailored for fast mobile use under clinical conditions.
+* **Clinical Requirements Progress Gauges**: Real-time visual progress trackers showing how close you are to completing target clinical points and specialty competencies.
+* **Secure Evidence Vault**: Keep clinical photos, pre-preparation radiographs, and supervisor-signed rubrics safely attached to each procedure.
+* **Zero-Downtime Offline Mode**: Powered by service workers to allow 100% functionality without internet reception during hospital clinical sessions.
+* **Full Data Sync & Device Transfer**: Effortlessly download your clinical database as an encrypted JSON backup file and restore it on any phone, tablet, or laptop.
 
 ---
 
-## 💻 Local Development Setup
+## Demo Mode
 
-To run or modify DentaTrack on your computer:
-
-### Prerequisites
-- [Node.js](https://nodejs.org/) (version 18 or higher recommended)
-- `npm` (comes with Node.js)
-
-### Installation Steps
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/<YOUR_USERNAME>/dentatrack.git
-cd dentatrack
-
-# 2. Install dependencies
-npm install
-
-# 3. Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Available Scripts
-
-| Script | Description |
-|---|---|
-| `npm run dev` | Starts Vite development server at `http://localhost:3000` |
-| `npm run build` | Compiles production assets into `dist/` with relative asset links |
-| `npm run preview` | Previews the compiled `dist/` production build locally |
-| `npm run lint` | Runs TypeScript type checking (`tsc --noEmit`) |
-| `npm run clean` | Deletes the `dist/` build directory |
+New users can instantly explore DentaTrack using the interactive **Demo Mode**. 
+From the **Settings** view, you can load a comprehensive set of high-fidelity pre-populated clinical cases (such as Root Canal Treatment on tooth #36 and Crown Preparation on tooth #14). These sandbox cases contain realistic preloaded evaluation rubrics, radiographs, and signed steps, allowing you to safely explore the app's features before entering your own clinical patients.
 
 ---
 
-## 🩺 Key Features Included
+## Privacy & Data Ownership
 
-- **Clinical Case Management**: Track patient file numbers, age, gender, medical alerts, clinic disciplines, and step-by-step procedure milestones.
-- **Rubric & Sign-off Monitor**: Record supervisor signatures, grades, and clinical rubrics directly chairside.
-- **Photographic Evidence Vault**: Attach pre-op, working length, and post-op clinical photos/X-rays stored directly in browser IndexedDB.
-- **Requirements & Quotas Dashboard**: Real-time progress gauges for target points, completed quotas, and clinical competencies.
-- **Moodle Submission Checklist**: Track what cases have been signed, exported, and submitted to your university portal.
-- **Data Backup & Restore**: One-click JSON backup export and import, making it effortless to transfer data across devices or share test cases with friends.
-- **Export Reports**: Generate comprehensive clinical PDF and CSV summaries for logs and department submissions.
+Your clinical and patient data is **100% private and belongs entirely to you**:
+
+* **Local Storage Only**: Every record, patient name, file number, and clinical photograph is stored securely inside your device's browser database (IndexedDB).
+* **No Cloud Overhead**: Patient data never leaves your device and is never uploaded to external servers, cloud databases, or third-party analytical endpoints.
+* **Wipe Anytime**: You have complete physical control to export, back up, or wipe all database records instantly with a single click in Settings.
 
 ---
 
-## 🔒 Privacy & Data Storage
+## Access DentaTrack
 
-All data entered into DentaTrack is stored locally in your browser's **IndexedDB** (`dentatrack-5th-year-db`). 
-- No patient data is sent over the internet or stored on external servers.
-- Users have complete control to export, back up, or wipe their data anytime via the **Settings** view.
+DentaTrack is freely accessible and can be run or installed from any supported web browser.
+
+* **Live App URL**: [https://PrinceAttemptsAnApp.github.io/ClinicTrackerV3.3/](https://PrinceAttemptsAnApp.github.io/ClinicTrackerV3.3/)
+* **PWA Installation**: To install on your home screen, simply open the URL in your browser (Safari on iOS or Chrome/Edge on Android/PC) and click **Install App** or tap **Add to Home Screen**.
 
 ---
 
-## 📄 License
+## Project Status
 
-This project is licensed under the [MIT License](LICENSE) — feel free to use, modify, test, and share with your colleagues.
-
-ENJOY YOU BOMBOCLATS
+DentaTrack is actively maintained and continually optimized to support modern clinical guidelines, screen responsiveness, and student clinical requirements.

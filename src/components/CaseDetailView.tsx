@@ -244,6 +244,12 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
                   {dentalCase.semester} • {dentalCase.academicYear}
                 </span>
+                {dentalCase.isDemo && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-black px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-800 border border-amber-500/30">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    Demo Case
+                  </span>
+                )}
               </div>
 
               {/* Patient Phone & Dialer */}

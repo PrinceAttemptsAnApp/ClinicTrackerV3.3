@@ -52,6 +52,8 @@ import { ClinicScheduleView } from './components/ClinicScheduleView';
 import { SettingsView } from './components/SettingsView';
 import { AdminAnalyticsView } from './components/AdminAnalyticsView';
 import { UndoSnackbar, UndoNotification } from './components/UndoSnackbar';
+import { WhatsNewModal } from './components/WhatsNewModal';
+import { APP_VERSION } from './lib/patchNotes';
 
 export default function App() {
   // Navigation & View State
@@ -79,6 +81,7 @@ export default function App() {
   const [isAddCaseModalOpen, setIsAddCaseModalOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Undo System State
@@ -160,14 +163,22 @@ export default function App() {
         // Step 1: Prompt for name first. Do NOT open tutorial yet.
         setIsNameModalOpen(true);
         setIsTutorialOpen(false);
+        setIsWhatsNewOpen(false);
       } else if (!isOnboardingComplete) {
         // Step 2: Name exists but onboarding guide not completed yet
         setIsNameModalOpen(false);
         setIsTutorialOpen(true);
+        setIsWhatsNewOpen(false);
       } else {
         // Step 3: Returning user ready to work
         setIsNameModalOpen(false);
         setIsTutorialOpen(false);
+        
+        // Show WhatsNew modal if version is new/unseen
+        const lastSeen = safeLocalStorage.getItem('dentatrack_last_seen_changelog_version');
+        if (lastSeen !== APP_VERSION) {
+          setIsWhatsNewOpen(true);
+        }
       }
     } catch (err) {
       console.error('Failed to initialize app session', err);
@@ -209,6 +220,7 @@ export default function App() {
     setIsTutorialOpen(false);
     safeLocalStorage.setItem('dentatrack_onboarding_completed', 'true');
     safeLocalStorage.setItem('dentatrack_tutorial_shown', 'true');
+    safeLocalStorage.setItem('dentatrack_last_seen_changelog_version', APP_VERSION);
     if (!profile.onboardingCompleted) {
       const updated: StudentProfile = {
         ...profile,
@@ -729,6 +741,15 @@ export default function App() {
         notification={undoNotification}
         onUndo={handleUndo}
         onDismiss={handleDismissUndo}
+      />
+
+      {/* WhatsNew / Changelog Greeting Modal */}
+      <WhatsNewModal
+        isOpen={isWhatsNewOpen && !isTutorialOpen && !isNameModalOpen}
+        onClose={() => {
+          setIsWhatsNewOpen(false);
+          safeLocalStorage.setItem('dentatrack_last_seen_changelog_version', APP_VERSION);
+        }}
       />
     </div>
   );

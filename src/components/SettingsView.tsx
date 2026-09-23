@@ -20,7 +20,10 @@ import {
   Trash2,
   Binary,
   Check,
-  ExternalLink
+  ExternalLink,
+  Info,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { StudentProfile, ProcedureTemplate, DentalCase, ClinicSession, Semester } from '../types';
 import { exportAllDataBackup, importDataBackup, resetToDefaultDemoData, clearAllData } from '../lib/storage';
@@ -28,6 +31,7 @@ import { safeLocalStorage } from '../lib/safeStorage';
 import { PWAInstallButton } from './PWAInstallButton';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SchedulePdfUploader } from './SchedulePdfUploader';
+import { APP_VERSION, PATCH_NOTES } from '../lib/patchNotes';
 
 interface SettingsViewProps {
   profile: StudentProfile;
@@ -84,6 +88,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+
+  // Reset demo data modal state
+  const [showResetDemoModal, setShowResetDemoModal] = useState(false);
+  const [isResettingDemo, setIsResettingDemo] = useState(false);
+
+  // App version and patch notes state
+  const [showPatchNotes, setShowPatchNotes] = useState(false);
+  const [lastSeenVersion, setLastSeenVersion] = useState(() => safeLocalStorage.getItem('dentatrack_last_seen_version') || '');
+  const hasNewUpdate = lastSeenVersion !== APP_VERSION;
+
+  const handleTogglePatchNotes = () => {
+    setShowPatchNotes(prev => !prev);
+    if (lastSeenVersion !== APP_VERSION) {
+      safeLocalStorage.setItem('dentatrack_last_seen_version', APP_VERSION);
+      setLastSeenVersion(APP_VERSION);
+    }
+  };
 
   const handleNotationChange = (system: 'palmer' | 'fdi') => {
     setToothNotation(system);
@@ -175,14 +196,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const handleResetDemo = async () => {
-    if (
-      window.confirm(
-        'Are you sure you want to reset to initial 5th-year demonstration data? All current local changes will be replaced.'
-      )
-    ) {
+    setIsResettingDemo(true);
+    try {
       await resetToDefaultDemoData();
       await onRefreshData();
-      alert('Data reset to initial 5th-year demo set.');
+      setShowResetDemoModal(false);
+    } catch (err) {
+      alert('Error resetting demo data: ' + String(err));
+    } finally {
+      setIsResettingDemo(false);
     }
   };
 
@@ -747,6 +769,63 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       </div>
 
+      {/* App Version & Changelog Card */}
+      <div className="frosted-card rounded-2xl p-5 sm:p-6 border border-slate-200">
+        <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-500/10 text-slate-600 flex items-center justify-center border border-slate-300">
+              <Info className="w-5 h-5 text-slate-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800">
+                  DentaTrack Version
+                </h3>
+                {hasNewUpdate && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-500 text-white animate-pulse">
+                    New Update
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500">
+                Current release: <strong className="font-mono text-slate-700 font-bold text-[13px]">v{APP_VERSION}</strong> • Completed with verified clinical tools
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleTogglePatchNotes}
+            className="neu-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-sky-600 flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0"
+          >
+            <span>{showPatchNotes ? "Hide What's New" : "What's New"}</span>
+            {showPatchNotes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {showPatchNotes && (
+          <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-600 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+            {PATCH_NOTES.map((entry) => (
+              <div key={entry.version} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-xs font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/50">
+                    v{entry.version}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    Released: {entry.date}
+                  </span>
+                </div>
+                <h4 className="font-bold text-slate-800 text-xs mb-1.5">{entry.title}</h4>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600">
+                  {entry.changes.map((change, i) => (
+                    <li key={i} className="leading-relaxed">{change}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Reset to Default Demo Data */}
       <div className="frosted-card rounded-2xl p-5 border border-amber-200/60 bg-amber-50/20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -761,7 +840,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           <button
-            onClick={handleResetDemo}
+            onClick={() => setShowResetDemoModal(true)}
             className="neu-btn px-4 py-2 rounded-xl text-amber-700 hover:bg-amber-50 font-semibold cursor-pointer flex-shrink-0"
           >
             Reset to Demo Set
@@ -849,6 +928,56 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>{isDeletingAll ? 'Erasing Data...' : 'Permanently Erase All Data'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Demonstration Data Modal */}
+      {showResetDemoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="frosted-card w-full max-w-md rounded-2xl p-6 relative shadow-2xl border border-amber-300">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-250 mb-4 mx-auto">
+              <Award className="w-6 h-6 text-amber-600" />
+            </div>
+
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-bold text-slate-800">
+                Reset Demonstration Cases?
+              </h3>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                This will reload the initial high-fidelity clinical cases (Ahmed El-Sayed, Sara Mahmoud, and Mahmoud Hassan) with complete photographed evaluation rubrics, radiographs, and procedures.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-sky-50 border border-sky-200 mb-4 text-xs text-slate-700 space-y-1.5">
+              <p className="font-bold text-sky-800 flex items-center gap-1">
+                <span>🛡️</span> Your Personal Data is Safe!
+              </p>
+              <p className="leading-relaxed text-slate-600">
+                Any real clinical cases or timetables you created on this device will <strong>NOT</strong> be deleted. Only demo cases are reset to their original state.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShowResetDemoModal(false)}
+                disabled={isResettingDemo}
+                className="neu-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetDemo}
+                disabled={isResettingDemo}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold cursor-pointer flex items-center justify-center gap-1.5 shadow-sm transition-all"
+              >
+                <Award className="w-3.5 h-3.5" />
+                <span>{isResettingDemo ? 'Resetting...' : 'Reset Demo Cases'}</span>
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
+// @ts-ignore
 import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs';
 import { ClinicSession, ClinicPlace, DisciplineType } from '../types';
 

@@ -1,6 +1,6 @@
 {
   "name": "dentatrack",
-  "version": "1.0.0",
+  "version": "3.4.0",
   "description": "DentaTrack - 5th Year Dental Clinical Case Tracker, Rubric Signature Monitor & Offline PWA",
   "private": true,
   "license": "MIT",
