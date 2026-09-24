@@ -18,12 +18,17 @@ import {
   Trash2,
   Edit3,
   AlignLeft,
-  FileCode
+  FileCode,
+  Cloud,
+  Clipboard,
+  ExternalLink,
+  Smartphone
 } from 'lucide-react';
 import { ClinicSession, ClinicPlace, DisciplineType } from '../types';
 import { 
   extractScheduleFromDoctorPdf, 
-  extractScheduleFromText, 
+  extractScheduleFromText,
+  extractScheduleFromCloudUrl,
   ExtractedScheduleResult,
   CLINICS,
   DAYS
@@ -77,9 +82,10 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
   variant = 'schedule',
   onNavigateToSchedule,
 }) => {
-  const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'drive' | 'paste'>('upload');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pastedText, setPastedText] = useState('');
+  const [driveUrl, setDriveUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -108,8 +114,23 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
     }
   };
 
+  const handlePasteClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          setPastedText(text);
+          haptic.success();
+        }
+      }
+    } catch {
+      // ignore clipboard permission error
+    }
+  };
+
   const handleExtract = async () => {
     if (activeTab === 'upload' && !selectedFile) return;
+    if (activeTab === 'drive' && !driveUrl.trim()) return;
     if (activeTab === 'paste' && !pastedText.trim()) return;
 
     haptic.light();
@@ -127,6 +148,8 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
         } else {
           result = await extractScheduleFromDoctorPdf(selectedFile);
         }
+      } else if (activeTab === 'drive' && driveUrl.trim()) {
+        result = await extractScheduleFromCloudUrl(driveUrl.trim());
       } else {
         result = extractScheduleFromText(pastedText, 'Pasted_Schedule.txt');
       }
@@ -345,13 +368,13 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
         )}
       </div>
 
-      {/* Tabs: PDF Upload vs Paste Text */}
+      {/* Tabs: PDF Upload vs Google Drive vs Paste Text */}
       {!extractionResult && (
-        <div className="flex items-center gap-2 mb-3 border-b border-slate-200 pb-2">
+        <div className="flex items-center gap-1.5 mb-3 border-b border-slate-200 pb-2 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('upload')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer ${
               activeTab === 'upload'
                 ? 'bg-sky-100 text-sky-800 border border-sky-300'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -363,8 +386,21 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
 
           <button
             type="button"
+            onClick={() => setActiveTab('drive')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer ${
+              activeTab === 'drive'
+                ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Cloud className="w-3.5 h-3.5 text-sky-600" />
+            <span>Google Drive / Link</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('paste')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer ${
               activeTab === 'paste'
                 ? 'bg-sky-100 text-sky-800 border border-sky-300'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -441,9 +477,57 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
         </div>
       )}
 
-      {/* Paste Schedule Text Area */}
+      {/* Google Drive / Cloud URL Import */}
+      {!extractionResult && activeTab === 'drive' && (
+        <div className="space-y-3">
+          <div className="p-3 rounded-xl bg-sky-50/80 border border-sky-200 text-xs text-sky-900 space-y-1">
+            <div className="font-bold flex items-center gap-1.5 text-sky-800">
+              <Cloud className="w-4 h-4 text-sky-600" />
+              <span>Import from Google Drive / Cloud Link</span>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Paste a public Google Drive file link, Google Doc link, or Google Sheet link. Make sure sharing is set to <span className="font-bold text-slate-800">&quot;Anyone with the link can view&quot;</span>.
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={driveUrl}
+              onChange={(e) => setDriveUrl(e.target.value)}
+              placeholder="https://drive.google.com/file/d/1ABC.../view?usp=sharing"
+              className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-sky-500 focus:border-sky-500 bg-white"
+            />
+            {driveUrl && (
+              <button
+                type="button"
+                onClick={() => setDriveUrl('')}
+                className="p-2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Paste Schedule Text Area with 1-Tap iOS Clipboard Assistant */}
       {!extractionResult && activeTab === 'paste' && (
         <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-xs font-bold text-slate-700">
+              Paste Timetable Text
+            </label>
+            <button
+              type="button"
+              onClick={handlePasteClipboard}
+              className="neu-btn px-2.5 py-1 rounded-lg text-xs font-bold text-sky-700 hover:bg-sky-100 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Clipboard className="w-3.5 h-3.5 text-sky-600" />
+              <span>Paste Clipboard</span>
+            </button>
+          </div>
+
           <textarea
             value={pastedText}
             onChange={(e) => setPastedText(e.target.value)}
@@ -451,14 +535,23 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
             placeholder={`Paste schedule text here, for example:\nSaturday 08:00 - 10:00 Operative Clinic A\nSunday 10:00 - 12:00 Endo Clinic B\nMonday 12:00 - 02:00 Oral Surgery Clinic C`}
             className="w-full rounded-xl border border-slate-300 p-3 text-xs font-mono focus:ring-2 focus:ring-sky-500 focus:border-sky-500 bg-white"
           />
-          <p className="text-[11px] text-slate-400">
-            Paste raw schedule lines copied from portal or email. Extractor will parse days, times, and clinics.
-          </p>
+
+          <div className="p-2.5 rounded-xl bg-slate-100/90 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
+            <Smartphone className="w-4 h-4 text-sky-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-slate-800">iOS / iPhone Quick Tip: </span>
+              Open PDF in Files app → Long press page → Select All & Copy → Tap <span className="font-bold text-sky-800">Paste Clipboard</span> above!
+            </div>
+          </div>
         </div>
       )}
 
       {/* Extraction trigger button */}
-      {!extractionResult && ((activeTab === 'upload' && selectedFile) || (activeTab === 'paste' && pastedText.trim())) && (
+      {!extractionResult && (
+        (activeTab === 'upload' && selectedFile) ||
+        (activeTab === 'drive' && driveUrl.trim()) ||
+        (activeTab === 'paste' && pastedText.trim())
+      ) && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] text-slate-500 flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -475,7 +568,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
               {isExtracting ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Extracting Offline...</span>
+                  <span>Extracting Schedule...</span>
                 </>
               ) : (
                 <>

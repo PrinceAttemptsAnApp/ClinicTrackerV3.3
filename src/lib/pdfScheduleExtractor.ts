@@ -846,7 +846,112 @@ async function extractPdfItemsNatively(arrayBuffer: ArrayBuffer): Promise<PdfIte
     pageNum++;
   }
 
+  // Fallback: Direct Raw String Extraction across entire file if stream parsing yielded 0 items
+  if (items.length === 0) {
+    const textMatches = Array.from(rawString.matchAll(/\(((?:\\\(|\\\)|[^()])+)\)/g));
+    let yCounter = 800;
+    let xCounter = 50;
+    for (const m of textMatches) {
+      const cleanStr = convertArabicNumerals(m[1].replace(/\\([()\\])/g, '$1')).trim();
+      if (cleanStr && cleanStr.length > 1 && /[\w\u0600-\u06FF]/.test(cleanStr)) {
+        items.push({ str: cleanStr, x: xCounter, y: yCounter, page: 1 });
+        xCounter += 40;
+        if (xCounter > 500) {
+          xCounter = 50;
+          yCounter -= 20;
+        }
+      }
+    }
+  }
+
   return items;
+}
+
+/**
+ * Helper to convert Google Drive / Doc / Sheet sharing URLs to direct download or text export URLs
+ */
+export function parseGoogleDriveUrl(url: string): { type: 'drive-file' | 'doc' | 'sheet' | 'direct'; directUrl: string; fileId?: string } | null {
+  const cleanUrl = url.trim();
+
+  // Match Google Doc
+  const docMatch = cleanUrl.match(/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)/i);
+  if (docMatch) {
+    const fileId = docMatch[1];
+    return {
+      type: 'doc',
+      fileId,
+      directUrl: `https://docs.google.com/document/d/${fileId}/export?format=txt`,
+    };
+  }
+
+  // Match Google Sheet
+  const sheetMatch = cleanUrl.match(/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/i);
+  if (sheetMatch) {
+    const fileId = sheetMatch[1];
+    return {
+      type: 'sheet',
+      fileId,
+      directUrl: `https://docs.google.com/spreadsheets/d/${fileId}/export?format=csv`,
+    };
+  }
+
+  // Match Google Drive File
+  const driveMatch =
+    cleanUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i) ||
+    cleanUrl.match(/drive\.google\.com\/uc\?id=([a-zA-Z0-9_-]+)/i) ||
+    cleanUrl.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/i);
+
+  if (driveMatch) {
+    const fileId = driveMatch[1];
+    return {
+      type: 'drive-file',
+      fileId,
+      directUrl: `https://drive.google.com/uc?export=download&id=${fileId}`,
+    };
+  }
+
+  // Any other direct HTTP/HTTPS URL
+  if (/^https?:\/\//i.test(cleanUrl)) {
+    return { type: 'direct', directUrl: cleanUrl };
+  }
+
+  return null;
+}
+
+/**
+ * Main Offline / Cloud Extractor Entry Point for Google Drive URLs
+ */
+export async function extractScheduleFromCloudUrl(url: string): Promise<ExtractedScheduleResult> {
+  const parsed = parseGoogleDriveUrl(url);
+  if (!parsed) {
+    throw new Error('Please enter a valid Google Drive, Google Doc, Google Sheet, or public file URL.');
+  }
+
+  try {
+    const resp = await fetch(parsed.directUrl);
+    if (!resp.ok) {
+      throw new Error(
+        `Cloud server returned HTTP ${resp.status}. Please check link permissions (ensure "Anyone with the link can view").`
+      );
+    }
+
+    const contentType = resp.headers.get('content-type') || '';
+    if (parsed.type === 'doc' || parsed.type === 'sheet' || contentType.includes('text') || contentType.includes('csv')) {
+      const text = await resp.text();
+      return extractScheduleFromText(text, 'Google_Drive_Schedule.txt');
+    }
+
+    const blob = await resp.blob();
+    const file = new File([blob], 'Google_Drive_Schedule.pdf', { type: 'application/pdf' });
+    return await extractScheduleFromDoctorPdf(file);
+  } catch (err: any) {
+    if (err.message && err.message.includes('Anyone with the link')) {
+      throw err;
+    }
+    throw new Error(
+      `Could not download from Google Drive (${err.message || 'CORS or access restriction'}). Make sure sharing is set to "Anyone with link", or copy and paste schedule text directly.`
+    );
+  }
 }
 
 async function parsePdfDocItems(doc: any): Promise<PdfItemWithCoord[]> {

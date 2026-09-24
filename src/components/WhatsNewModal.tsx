@@ -12,7 +12,7 @@ interface WhatsNewModalProps {
 export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  // Find the entry for the current canonical version (v3.4.0)
+  // Find the entry for the current canonical version (v4.2.0)
   const currentRelease = PATCH_NOTES.find((entry) => entry.version === APP_VERSION) || PATCH_NOTES[0];
 
   const handleGotIt = () => {
@@ -41,7 +41,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose })
             What's New in v{APP_VERSION}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Clinical Companion Update • Ready for chairside clinic trials
+            Clinical Companion Update • Mobile PDF & Schedule Overhaul
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose })
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Key Enhancements & Bug Fixes:
+              Key Enhancements & Mobile Fixes:
             </h3>
             <ul className="space-y-2.5">
               {currentRelease.changes.map((change, index) => (
@@ -63,17 +63,6 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose })
                 </li>
               ))}
             </ul>
-          </div>
-
-          {/* Visually Distinct Known Limitation Banner */}
-          <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200/70 text-slate-700 space-y-1.5 shadow-2xs">
-            <div className="flex items-center gap-2 text-amber-900 font-bold text-xs sm:text-sm">
-              <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <span>Known Limitation: Schedule Extraction</span>
-            </div>
-            <p className="text-xs text-amber-700/95 leading-relaxed font-medium">
-              Schedule PDF extraction currently has a known compatibility issue on some iOS devices (iPhone/iPad). A complete replacement of the schedule extraction engine is actively planned for a future release.
-            </p>
           </div>
         </div>
 

@@ -5,9 +5,22 @@ export interface PatchNoteEntry {
   changes: string[];
 }
 
-export const APP_VERSION = '3.4.0';
+export const APP_VERSION = '4.2.0';
 
 export const PATCH_NOTES: PatchNoteEntry[] = [
+  {
+    version: '4.2.0',
+    date: '2026-09-24',
+    title: 'Mobile PDF Exporter Overhaul & Universal Schedule Importer',
+    changes: [
+      'Mobile WebKit PDF Exporter Fix: Resolved mobile canvas image rendering failures for demo and patient attachment photos/X-rays.',
+      'Native Mobile PDF Sharing & Downloads: Added native Web Share API integration to export and share PDF reports directly on iOS & Android.',
+      'Universal Schedule Extractor: Added 3-tier parsing (2D Tabular Grid, Spatial Line Reconstruction, and Proximity Cluster) supporting Egyptian & international dental school timetables (MIU, Cairo, Ain Shams, MUST, etc.).',
+      'Google Drive & Cloud Link Importer: Easily import schedules by pasting public Google Drive, Google Doc, or Google Sheet shareable links.',
+      'iOS 1-Tap Quick-Paste Assistant: 1-tap clipboard paste with step-by-step guidance for copying PDF text directly on iPhone and iPad.',
+      'Resilient Offline Architecture: Isolated PDF.js worker execution into dynamic same-origin bundles to prevent startup crashes or WebKit sandbox blocks.'
+    ]
+  },
   {
     version: '3.4.0',
     date: '2026-09-23',
