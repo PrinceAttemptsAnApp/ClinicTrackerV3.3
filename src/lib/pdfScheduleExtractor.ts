@@ -880,6 +880,14 @@ interface PdfExtractionResult {
   errorDetails?: string;
 }
 
+let pdfWorkerAssetUrl = '';
+try {
+  // Resolves to same-origin asset URL in Vite build (iOS PWA & WebKit Safe)
+  pdfWorkerAssetUrl = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
+} catch (e) {
+  console.warn('PDF worker URL resolution warning:', e);
+}
+
 /**
  * Extracts structured items with coordinates using PDF.js (100% Offline with bundled worker & main-thread fallback)
  */
@@ -899,9 +907,38 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
     };
   }
 
-  // Stage 1: Try inline Vite Blob worker first (Desktop / Android / GitHub Pages Safe)
+  // Tier A: Try same-origin worker URL (Standard Vite asset URL - Works natively on WebKit / iOS PWA)
   try {
-    console.info('Schedule PDF: attempting Stage 1 PDF.js worker extraction...');
+    console.info('Schedule PDF: attempting Tier A worker extraction...');
+    if (pdfWorkerAssetUrl) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerAssetUrl;
+      pdfjsLib.GlobalWorkerOptions.workerPort = null;
+    }
+
+    const loadingTask = pdfjsLib.getDocument({
+      data: safeData,
+      useSystemFonts: true,
+    });
+
+    const doc = await Promise.race([
+      loadingTask.promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 4000)
+      ),
+    ]);
+
+    const items = await parsePdfDocItems(doc);
+    console.info(`Schedule PDF: Tier A worker extraction succeeded with ${items.length} text items`);
+    if (items.length > 0) {
+      return { items, openedSuccessfully: true };
+    }
+  } catch (tierAErr: any) {
+    console.warn('PDF.js Tier A (Same-Origin Worker) failed, attempting Tier B (Inline Worker):', tierAErr);
+  }
+
+  // Tier B: Try inline Blob worker
+  try {
+    console.info('Schedule PDF: attempting Tier B inline worker extraction...');
     // @ts-ignore
     const workerModule = await import('pdfjs-dist/build/pdf.worker.mjs?worker&inline');
     const PdfWorkerConstructor = workerModule.default || workerModule;
@@ -917,101 +954,49 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
       const doc = await Promise.race([
         loadingTask.promise,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 3500)
+          setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 4000)
         ),
       ]);
 
       const items = await parsePdfDocItems(doc);
-      console.info(`Schedule PDF: Stage 1 worker extraction succeeded with ${items.length} text items`);
+      console.info(`Schedule PDF: Tier B inline worker extraction succeeded with ${items.length} text items`);
       if (items.length > 0) {
         return { items, openedSuccessfully: true };
       }
     }
-  } catch (stage1Err: any) {
-    console.warn('PDF.js Stage 1 (Inline Worker) failed, attempting Stage 2 (Data URI Worker Fallback):', stage1Err);
+  } catch (tierBErr: any) {
+    console.warn('PDF.js Tier B (Inline Worker) failed, attempting Tier C fallback:', tierBErr);
   }
 
-  // Stage 2: Data URI Blob Worker Fallback
+  // Tier C: Fallback loading task
   try {
-    console.info('Schedule PDF: attempting Stage 2 Data URI worker extraction...');
-    // @ts-ignore
-    const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs');
-    let workerCode = '';
-    if (typeof pdfjsWorker === 'string') {
-      workerCode = pdfjsWorker;
-    } else if (pdfjsWorker && typeof (pdfjsWorker as any).default === 'string') {
-      workerCode = (pdfjsWorker as any).default;
-    }
-
-    if (workerCode) {
-      const blob = new Blob([workerCode], { type: 'text/javascript' });
-      const blobUrl = URL.createObjectURL(blob);
-      pdfjsLib.GlobalWorkerOptions.workerSrc = blobUrl;
-    } else {
-      try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-          'pdfjs-dist/build/pdf.worker.min.mjs',
-          import.meta.url
-        ).href;
-      } catch (e) {
-        console.warn('PDF worker URL resolution warning:', e);
-      }
+    console.info('Schedule PDF: attempting Tier C fallback extraction...');
+    if (pdfWorkerAssetUrl) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerAssetUrl;
+      pdfjsLib.GlobalWorkerOptions.workerPort = null;
     }
 
     const loadingTask = pdfjsLib.getDocument({
       data: safeData,
       useSystemFonts: true,
-    });
-
-    const doc = await Promise.race([
-      loadingTask.promise,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 3500)
-      ),
-    ]);
-
-    const items = await parsePdfDocItems(doc);
-    console.info(`Schedule PDF: Stage 2 Data URI worker extraction succeeded with ${items.length} text items`);
-    if (items.length > 0) {
-      return { items, openedSuccessfully: true };
-    }
-  } catch (stage2Err: any) {
-    console.warn('PDF.js Stage 2 (Data URI Fallback) failed, attempting Stage 3 (Main-Thread PDF.js Fallback):', stage2Err);
-  }
-
-  // Stage 3: Main-Thread PDF.js Fallback (iOS WebKit / Standalone PWA Safe)
-  try {
-    console.info('Schedule PDF: worker extraction unavailable/failed, attempting Stage 3 main-thread PDF.js...');
-    try {
-      if (pdfjsLib.GlobalWorkerOptions) {
-        pdfjsLib.GlobalWorkerOptions.workerPort = null;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
-      }
-    } catch {
-      // ignore
-    }
-
-    const loadingTask = pdfjsLib.getDocument({
-      data: safeData,
-      useSystemFonts: true,
-      disableWorker: true,
+      stopAtErrors: false,
     });
 
     const doc = await loadingTask.promise;
     const items = await parsePdfDocItems(doc);
-    console.info(`Schedule PDF: Stage 3 main-thread PDF.js extraction succeeded with ${items.length} text items`);
+    console.info(`Schedule PDF: Tier C extraction succeeded with ${items.length} text items`);
     return { items, openedSuccessfully: true };
-  } catch (stage3Err: any) {
-    console.warn('PDF.js Stage 3 (Main-Thread Fallback) failed:', stage3Err);
+  } catch (tierCErr: any) {
+    console.warn('PDF.js Tier C failed:', tierCErr);
 
-    const errMsg = (stage3Err?.message || stage3Err?.name || String(stage3Err)).toLowerCase();
+    const errMsg = (tierCErr?.message || tierCErr?.name || String(tierCErr)).toLowerCase();
     let errorReason: 'encrypted' | 'corrupted' | 'unreadable' = 'unreadable';
 
-    if (stage3Err?.name === 'PasswordException' || errMsg.includes('password') || errMsg.includes('encrypt')) {
+    if (tierCErr?.name === 'PasswordException' || errMsg.includes('password') || errMsg.includes('encrypt')) {
       errorReason = 'encrypted';
     } else if (
-      stage3Err?.name === 'InvalidPDFException' ||
-      stage3Err?.name === 'FormatError' ||
+      tierCErr?.name === 'InvalidPDFException' ||
+      tierCErr?.name === 'FormatError' ||
       errMsg.includes('invalid') ||
       errMsg.includes('corrupt') ||
       errMsg.includes('structure') ||
@@ -1020,7 +1005,7 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
       errorReason = 'corrupted';
     }
 
-    return { items: [], openedSuccessfully: false, errorReason, errorDetails: stage3Err?.message };
+    return { items: [], openedSuccessfully: false, errorReason, errorDetails: tierCErr?.message };
   }
 }
 
