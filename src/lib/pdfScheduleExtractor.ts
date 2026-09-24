@@ -1,28 +1,9 @@
-import * as pdfjsLib from 'pdfjs-dist';
-// @ts-ignore
-import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs';
 import { ClinicSession, ClinicPlace, DisciplineType } from '../types';
 
 if (typeof Promise.try !== 'function') {
   (Promise as any).try = function (fn: (...args: any[]) => any, ...args: any[]) {
     return new Promise((resolve) => resolve(fn(...args)));
   };
-}
-
-let pdfWorkerUrl = '';
-try {
-  pdfWorkerUrl = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
-} catch (e) {
-  console.warn('PDF worker URL resolution warning:', e);
-}
-
-// Set PDF.js workerSrc to the locally bundled asset (100% Offline, zero CDN)
-if (typeof window !== 'undefined' && pdfWorkerUrl) {
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-  } catch (e) {
-    console.warn('PDF.js workerSrc initialization warning:', e);
-  }
 }
 
 export const CLINICS: ClinicPlace[] = ['A', 'B', 'C', 'M', 'N', 'G'];
@@ -773,29 +754,73 @@ interface PdfExtractionResult {
 async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtractionResult> {
   const safeData = new Uint8Array(arrayBuffer.slice(0));
 
-  // Stage 1: Try normal PDF.js loading with configured workerSrc
+  let pdfjsLib: any;
   try {
-    const loadingTask = pdfjsLib.getDocument({
-      data: safeData,
-      useSystemFonts: true,
-    });
-
-    const doc = await Promise.race([
-      loadingTask.promise,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 2500)
-      ),
-    ]);
-
-    const items = await parsePdfDocItems(doc);
-    return { items, openedSuccessfully: true };
-  } catch (stage1Err: any) {
-    console.warn('PDF.js Stage 1 (Worker) failed, attempting Stage 2 (Main-Thread Fallback):', stage1Err);
+    pdfjsLib = await import('pdfjs-dist');
+  } catch (loadErr: any) {
+    console.warn('Failed to dynamically import pdfjs-dist:', loadErr);
+    return {
+      items: [],
+      openedSuccessfully: false,
+      errorReason: 'unreadable',
+      errorDetails: loadErr?.message || 'Failed to load PDF library',
+    };
   }
 
-  // Stage 2: PDF.js Main-Thread Fallback (uses imported pdfjsWorker directly in UI thread)
+  // Stage 1: Try inline Vite Blob worker first (iOS PWA & GitHub Pages Safe)
   try {
-    (globalThis as any).pdfjsWorker = pdfjsWorker;
+    // @ts-ignore
+    const workerModule = await import('pdfjs-dist/build/pdf.worker.mjs?worker&inline');
+    const PdfWorkerConstructor = workerModule.default || workerModule;
+    if (typeof PdfWorkerConstructor === 'function') {
+      const inlineWorker = new PdfWorkerConstructor();
+      pdfjsLib.GlobalWorkerOptions.workerPort = inlineWorker;
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: safeData,
+        useSystemFonts: true,
+      });
+
+      const doc = await Promise.race([
+        loadingTask.promise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 3500)
+        ),
+      ]);
+
+      const items = await parsePdfDocItems(doc);
+      return { items, openedSuccessfully: true };
+    }
+  } catch (stage1Err: any) {
+    console.warn('PDF.js Stage 1 (Inline Worker) failed, attempting Stage 2 (Data URI Worker Fallback):', stage1Err);
+  }
+
+  // Stage 2: Data URI Blob Worker Fallback
+  try {
+    // @ts-ignore
+    const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs');
+    let workerCode = '';
+    if (typeof pdfjsWorker === 'string') {
+      workerCode = pdfjsWorker;
+    } else if (pdfjsWorker && typeof (pdfjsWorker as any).default === 'string') {
+      workerCode = (pdfjsWorker as any).default;
+    }
+
+    if (workerCode) {
+      const blob = new Blob([workerCode], { type: 'text/javascript' });
+      const blobUrl = URL.createObjectURL(blob);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = blobUrl;
+    } else {
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs',
+          import.meta.url
+        ).href;
+      } catch (e) {
+        console.warn('PDF worker URL resolution warning:', e);
+      }
+    }
+
     const loadingTask = pdfjsLib.getDocument({
       data: safeData,
       useSystemFonts: true,
@@ -805,7 +830,7 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
     const items = await parsePdfDocItems(doc);
     return { items, openedSuccessfully: true };
   } catch (stage2Err: any) {
-    console.warn('PDF.js Stage 2 (Main-Thread) failed:', stage2Err);
+    console.warn('PDF.js Stage 2 (Data URI Fallback) failed:', stage2Err);
 
     const errMsg = (stage2Err?.message || stage2Err?.name || String(stage2Err)).toLowerCase();
     let errorReason: 'encrypted' | 'corrupted' | 'unreadable' = 'unreadable';
