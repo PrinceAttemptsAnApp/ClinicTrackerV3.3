@@ -83,6 +83,7 @@ export default function App() {
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isBrandNewUserRef = useRef<boolean>(false);
 
   // Undo System State
   const [undoNotification, setUndoNotification] = useState<UndoNotification | null>(null);
@@ -159,6 +160,14 @@ export default function App() {
         safeLocalStorage.getItem('dentatrack_tutorial_shown') === 'true'
       );
 
+      const lastSeen =
+        safeLocalStorage.getItem('dentatrack_last_seen_changelog_version') ||
+        safeLocalStorage.getItem('dentatrack_last_seen_version');
+
+      // Distinguish true brand-new user (first run with no name, onboarding, or version stored)
+      const isBrandNew = !hasName && !isOnboardingComplete && !lastSeen;
+      isBrandNewUserRef.current = isBrandNew;
+
       if (!hasName) {
         // Step 1: Prompt for name first. Do NOT open tutorial yet.
         setIsNameModalOpen(true);
@@ -175,7 +184,6 @@ export default function App() {
         setIsTutorialOpen(false);
         
         // Show WhatsNew modal if version is new/unseen
-        const lastSeen = safeLocalStorage.getItem('dentatrack_last_seen_changelog_version');
         if (lastSeen !== APP_VERSION) {
           setIsWhatsNewOpen(true);
         }
@@ -213,6 +221,13 @@ export default function App() {
 
     if (!isOnboardingComplete) {
       setIsTutorialOpen(true);
+    } else {
+      const lastSeen =
+        safeLocalStorage.getItem('dentatrack_last_seen_changelog_version') ||
+        safeLocalStorage.getItem('dentatrack_last_seen_version');
+      if (lastSeen !== APP_VERSION) {
+        setIsWhatsNewOpen(true);
+      }
     }
   };
 
@@ -220,7 +235,7 @@ export default function App() {
     setIsTutorialOpen(false);
     safeLocalStorage.setItem('dentatrack_onboarding_completed', 'true');
     safeLocalStorage.setItem('dentatrack_tutorial_shown', 'true');
-    safeLocalStorage.setItem('dentatrack_last_seen_changelog_version', APP_VERSION);
+
     if (!profile.onboardingCompleted) {
       const updated: StudentProfile = {
         ...profile,
@@ -228,6 +243,19 @@ export default function App() {
       };
       setProfile(updated);
       await saveStudentProfile(updated);
+    }
+
+    const lastSeen =
+      safeLocalStorage.getItem('dentatrack_last_seen_changelog_version') ||
+      safeLocalStorage.getItem('dentatrack_last_seen_version');
+
+    if (isBrandNewUserRef.current) {
+      // Brand-new user completing initial setup for the first time: mark current version as seen
+      safeLocalStorage.setItem('dentatrack_last_seen_changelog_version', APP_VERSION);
+      safeLocalStorage.setItem('dentatrack_last_seen_version', APP_VERSION);
+    } else if (lastSeen !== APP_VERSION) {
+      // Existing user finishing onboarding/tutorial view: trigger WhatsNew modal if unseen
+      setIsWhatsNewOpen(true);
     }
   };
 
@@ -749,6 +777,7 @@ export default function App() {
         onClose={() => {
           setIsWhatsNewOpen(false);
           safeLocalStorage.setItem('dentatrack_last_seen_changelog_version', APP_VERSION);
+          safeLocalStorage.setItem('dentatrack_last_seen_version', APP_VERSION);
         }}
       />
     </div>

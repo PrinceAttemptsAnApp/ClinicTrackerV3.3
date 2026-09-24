@@ -26,7 +26,8 @@ import {
   ArrowRight,
   Layers,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, EvidenceFile, MoodleStatus } from '../types';
 import { ProcedureDetailView } from './ProcedureDetailView';
@@ -67,6 +68,36 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   // Modals state
   const [isAddProcOpen, setIsAddProcOpen] = useState(false);
   const [isDeleteCaseModalOpen, setIsDeleteCaseModalOpen] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingZip, setIsExportingZip] = useState(false);
+
+  const handleExportPdf = async () => {
+    if (isExportingPdf || isExportingZip) return;
+    setIsExportingPdf(true);
+    haptic.selection();
+    try {
+      await generateCaseMoodlePDF(dentalCase);
+    } catch (err) {
+      console.error('PDF export error:', err);
+      alert('Failed to export PDF report. Please try again.');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleExportZip = async () => {
+    if (isExportingPdf || isExportingZip) return;
+    setIsExportingZip(true);
+    haptic.selection();
+    try {
+      await exportCaseAsZip(dentalCase);
+    } catch (err) {
+      console.error('ZIP export error:', err);
+      alert('Failed to export ZIP archive. Please try again.');
+    } finally {
+      setIsExportingZip(false);
+    }
+  };
   const [procedurePendingDelete, setProcedurePendingDelete] = useState<{
     id: string;
     title: string;
@@ -355,22 +386,36 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
             {/* Export PDF */}
             <button
-              onClick={() => generateCaseMoodlePDF(dentalCase)}
-              className="neu-btn px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-sky-700 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              onClick={handleExportPdf}
+              disabled={isExportingPdf || isExportingZip}
+              className="neu-btn px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-sky-700 flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
               title="Export complete case summary as Moodle PDF"
             >
-              <FileDown className="w-4 h-4 text-sky-600" />
-              <span className="hidden sm:inline">Export PDF</span>
+              {isExportingPdf ? (
+                <Loader2 className="w-4 h-4 text-sky-600 animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4 text-sky-600" />
+              )}
+              <span className="hidden sm:inline">
+                {isExportingPdf ? 'Generating PDF...' : 'Export PDF'}
+              </span>
             </button>
 
             {/* Export ZIP */}
             <button
-              onClick={() => exportCaseAsZip(dentalCase)}
-              className="neu-btn px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-sky-700 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+              onClick={handleExportZip}
+              disabled={isExportingPdf || isExportingZip}
+              className="neu-btn px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-sky-700 flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
               title="Download all signed rubrics and photo evidence in ZIP"
             >
-              <Archive className="w-4 h-4 text-sky-600" />
-              <span className="hidden sm:inline">ZIP Archive</span>
+              {isExportingZip ? (
+                <Loader2 className="w-4 h-4 text-sky-600 animate-spin" />
+              ) : (
+                <Archive className="w-4 h-4 text-sky-600" />
+              )}
+              <span className="hidden sm:inline">
+                {isExportingZip ? 'Creating ZIP...' : 'ZIP Archive'}
+              </span>
             </button>
 
             {/* Delete Case Button - Prominently accessible */}

@@ -15,7 +15,8 @@ import {
   PlusCircle,
   FileText,
   PhoneCall,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import { DentalCase, ClinicPlace, ClinicalProcedure, ClinicalStep, ProcedureTemplate } from '../types';
 import { RubricUploadModal } from './RubricUploadModal';
@@ -50,6 +51,21 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [chairMode, setChairMode] = useState<'all' | 'dual'>('dual');
   const [selectedClinicFilter, setSelectedClinicFilter] = useState<ClinicPlace | 'ALL'>('ALL');
+  const [exportingCaseId, setExportingCaseId] = useState<string | null>(null);
+
+  const handleExportPdf = async (c: DentalCase) => {
+    if (exportingCaseId) return;
+    setExportingCaseId(c.id);
+    haptic.selection();
+    try {
+      await generateCaseMoodlePDF(c);
+    } catch (err) {
+      console.error('PDF Export error:', err);
+      alert('Failed to export PDF report. Please try again.');
+    } finally {
+      setExportingCaseId(null);
+    }
+  };
   
   // Modals state
   const [rubricModalData, setRubricModalData] = useState<{
@@ -586,12 +602,17 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                   </button>
 
                   <button
-                    onClick={() => generateCaseMoodlePDF(c)}
-                    className="neu-btn-primary px-3 py-1.5 rounded-xl text-xs font-semibold text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    disabled={exportingCaseId === c.id}
+                    onClick={() => handleExportPdf(c)}
+                    className="neu-btn-primary px-3 py-1.5 rounded-xl text-xs font-semibold text-white flex items-center gap-1.5 cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                     title="Generate PDF of all signed rubrics ready for Moodle"
                   >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Export Moodle PDF</span>
+                    {exportingCaseId === c.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5" />
+                    )}
+                    <span>{exportingCaseId === c.id ? 'Generating...' : 'Export Moodle PDF'}</span>
                   </button>
                 </div>
               </div>

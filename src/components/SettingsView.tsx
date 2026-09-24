@@ -96,15 +96,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // App version and patch notes state
   const [showPatchNotes, setShowPatchNotes] = useState(false);
-  const [lastSeenVersion, setLastSeenVersion] = useState(() => safeLocalStorage.getItem('dentatrack_last_seen_version') || '');
+  const [lastSeenVersion, setLastSeenVersion] = useState(() => 
+    safeLocalStorage.getItem('dentatrack_last_seen_changelog_version') || 
+    safeLocalStorage.getItem('dentatrack_last_seen_version') || 
+    ''
+  );
   const hasNewUpdate = lastSeenVersion !== APP_VERSION;
 
   const handleTogglePatchNotes = () => {
     setShowPatchNotes(prev => !prev);
-    if (lastSeenVersion !== APP_VERSION) {
-      safeLocalStorage.setItem('dentatrack_last_seen_version', APP_VERSION);
-      setLastSeenVersion(APP_VERSION);
-    }
   };
 
   const handleNotationChange = (system: 'palmer' | 'fdi') => {

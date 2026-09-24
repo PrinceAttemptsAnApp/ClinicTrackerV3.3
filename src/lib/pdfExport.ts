@@ -14,28 +14,164 @@ interface ProcessedPdfImage {
 }
 
 /**
- * Prepares an image for PDF embedding:
- * - Downscales large images to max dimension 1200px on an offscreen canvas.
- * - Extracts width, height, and format.
- * - Keeps original data intact in IndexedDB.
+  * Safely generates a clean, human-readable export filename compatible with all OSs.
+  * Pattern: DentaTrack - [Patient Name] - [Document Type] - [YYYY-MM-DD].pdf
+  * Removes internal UUIDs, raw timestamp numbers, database keys, and unsafe path characters.
+  */
+export function generateExportFilename(
+  patientName?: string,
+  docType = 'Case Report',
+  dateStr?: string
+): string {
+  const cleanPatient = (patientName || 'Patient')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ') || 'Patient';
+
+  const cleanDocType = (docType || 'Case Report')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ') || 'Case Report';
+
+  const cleanDate = dateStr || new Date().toISOString().split('T')[0];
+
+  return `DentaTrack - ${cleanPatient} - ${cleanDocType} - ${cleanDate}.pdf`;
+}
+
+/**
+ * Converts SVG data URLs or markup strings into crisp PNG raster data URLs.
+ * Handles base64, utf8 URL-encoded strings, missing viewBox/dimensions, and XML namespaces.
  */
-async function prepareImageForPdf(dataUrl?: string): Promise<ProcessedPdfImage | null> {
-  if (!dataUrl || typeof dataUrl !== 'string') return null;
+async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage | null> {
+  return new Promise((resolve) => {
+    try {
+      let svgText = '';
+      if (svgInput.includes('base64,')) {
+        const base64Str = svgInput.split('base64,')[1];
+        try {
+          svgText = decodeURIComponent(escape(atob(base64Str)));
+        } catch {
+          svgText = atob(base64Str);
+        }
+      } else if (svgInput.includes('utf8,')) {
+        svgText = decodeURIComponent(svgInput.split('utf8,')[1]);
+      } else if (svgInput.includes('data:image/svg+xml,')) {
+        svgText = decodeURIComponent(svgInput.split('data:image/svg+xml,')[1]);
+      } else if (svgInput.trim().startsWith('<svg')) {
+        svgText = svgInput.trim();
+      }
 
-  const isDataImage = dataUrl.startsWith('data:image/');
-  if (!isDataImage) {
-    return {
-      dataUrl: '',
-      width: 0,
-      height: 0,
-      format: 'JPEG',
-      isSupportedImage: false,
-    };
-  }
+      if (!svgText || !svgText.includes('<svg')) {
+        return convertRasterImage(svgInput).then(resolve);
+      }
 
+      // Parse with DOMParser to fix dimensions and xmlns
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svgText, 'image/svg+xml');
+      const svgEl = doc.querySelector('svg');
+
+      if (!svgEl) {
+        return convertRasterImage(svgInput).then(resolve);
+      }
+
+      if (!svgEl.hasAttribute('xmlns')) {
+        svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      }
+
+      let width = parseFloat(svgEl.getAttribute('width') || '0');
+      let height = parseFloat(svgEl.getAttribute('height') || '0');
+
+      if (!width || !height || isNaN(width) || isNaN(height)) {
+        const viewBox = svgEl.getAttribute('viewBox');
+        if (viewBox) {
+          const parts = viewBox.split(/[\s,]+/).map(parseFloat);
+          if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+            width = parts[2];
+            height = parts[3];
+          }
+        }
+      }
+
+      if (!width || isNaN(width) || width <= 0) width = 800;
+      if (!height || isNaN(height) || height <= 0) height = 800;
+
+      svgEl.setAttribute('width', width.toString());
+      svgEl.setAttribute('height', height.toString());
+
+      const cleanedSvgStr = new XMLSerializer().serializeToString(svgEl);
+      const svgBlob = new Blob([cleanedSvgStr], { type: 'image/svg+xml;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      // DO NOT set crossOrigin for Blob or local data URIs!
+
+      img.onload = () => {
+        const MAX_DIM = 1200;
+        let targetW = width;
+        let targetH = height;
+
+        if (targetW > MAX_DIM || targetH > MAX_DIM) {
+          if (targetW > targetH) {
+            targetH = Math.round((targetH * MAX_DIM) / targetW);
+            targetW = MAX_DIM;
+          } else {
+            targetW = Math.round((targetW * MAX_DIM) / targetH);
+            targetH = MAX_DIM;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, targetW, targetH);
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+
+          const pngDataUrl = canvas.toDataURL('image/png', 0.95);
+          URL.revokeObjectURL(blobUrl);
+
+          resolve({
+            dataUrl: pngDataUrl,
+            width: targetW,
+            height: targetH,
+            format: 'PNG',
+            isSupportedImage: true,
+          });
+        } else {
+          URL.revokeObjectURL(blobUrl);
+          resolve(null);
+        }
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(blobUrl);
+        convertRasterImage(svgInput).then(resolve);
+      };
+
+      img.src = blobUrl;
+    } catch (err) {
+      console.warn('SVG rasterization notice:', err);
+      convertRasterImage(svgInput).then(resolve);
+    }
+  });
+}
+
+/**
+ * Handles JPEG, PNG, WebP, and standard base64/data URLs.
+ * Downscales images exceeding 1200px max dimension.
+ */
+async function convertRasterImage(dataUrl: string): Promise<ProcessedPdfImage | null> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+
+    // Only set crossOrigin for remote HTTP/HTTPS assets
+    if (dataUrl.startsWith('http://') || dataUrl.startsWith('https://')) {
+      img.crossOrigin = 'anonymous';
+    }
+
     img.onload = () => {
       const origW = img.naturalWidth || img.width || 800;
       const origH = img.naturalHeight || img.height || 600;
@@ -58,6 +194,7 @@ async function prepareImageForPdf(dataUrl?: string): Promise<ProcessedPdfImage |
       canvas.width = targetW;
       canvas.height = targetH;
       const ctx = canvas.getContext('2d');
+
       if (ctx) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, targetW, targetH);
@@ -99,6 +236,41 @@ async function prepareImageForPdf(dataUrl?: string): Promise<ProcessedPdfImage |
   });
 }
 
+/**
+ * Universal Image Preparation Pipeline for PDF generation.
+ * Decodes and standardizes real uploads (JPG/PNG/WebP) and demo SVG data URLs.
+ */
+async function prepareImageForPdf(dataUrl?: string): Promise<ProcessedPdfImage | null> {
+  if (!dataUrl || typeof dataUrl !== 'string' || dataUrl.trim().length === 0) {
+    return null;
+  }
+
+  let normalizedUrl = dataUrl.trim();
+
+  // Normalize raw base64 or unformatted SVG strings if missing data URI headers
+  if (!normalizedUrl.startsWith('data:') && !normalizedUrl.startsWith('http') && !normalizedUrl.startsWith('blob:')) {
+    if (normalizedUrl.includes('<svg') || normalizedUrl.startsWith('PHN2Zy')) {
+      normalizedUrl = normalizedUrl.includes('<svg')
+        ? `data:image/svg+xml;utf8,${encodeURIComponent(normalizedUrl)}`
+        : `data:image/svg+xml;base64,${normalizedUrl}`;
+    } else if (normalizedUrl.startsWith('/9j/')) {
+      normalizedUrl = `data:image/jpeg;base64,${normalizedUrl}`;
+    } else if (normalizedUrl.startsWith('iVBORw0KGgo')) {
+      normalizedUrl = `data:image/png;base64,${normalizedUrl}`;
+    } else {
+      normalizedUrl = `data:image/jpeg;base64,${normalizedUrl}`;
+    }
+  }
+
+  const isSvg = normalizedUrl.includes('image/svg+xml') || normalizedUrl.includes('<svg');
+
+  if (isSvg) {
+    return convertSvgToRaster(normalizedUrl);
+  } else {
+    return convertRasterImage(normalizedUrl);
+  }
+}
+
 function drawAttachmentFallbackBox(
   doc: jsPDF,
   fileName: string,
@@ -122,22 +294,143 @@ function drawAttachmentFallbackBox(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(100, 116, 139);
-  doc.text(
-    `Category: ${category}  •  Size: ${(fileSize / 1024).toFixed(1)} KB`,
-    18,
-    yPos + 13
-  );
+  const sizeKb = fileSize > 0 ? `${(fileSize / 1024).toFixed(1)} KB` : 'Local File';
+  doc.text(`Category: ${category}  •  Size: ${sizeKb}`, 18, yPos + 13);
+  
   doc.setTextColor(225, 29, 72);
   doc.setFont('helvetica', 'bold');
-  doc.text(
-    'File attached separately / unsupported preview format',
-    18,
-    yPos + 18
-  );
+  doc.text('Unable to preview attachment image in PDF report', 18, yPos + 18);
 
   return yPos + boxHeight + 6;
 }
 
+interface RenderAttachmentParams {
+  doc: jsPDF;
+  title: string;
+  subLabel?: string;
+  category?: string;
+  fileDataUrl?: string;
+  fileName: string;
+  fileSize?: number;
+  uploadedAt?: string;
+  isRubric?: boolean;
+  yPos: number;
+  pageWidth: number;
+  pageHeight: number;
+  ensureSpace: (neededHeight: number) => number;
+}
+
+/**
+ * Reusable Attachment Block Renderer.
+ * Treats the Title, Sublabel, Image, and Caption/Metadata as a SINGLE logical unit.
+ * Calculates total block height upfront and triggers page breaks before rendering,
+ * guaranteeing labels are NEVER separated from their corresponding image.
+ */
+async function renderAttachmentBlock(params: RenderAttachmentParams): Promise<number> {
+  const {
+    doc,
+    title,
+    subLabel,
+    category,
+    fileDataUrl,
+    fileName,
+    fileSize = 0,
+    uploadedAt,
+    isRubric = false,
+    pageWidth,
+    ensureSpace,
+  } = params;
+
+  // Process image
+  const prepared = await prepareImageForPdf(fileDataUrl);
+
+  const maxW = pageWidth - 28; // 182mm on A4
+  const maxH = isRubric ? 150 : 105; // mm
+
+  if (prepared && prepared.isSupportedImage && prepared.dataUrl) {
+    const aspect = prepared.width / prepared.height || 1.33;
+    let renderW = maxW;
+    let renderH = maxW / aspect;
+
+    if (renderH > maxH) {
+      renderH = maxH;
+      renderW = maxH * aspect;
+    }
+
+    // Total vertical space needed for complete attachment block:
+    // Title (6mm) + Sublabel (5mm if present) + Top Pad (3mm) + Image (renderH) + Bottom Pad (3mm) + Caption (8mm) + Block Gap (8mm)
+    const headerH = 6 + (subLabel ? 5 : 0);
+    const captionH = 8;
+    const padding = 6;
+    const gap = 8;
+    const totalBlockHeight = headerH + padding + renderH + captionH + gap;
+
+    // Check pagination upfront for the ENTIRE block
+    let currentY = ensureSpace(totalBlockHeight);
+
+    // 1. Draw Section Title
+    doc.setTextColor(15, 23, 42);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(title, 14, currentY);
+    currentY += 5;
+
+    // 2. Draw Sublabel if provided
+    if (subLabel) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(subLabel, 14, currentY);
+      currentY += 4.5;
+    }
+
+    currentY += 2;
+
+    // 3. Draw Image Frame & Content (centered horizontally)
+    const xPos = 14 + (maxW - renderW) / 2;
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(xPos - 1, currentY - 1, renderW + 2, renderH + 2, 1.5, 1.5, 'FD');
+
+    try {
+      doc.addImage(
+        prepared.dataUrl,
+        prepared.format,
+        xPos,
+        currentY,
+        renderW,
+        renderH,
+        undefined,
+        'FAST'
+      );
+      currentY += renderH + 5;
+
+      // 4. Draw Caption / Metadata directly below the image
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+
+      const dateText = uploadedAt ? new Date(uploadedAt).toLocaleDateString() : new Date().toLocaleDateString();
+      const metaText = `File: ${fileName}${category ? `  •  Category: ${category}` : ''}  •  Uploaded: ${dateText}`;
+      doc.text(metaText, 14, currentY);
+      currentY += 8;
+
+      return currentY;
+    } catch (err) {
+      console.warn('Failed to embed image in PDF:', err);
+      return drawAttachmentFallbackBox(doc, fileName, category || 'Clinical Photo', fileSize, currentY, pageWidth);
+    }
+  } else {
+    // Fallback block if file is missing or corrupted
+    const fallbackHeight = 28;
+    const currentY = ensureSpace(fallbackHeight);
+    return drawAttachmentFallbackBox(doc, fileName, category || 'Attachment', fileSize, currentY, pageWidth);
+  }
+}
+
+/**
+ * Generates an academic-grade clinical case report PDF for Moodle submission.
+ */
 export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<void> {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -149,11 +442,12 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
   const pageHeight = doc.internal.pageSize.getHeight();
   let yPos = 20;
 
-  const ensureSpace = (neededHeight: number) => {
-    if (yPos + neededHeight > pageHeight - 15) {
+  const ensureSpace = (neededHeight: number): number => {
+    if (yPos + neededHeight > pageHeight - 16) {
       doc.addPage();
       yPos = 20;
     }
+    return yPos;
   };
 
   // Header Banner
@@ -186,8 +480,7 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
   doc.text(`Clinic Place: Clinic ${dentalCase.clinicPlace}`, 20, yPos + 18);
   doc.text(`Semester: ${dentalCase.semester} (${dentalCase.academicYear})`, 120, yPos + 18);
 
-  const statusText = dentalCase.status;
-  doc.text(`Case Status: ${statusText}`, 20, yPos + 26);
+  doc.text(`Case Status: ${dentalCase.status}`, 20, yPos + 26);
   doc.text(
     `Comprehensive Case: ${dentalCase.isComprehensive ? 'YES (3+ Disciplines Verified)' : 'Single Discipline'}`,
     120,
@@ -199,7 +492,7 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
 
   yPos += 52;
 
-  // Procedures & Signed Rubrics Table
+  // Procedures & Signed Rubrics Table Summary
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(2, 132, 199);
@@ -209,7 +502,7 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
   for (let i = 0; i < dentalCase.procedures.length; i++) {
     const proc = dentalCase.procedures[i];
 
-    ensureSpace(35);
+    ensureSpace(32);
 
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(226, 232, 240);
@@ -269,25 +562,24 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
 
     yPos += 22;
 
-    // IF ENDODONTIC PROCEDURE: Render Structured Radiograph Stages per Tooth
+    // ENDODONTIC PROCEDURES: Render Structured Radiograph Stages
     if (proc.discipline === 'Endo') {
       const teeth = parseProcedureTeeth(proc.toothNumber);
 
       for (const toothLabel of teeth) {
-        ensureSpace(20);
+        ensureSpace(18);
 
-        // Tooth Section Banner
+        // Tooth Sub-Header
         doc.setFillColor(2, 132, 199);
         doc.rect(14, yPos, pageWidth - 28, 8, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.text(`ENDODONTIC RADIOGRAPHS – ${toothLabel.toUpperCase()}`, 18, yPos + 5.5);
+        doc.text(`ENDODONTIC RADIOGRAPHS – TOOTH ${toothLabel.toUpperCase()}`, 18, yPos + 5.5);
 
         yPos += 12;
 
         for (const stage of ENDO_STAGES) {
-          // Find matching radiograph for this tooth and stage
           const radiograph = proc.evidenceFiles.find((ev) => {
             if (ev.endoToothNumber && ev.endoStage) {
               return ev.endoToothNumber === toothLabel && ev.endoStage === stage.key;
@@ -299,78 +591,26 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
           });
 
           if (radiograph) {
-            ensureSpace(20);
-
-            doc.setTextColor(15, 23, 42);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.text(`${stage.label}`, 14, yPos);
-            yPos += 5;
-
-            const prepared = await prepareImageForPdf(radiograph.fileDataUrl);
-
-            if (prepared && prepared.isSupportedImage && prepared.dataUrl) {
-              const maxW = pageWidth - 28; // 182mm
-              const maxH = 110; // Max height in mm
-
-              const aspect = prepared.width / prepared.height;
-              let renderW = maxW;
-              let renderH = maxW / aspect;
-
-              if (renderH > maxH) {
-                renderH = maxH;
-                renderW = maxH * aspect;
-              }
-
-              ensureSpace(renderH + 12);
-
-              try {
-                doc.addImage(
-                  prepared.dataUrl,
-                  prepared.format,
-                  14,
-                  yPos,
-                  renderW,
-                  renderH,
-                  undefined,
-                  'FAST'
-                );
-                yPos += renderH + 5;
-
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(8);
-                doc.setTextColor(100, 116, 139);
-                doc.text(
-                  `File: ${radiograph.fileName}  •  Stage: ${stage.label}  •  Tooth: ${toothLabel}`,
-                  14,
-                  yPos
-                );
-                yPos += 8;
-              } catch (err) {
-                yPos = drawAttachmentFallbackBox(
-                  doc,
-                  radiograph.fileName,
-                  stage.label,
-                  radiograph.fileSize,
-                  yPos,
-                  pageWidth
-                );
-              }
-            } else {
-              yPos = drawAttachmentFallbackBox(
-                doc,
-                radiograph.fileName,
-                stage.label,
-                radiograph.fileSize,
-                yPos,
-                pageWidth
-              );
-            }
+            yPos = await renderAttachmentBlock({
+              doc,
+              title: `Stage: ${stage.label}`,
+              subLabel: `Tooth #${toothLabel}  •  Endodontic Workflow`,
+              category: 'Radiograph',
+              fileDataUrl: radiograph.fileDataUrl,
+              fileName: radiograph.fileName,
+              fileSize: radiograph.fileSize,
+              uploadedAt: radiograph.uploadedAt,
+              isRubric: false,
+              yPos,
+              pageWidth,
+              pageHeight,
+              ensureSpace,
+            });
           }
         }
       }
 
-      // Check if there are non-endo generic evidence files on this Endo procedure
+      // Non-stage generic evidence for Endo procedures
       const genericEvidences = proc.evidenceFiles.filter((ev) => !ev.endoStage);
       if (genericEvidences.length > 0) {
         ensureSpace(15);
@@ -381,67 +621,20 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
         yPos += 8;
 
         for (const ev of genericEvidences) {
-          ensureSpace(15);
-
-          doc.setTextColor(15, 23, 42);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(9.5);
-          doc.text(`[${ev.category}] ${ev.fileName}`, 14, yPos);
-          yPos += 5;
-
-          const prepared = await prepareImageForPdf(ev.fileDataUrl);
-          if (prepared && prepared.isSupportedImage && prepared.dataUrl) {
-            const maxW = pageWidth - 28;
-            const maxH = 110;
-            const aspect = prepared.width / prepared.height;
-            let renderW = maxW;
-            let renderH = maxW / aspect;
-
-            if (renderH > maxH) {
-              renderH = maxH;
-              renderW = maxH * aspect;
-            }
-
-            ensureSpace(renderH + 12);
-
-            try {
-              doc.addImage(
-                prepared.dataUrl,
-                prepared.format,
-                14,
-                yPos,
-                renderW,
-                renderH,
-                undefined,
-                'FAST'
-              );
-              yPos += renderH + 5;
-
-              doc.setFont('helvetica', 'normal');
-              doc.setFontSize(8);
-              doc.setTextColor(100, 116, 139);
-              doc.text(`Category: ${ev.category}  •  File: ${ev.fileName}`, 14, yPos);
-              yPos += 8;
-            } catch (err) {
-              yPos = drawAttachmentFallbackBox(
-                doc,
-                ev.fileName,
-                ev.category,
-                ev.fileSize,
-                yPos,
-                pageWidth
-              );
-            }
-          } else {
-            yPos = drawAttachmentFallbackBox(
-              doc,
-              ev.fileName,
-              ev.category,
-              ev.fileSize,
-              yPos,
-              pageWidth
-            );
-          }
+          yPos = await renderAttachmentBlock({
+            doc,
+            title: `[${ev.category}] ${ev.fileName}`,
+            category: ev.category,
+            fileDataUrl: ev.fileDataUrl,
+            fileName: ev.fileName,
+            fileSize: ev.fileSize,
+            uploadedAt: ev.uploadedAt,
+            isRubric: false,
+            yPos,
+            pageWidth,
+            pageHeight,
+            ensureSpace,
+          });
         }
       }
     } else {
@@ -455,67 +648,20 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
         yPos += 8;
 
         for (const ev of proc.evidenceFiles) {
-          ensureSpace(15);
-
-          doc.setTextColor(15, 23, 42);
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(9.5);
-          doc.text(`[${ev.category}] ${ev.fileName}`, 14, yPos);
-          yPos += 5;
-
-          const prepared = await prepareImageForPdf(ev.fileDataUrl);
-          if (prepared && prepared.isSupportedImage && prepared.dataUrl) {
-            const maxW = pageWidth - 28;
-            const maxH = 110;
-            const aspect = prepared.width / prepared.height;
-            let renderW = maxW;
-            let renderH = maxW / aspect;
-
-            if (renderH > maxH) {
-              renderH = maxH;
-              renderW = maxH * aspect;
-            }
-
-            ensureSpace(renderH + 12);
-
-            try {
-              doc.addImage(
-                prepared.dataUrl,
-                prepared.format,
-                14,
-                yPos,
-                renderW,
-                renderH,
-                undefined,
-                'FAST'
-              );
-              yPos += renderH + 5;
-
-              doc.setFont('helvetica', 'normal');
-              doc.setFontSize(8);
-              doc.setTextColor(100, 116, 139);
-              doc.text(`Category: ${ev.category}  •  File: ${ev.fileName}`, 14, yPos);
-              yPos += 8;
-            } catch (err) {
-              yPos = drawAttachmentFallbackBox(
-                doc,
-                ev.fileName,
-                ev.category,
-                ev.fileSize,
-                yPos,
-                pageWidth
-              );
-            }
-          } else {
-            yPos = drawAttachmentFallbackBox(
-              doc,
-              ev.fileName,
-              ev.category,
-              ev.fileSize,
-              yPos,
-              pageWidth
-            );
-          }
+          yPos = await renderAttachmentBlock({
+            doc,
+            title: `[${ev.category}] ${ev.fileName}`,
+            category: ev.category,
+            fileDataUrl: ev.fileDataUrl,
+            fileName: ev.fileName,
+            fileSize: ev.fileSize,
+            uploadedAt: ev.uploadedAt,
+            isRubric: false,
+            yPos,
+            pageWidth,
+            pageHeight,
+            ensureSpace,
+          });
         }
       }
     }
@@ -530,83 +676,51 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
       yPos += 8;
 
       for (const rub of proc.rubrics) {
-        ensureSpace(15);
-
-        doc.setTextColor(15, 23, 42);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text(`Rubric: ${rub.title}`, 14, yPos);
-        yPos += 5;
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8.5);
-        doc.setTextColor(71, 85, 105);
-        doc.text(
-          `Instructor: ${rub.instructorName} (${rub.instructorRole || 'Staff Doctor'})  •  Status: ${rub.status}  •  Signed: ${rub.signatureDate || 'Yes'}`,
-          14,
-          yPos
-        );
-        yPos += 6;
-
-        if (rub.fileDataUrl) {
-          const prepared = await prepareImageForPdf(rub.fileDataUrl);
-          if (prepared && prepared.isSupportedImage && prepared.dataUrl) {
-            const maxW = pageWidth - 28;
-            const maxH = 170; // Allow larger height for rubric sheets
-            const aspect = prepared.width / prepared.height;
-            let renderW = maxW;
-            let renderH = maxW / aspect;
-
-            if (renderH > maxH) {
-              renderH = maxH;
-              renderW = maxH * aspect;
-            }
-
-            ensureSpace(renderH + 10);
-
-            try {
-              doc.addImage(
-                prepared.dataUrl,
-                prepared.format,
-                14,
-                yPos,
-                renderW,
-                renderH,
-                undefined,
-                'FAST'
-              );
-              yPos += renderH + 8;
-            } catch (err) {
-              yPos = drawAttachmentFallbackBox(
-                doc,
-                rub.fileName || 'signed_rubric.pdf',
-                'Signed Rubric',
-                10240,
-                yPos,
-                pageWidth
-              );
-            }
-          } else {
-            yPos = drawAttachmentFallbackBox(
-              doc,
-              rub.fileName || 'signed_rubric.pdf',
-              'Signed Rubric',
-              10240,
-              yPos,
-              pageWidth
-            );
-          }
-        }
+        yPos = await renderAttachmentBlock({
+          doc,
+          title: `Signed Evaluation Rubric: ${rub.title}`,
+          subLabel: `Instructor: ${rub.instructorName} (${rub.instructorRole || 'Staff Doctor'})  •  Status: ${rub.status}  •  Signed: ${rub.signatureDate || 'Yes'}`,
+          category: 'Rubric Sign-off',
+          fileDataUrl: rub.fileDataUrl,
+          fileName: rub.fileName || 'signed_rubric.jpg',
+          fileSize: 512000,
+          uploadedAt: rub.uploadedAt,
+          isRubric: true,
+          yPos,
+          pageWidth,
+          pageHeight,
+          ensureSpace,
+        });
       }
     }
   }
 
-  const safePatientName = dentalCase.patientName.replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filename = `Case_File_${dentalCase.fileNumber}_${safePatientName}_Moodle.pdf`;
+  // Multi-page footer pass
+  const totalPages = (doc.internal as any).getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setDrawColor(226, 232, 240);
+    doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      `DentaTrack Clinical Dossier  •  Patient: ${dentalCase.patientName} (#${dentalCase.fileNumber})`,
+      14,
+      pageHeight - 6
+    );
+    doc.text(`Page ${p} of ${totalPages}`, pageWidth - 14, pageHeight - 6, { align: 'right' });
+  }
+
+  const filename = generateExportFilename(dentalCase.patientName, 'Case Report');
   doc.save(filename);
   sendAnalyticsEvent('case_exported');
 }
 
+/**
+ * Exports all case records, attachments, and rubrics into a structured ZIP archive.
+ */
 export async function exportCaseAsZip(dentalCase: DentalCase): Promise<void> {
   const zip = new JSZip();
   const folderName = `Case_${dentalCase.fileNumber}_${dentalCase.patientName.replace(/\s+/g, '_')}`;
@@ -651,37 +765,47 @@ ${i + 1}. [${p.discipline}] ${p.title}
   root.file('Case_Summary.txt', manifestContent);
 
   // 2. Separate folders by procedure for evidence & rubrics
-  dentalCase.procedures.forEach((p, idx) => {
+  for (let idx = 0; idx < dentalCase.procedures.length; idx++) {
+    const p = dentalCase.procedures[idx];
     const safeProcName = `${String(idx + 1).padStart(2, '0')}_${p.discipline}_${p.title.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
     const procFolder = root.folder(safeProcName);
-    if (!procFolder) return;
+    if (!procFolder) continue;
 
     // Save rubric images
     p.rubrics.forEach((rub, rIdx) => {
-      if (rub.fileDataUrl && rub.fileDataUrl.includes('base64,')) {
-        const base64Data = rub.fileDataUrl.split('base64,')[1];
-        const ext = rub.fileName?.endsWith('.pdf') ? 'pdf' : 'jpg';
-        procFolder.file(`signed_rubric_${rIdx + 1}.${ext}`, base64Data, { base64: true });
+      if (rub.fileDataUrl) {
+        if (rub.fileDataUrl.includes('base64,')) {
+          const base64Data = rub.fileDataUrl.split('base64,')[1];
+          const ext = rub.fileName?.endsWith('.pdf') ? 'pdf' : 'jpg';
+          procFolder.file(`signed_rubric_${rIdx + 1}.${ext}`, base64Data, { base64: true });
+        } else {
+          procFolder.file(`signed_rubric_${rIdx + 1}.txt`, rub.fileDataUrl);
+        }
       }
     });
 
     // Save evidence files
     p.evidenceFiles.forEach((ev, eIdx) => {
-      if (ev.fileDataUrl && ev.fileDataUrl.includes('base64,')) {
-        const base64Data = ev.fileDataUrl.split('base64,')[1];
-        const ext = ev.fileName?.split('.').pop() || 'jpg';
-        const toothPrefix = ev.endoToothNumber ? `${ev.endoToothNumber.replace(/[^a-zA-Z0-9_-]/g, '')}_` : '';
-        const stagePrefix = ev.endoStage ? `${ev.endoStage}_` : '';
-        procFolder.file(
-          `evidence_${eIdx + 1}_${toothPrefix}${stagePrefix}${ev.category}.${ext}`,
-          base64Data,
-          { base64: true }
-        );
+      if (ev.fileDataUrl) {
+        if (ev.fileDataUrl.includes('base64,')) {
+          const base64Data = ev.fileDataUrl.split('base64,')[1];
+          const ext = ev.fileName?.split('.').pop() || 'jpg';
+          const toothPrefix = ev.endoToothNumber ? `${ev.endoToothNumber.replace(/[^a-zA-Z0-9_-]/g, '')}_` : '';
+          const stagePrefix = ev.endoStage ? `${ev.endoStage}_` : '';
+          procFolder.file(
+            `evidence_${eIdx + 1}_${toothPrefix}${stagePrefix}${ev.category}.${ext}`,
+            base64Data,
+            { base64: true }
+          );
+        } else {
+          procFolder.file(`evidence_${eIdx + 1}_${ev.category}.txt`, ev.fileDataUrl);
+        }
       }
     });
-  });
+  }
 
   const blob = await zip.generateAsync({ type: 'blob' });
-  saveAs(blob, `${folderName}_Archive.zip`);
+  const zipFilename = generateExportFilename(dentalCase.patientName, 'Case Archive').replace('.pdf', '.zip');
+  saveAs(blob, zipFilename);
   sendAnalyticsEvent('case_exported');
 }

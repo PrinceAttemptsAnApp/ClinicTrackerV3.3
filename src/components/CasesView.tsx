@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   X,
   Calendar,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import { DentalCase, ClinicPlace, Semester } from '../types';
 import { generateCaseMoodlePDF, exportCaseAsZip } from '../lib/pdfExport';
@@ -51,6 +52,39 @@ export const CasesView: React.FC<CasesViewProps> = ({
   const [selectedClinic, setSelectedClinic] = useState<string>('all');
   const [filterTab, setFilterTab] = useState<string>(initialFilter);
   const [casePendingDelete, setCasePendingDelete] = useState<DentalCase | null>(null);
+  const [exportingKey, setExportingKey] = useState<string | null>(null);
+
+  const handleExportPdf = async (e: React.MouseEvent, c: DentalCase) => {
+    e.stopPropagation();
+    if (exportingKey) return;
+    const key = `${c.id}_pdf`;
+    setExportingKey(key);
+    haptic.selection();
+    try {
+      await generateCaseMoodlePDF(c);
+    } catch (err) {
+      console.error('PDF Export error:', err);
+      alert('Failed to export PDF report. Please try again.');
+    } finally {
+      setExportingKey(null);
+    }
+  };
+
+  const handleExportZip = async (e: React.MouseEvent, c: DentalCase) => {
+    e.stopPropagation();
+    if (exportingKey) return;
+    const key = `${c.id}_zip`;
+    setExportingKey(key);
+    haptic.selection();
+    try {
+      await exportCaseAsZip(c);
+    } catch (err) {
+      console.error('ZIP Export error:', err);
+      alert('Failed to export ZIP archive. Please try again.');
+    } finally {
+      setExportingKey(null);
+    }
+  };
 
   // Filter cases
   const filteredCases = cases.filter((c) => {
@@ -369,27 +403,31 @@ export const CasesView: React.FC<CasesViewProps> = ({
                       {/* Export PDF */}
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          generateCaseMoodlePDF(c);
-                        }}
-                        className="neu-btn p-2 rounded-xl text-slate-600 hover:text-sky-600 cursor-pointer"
+                        disabled={Boolean(exportingKey)}
+                        onClick={(e) => handleExportPdf(e, c)}
+                        className="neu-btn p-2 rounded-xl text-slate-600 hover:text-sky-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         title="Export Case Moodle PDF"
                       >
-                        <FileDown className="w-4 h-4" />
+                        {exportingKey === `${c.id}_pdf` ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
+                        ) : (
+                          <FileDown className="w-4 h-4" />
+                        )}
                       </button>
 
                       {/* Export ZIP */}
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          exportCaseAsZip(c);
-                        }}
-                        className="neu-btn p-2 rounded-xl text-slate-600 hover:text-sky-600 cursor-pointer"
+                        disabled={Boolean(exportingKey)}
+                        onClick={(e) => handleExportZip(e, c)}
+                        className="neu-btn p-2 rounded-xl text-slate-600 hover:text-sky-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         title="Export Case as ZIP folder"
                       >
-                        <Archive className="w-4 h-4" />
+                        {exportingKey === `${c.id}_zip` ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
+                        ) : (
+                          <Archive className="w-4 h-4" />
+                        )}
                       </button>
 
                       {/* Delete Case */}
