@@ -396,7 +396,78 @@ export function extractStudentMetadata(items: PdfItemWithCoord[]): ExtractedStud
 }
 
 /**
- * STRATEGY 1: 2D Spatial Tabular Matrix Extractor
+ * Reconstructed horizontal line with item group and spatial coordinates
+ */
+export interface ReconstructedLine {
+  text: string;
+  items: PdfItemWithCoord[];
+  y: number;
+  minX: number;
+  maxX: number;
+  page: number;
+}
+
+/**
+ * Reconstructs coherent horizontal text lines from raw PDF text items with coordinates
+ */
+export function groupPdfItemsIntoLines(items: PdfItemWithCoord[]): ReconstructedLine[] {
+  const result: ReconstructedLine[] = [];
+  const pages = Array.from(new Set(items.map((it) => it.page)));
+
+  for (const pageNum of pages) {
+    const pageItems = items.filter((it) => it.page === pageNum);
+    // Sort top-to-bottom
+    const sorted = [...pageItems].sort((a, b) => b.y - a.y || a.x - b.x);
+
+    const bands: { y: number; items: PdfItemWithCoord[] }[] = [];
+
+    for (const item of sorted) {
+      let band = bands.find((b) => Math.abs(b.y - item.y) <= 6);
+      if (!band) {
+        band = { y: item.y, items: [] };
+        bands.push(band);
+      }
+      band.items.push(item);
+    }
+
+    for (const band of bands) {
+      band.items.sort((a, b) => a.x - b.x);
+
+      const textParts: string[] = [];
+      for (let i = 0; i < band.items.length; i++) {
+        const cur = band.items[i];
+        const prev = band.items[i - 1];
+        if (prev && cur.x - (prev.x + (prev.width || 15)) > 15) {
+          textParts.push('   ');
+        } else if (prev && cur.x - (prev.x + (prev.width || 8)) > 2) {
+          textParts.push(' ');
+        }
+        textParts.push(cur.str);
+      }
+
+      const fullText = textParts.join('').trim();
+      if (fullText) {
+        const minX = Math.min(...band.items.map((it) => it.x));
+        const maxX = Math.max(...band.items.map((it) => it.x + (it.width || 20)));
+        result.push({
+          text: fullText,
+          items: band.items,
+          y: band.y,
+          minX,
+          maxX,
+          page: pageNum,
+        });
+      }
+    }
+  }
+
+  result.sort((a, b) => a.page - b.page || b.y - a.y);
+  return result;
+}
+
+/**
+ * STRATEGY 1: 2D Spatial Tabular Matrix Extractor (Universal Grid Parser)
+ * Handles Day Column Headers with Time/Course Row Headers
  */
 function extract2DTabularSchedule(items: PdfItemWithCoord[]): {
   clinicalSessions: ClinicSession[];
@@ -416,8 +487,7 @@ function extract2DTabularSchedule(items: PdfItemWithCoord[]): {
     for (const it of pageItems) {
       const detected = detectDayOfWeek(it.str);
       if (detected) {
-        // Avoid duplicate day header entries close on X
-        if (!dayHeaders.some((d) => d.day === detected && Math.abs(d.x - it.x) < 20)) {
+        if (!dayHeaders.some((d) => d.day === detected && Math.abs(d.x - it.x) < 25)) {
           dayHeaders.push({ day: detected, x: it.x, y: it.y });
         }
       }
@@ -430,7 +500,7 @@ function extract2DTabularSchedule(items: PdfItemWithCoord[]): {
     const avgColWidth =
       dayHeaders.length > 1
         ? (dayHeaders[dayHeaders.length - 1].x - dayHeaders[0].x) / (dayHeaders.length - 1)
-        : 90;
+        : 100;
 
     const colBounds: { day: DayOfWeek; minX: number; maxX: number }[] = [];
     for (let i = 0; i < dayHeaders.length; i++) {
@@ -444,45 +514,54 @@ function extract2DTabularSchedule(items: PdfItemWithCoord[]): {
 
     const firstColX = dayHeaders[0].x;
 
-    // 2. Locate Course Rows to the left of the first day column
-    const leftItems = pageItems.filter((it) => it.x < firstColX);
+    // 2. Locate Row Headers to the left or within rows
+    const leftItems = pageItems.filter((it) => it.x < firstColX + 20);
     const courseCodeRegex = /\b([A-Za-z]{2,4}\s*\d{2,4})\b/;
-    const detectedCourseRows: { code: string; y: number }[] = [];
+
+    const detectedRows: { label: string; y: number; timeRange?: { startTime: string; endTime: string } }[] = [];
 
     for (const it of leftItems) {
-      const match = it.str.match(courseCodeRegex);
-      if (match) {
-        const code = match[1].replace(/\s+/g, '');
-        if (!detectedCourseRows.some((r) => Math.abs(r.y - it.y) < 15)) {
-          detectedCourseRows.push({ code, y: it.y });
+      const courseMatch = it.str.match(courseCodeRegex);
+      const timeMatch = parseTimeInterval(it.str);
+
+      if (courseMatch) {
+        const code = courseMatch[1].replace(/\s+/g, '');
+        if (!detectedRows.some((r) => Math.abs(r.y - it.y) < 15)) {
+          detectedRows.push({ label: code, y: it.y });
+        }
+      } else if (timeMatch) {
+        if (!detectedRows.some((r) => Math.abs(r.y - it.y) < 15)) {
+          detectedRows.push({ label: `${timeMatch.startTime}-${timeMatch.endTime}`, y: it.y, timeRange: timeMatch });
         }
       }
     }
 
-    detectedCourseRows.sort((a, b) => b.y - a.y); // top-to-bottom
+    if (detectedRows.length === 0) {
+      const yCoords = Array.from(new Set(pageItems.map((it) => Math.round(it.y / 20) * 20))).sort((a, b) => b - a);
+      for (const y of yCoords) {
+        detectedRows.push({ label: `Row_${y}`, y });
+      }
+    }
 
-    if (detectedCourseRows.length === 0) continue;
+    detectedRows.sort((a, b) => b.y - a.y);
 
-    const rowBounds: { code: string; courseName: string; topY: number; bottomY: number }[] = [];
-    for (let i = 0; i < detectedCourseRows.length; i++) {
-      const cur = detectedCourseRows[i];
-      const next = detectedCourseRows[i + 1];
-      const topY = cur.y + 25;
-      const bottomY = next ? (cur.y + next.y) / 2 : cur.y - 120;
+    if (detectedRows.length === 0) continue;
+
+    const rowBounds: { label: string; courseName: string; topY: number; bottomY: number; timeRange?: { startTime: string; endTime: string } }[] = [];
+    for (let i = 0; i < detectedRows.length; i++) {
+      const cur = detectedRows[i];
+      const next = detectedRows[i + 1];
+      const topY = cur.y + 20;
+      const bottomY = next ? (cur.y + next.y) / 2 : cur.y - 80;
 
       const rowNameItems = leftItems.filter(
-        (it) =>
-          it.y <= topY &&
-          it.y > bottomY &&
-          !courseCodeRegex.test(it.str) &&
-          !/^\d+$/.test(it.str.trim()) &&
-          !/^(Course|Crd|Credit)/i.test(it.str)
+        (it) => it.y <= topY && it.y > bottomY && !/^(Course|Crd|Credit|Time)/i.test(it.str)
       );
 
       rowNameItems.sort((a, b) => b.y - a.y || a.x - b.x);
-      const courseName = rowNameItems.map((it) => it.str.trim()).join(' ') || cur.code;
+      const courseName = rowNameItems.map((it) => it.str.trim()).join(' ') || cur.label;
 
-      rowBounds.push({ code: cur.code, courseName, topY, bottomY });
+      rowBounds.push({ label: cur.label, courseName, topY, bottomY, timeRange: cur.timeRange });
     }
 
     // 3. Process matrix cells
@@ -495,61 +574,45 @@ function extract2DTabularSchedule(items: PdfItemWithCoord[]): {
         if (cellItems.length === 0) continue;
 
         cellItems.sort((a, b) => b.y - a.y || a.x - b.x);
+        const cellText = cellItems.map((c) => c.str).join(' ');
 
-        const timeIndices: number[] = [];
-        cellItems.forEach((it, idx) => {
-          if (parseTimeInterval(it.str)) {
-            timeIndices.push(idx);
-          }
-        });
+        const times = parseTimeInterval(cellText) || row.timeRange;
+        if (!times) continue;
 
-        for (let t = 0; t < timeIndices.length; t++) {
-          const tIdx = timeIndices[t];
-          const prevT = timeIndices[t - 1];
-          const nextT = timeIndices[t + 1];
+        const lowerText = cellText.toLowerCase();
+        const isClinic =
+          (lowerText.includes('clinic') ||
+            lowerText.includes('clin') ||
+            lowerText.includes('عيادة') ||
+            lowerText.includes('ccc') ||
+            lowerText.includes('osa') ||
+            lowerText.includes('جراحة') ||
+            lowerText.includes('حشو')) &&
+          !lowerText.includes('lecture') &&
+          !lowerText.includes('lab') &&
+          !lowerText.includes('محاضرة');
 
-          const startIdx = prevT !== undefined ? Math.floor((prevT + tIdx) / 2) + 1 : 0;
-          const endIdx = nextT !== undefined ? Math.floor((tIdx + nextT) / 2) + 1 : cellItems.length;
+        const isLecture = lowerText.includes('lecture') || lowerText.includes('محاضرة');
+        const isLab = lowerText.includes('lab') || lowerText.includes('معمل');
 
-          const cluster = cellItems.slice(startIdx, endIdx);
-          const clusterText = cluster.map((c) => c.str).join(' ');
-          const times = parseTimeInterval(cellItems[tIdx].str);
+        const { place: clinicPlace } = detectClinicPlace(cellText);
+        const discipline = detectDiscipline(cellText, row.courseName);
 
-          if (!times) continue;
+        sessionCounter++;
+        const sessionItem: ClinicSession = {
+          id: `sess-2d-${Date.now()}-${sessionCounter}`,
+          dayOfWeek: col.day,
+          startTime: times.startTime,
+          endTime: times.endTime,
+          clinicPlace: isClinic ? clinicPlace : 'A',
+          discipline,
+          chairCount: 2,
+          notes: `${row.label} ${isClinic ? `Clinic (${clinicPlace})` : isLecture ? 'Lecture' : isLab ? 'Lab' : 'Session'} — ${cellText.slice(0, 80)}`,
+        };
 
-          const lowerText = clusterText.toLowerCase();
-          const isClinic =
-            (lowerText.includes('clinic') ||
-              lowerText.includes('clin') ||
-              lowerText.includes('عيادة') ||
-              lowerText.includes('ccc') ||
-              lowerText.includes('osa')) &&
-            !lowerText.includes('lecture') &&
-            !lowerText.includes('lab') &&
-            !lowerText.includes('محاضرة');
-
-          const isLecture = lowerText.includes('lecture') || lowerText.includes('محاضرة');
-          const isLab = lowerText.includes('lab') || lowerText.includes('معمل');
-
-          const { place: clinicPlace } = detectClinicPlace(clusterText);
-          const discipline = detectDiscipline(row.courseName, row.code);
-
-          sessionCounter++;
-          const sessionItem: ClinicSession = {
-            id: `sess-2d-${Date.now()}-${sessionCounter}`,
-            dayOfWeek: col.day,
-            startTime: times.startTime,
-            endTime: times.endTime,
-            clinicPlace: isClinic ? clinicPlace : 'A',
-            discipline,
-            chairCount: 2,
-            notes: `${row.code} ${isClinic ? `Clinic (${clinicPlace})` : isLecture ? 'Lecture' : isLab ? 'Lab' : 'Session'} — ${row.courseName}`,
-          };
-
-          allSessions.push(sessionItem);
-          if (isClinic) {
-            clinSessions.push(sessionItem);
-          }
+        allSessions.push(sessionItem);
+        if (isClinic || (!isLecture && !isLab)) {
+          clinSessions.push(sessionItem);
         }
       }
     }
@@ -616,6 +679,75 @@ function extractAgendaSchedule(lines: string[]): { clinicalSessions: ClinicSessi
 
       allSessions.push(session);
       if (isClinic || (!isLecture && !isLab)) {
+        clinSessions.push(session);
+      }
+    }
+  }
+
+  return { clinicalSessions: clinSessions, allSessions };
+}
+
+/**
+ * STRATEGY 3: Spatial Proximity & Token Cluster Extractor (Fallback)
+ * Scans reconstructed horizontal lines for any Day + Time + Course combinations
+ */
+function extractProximitySchedule(reconstructedLines: ReconstructedLine[]): {
+  clinicalSessions: ClinicSession[];
+  allSessions: ClinicSession[];
+} {
+  const allSessions: ClinicSession[] = [];
+  const clinSessions: ClinicSession[] = [];
+  let currentDay: DayOfWeek | null = null;
+  let sessionCounter = 0;
+
+  for (let i = 0; i < reconstructedLines.length; i++) {
+    const line = reconstructedLines[i];
+    const text = line.text;
+
+    const detectedDay = detectDayOfWeek(text);
+    if (detectedDay) {
+      currentDay = detectedDay;
+    }
+
+    const times = parseTimeInterval(text);
+    if (times) {
+      const activeDay = detectedDay || currentDay;
+      if (!activeDay) continue;
+
+      const prevLine = reconstructedLines[i - 1]?.text || '';
+      const nextLine = reconstructedLines[i + 1]?.text || '';
+      const contextText = `${prevLine} ${text} ${nextLine}`;
+
+      const lower = contextText.toLowerCase();
+      const isLecture = lower.includes('lecture') || lower.includes('محاضرة');
+      const isLab = lower.includes('lab') || lower.includes('معمل');
+      const isClinic =
+        lower.includes('clinic') ||
+        lower.includes('clin') ||
+        lower.includes('عيادة') ||
+        lower.includes('ccc') ||
+        lower.includes('osa') ||
+        lower.includes('جراحة') ||
+        lower.includes('حشو') ||
+        (!isLecture && !isLab);
+
+      const { place: clinicPlace } = detectClinicPlace(contextText);
+      const discipline = detectDiscipline(contextText);
+
+      sessionCounter++;
+      const session: ClinicSession = {
+        id: `sess-prox-${Date.now()}-${sessionCounter}`,
+        dayOfWeek: activeDay,
+        startTime: times.startTime,
+        endTime: times.endTime,
+        clinicPlace: isClinic ? clinicPlace : 'A',
+        discipline,
+        chairCount: 2,
+        notes: text.slice(0, 100).trim(),
+      };
+
+      allSessions.push(session);
+      if (isClinic) {
         clinSessions.push(session);
       }
     }
@@ -767,8 +899,9 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
     };
   }
 
-  // Stage 1: Try inline Vite Blob worker first (iOS PWA & GitHub Pages Safe)
+  // Stage 1: Try inline Vite Blob worker first (Desktop / Android / GitHub Pages Safe)
   try {
+    console.info('Schedule PDF: attempting Stage 1 PDF.js worker extraction...');
     // @ts-ignore
     const workerModule = await import('pdfjs-dist/build/pdf.worker.mjs?worker&inline');
     const PdfWorkerConstructor = workerModule.default || workerModule;
@@ -789,7 +922,10 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
       ]);
 
       const items = await parsePdfDocItems(doc);
-      return { items, openedSuccessfully: true };
+      console.info(`Schedule PDF: Stage 1 worker extraction succeeded with ${items.length} text items`);
+      if (items.length > 0) {
+        return { items, openedSuccessfully: true };
+      }
     }
   } catch (stage1Err: any) {
     console.warn('PDF.js Stage 1 (Inline Worker) failed, attempting Stage 2 (Data URI Worker Fallback):', stage1Err);
@@ -797,6 +933,7 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
 
   // Stage 2: Data URI Blob Worker Fallback
   try {
+    console.info('Schedule PDF: attempting Stage 2 Data URI worker extraction...');
     // @ts-ignore
     const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.mjs');
     let workerCode = '';
@@ -826,20 +963,55 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
       useSystemFonts: true,
     });
 
+    const doc = await Promise.race([
+      loadingTask.promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 3500)
+      ),
+    ]);
+
+    const items = await parsePdfDocItems(doc);
+    console.info(`Schedule PDF: Stage 2 Data URI worker extraction succeeded with ${items.length} text items`);
+    if (items.length > 0) {
+      return { items, openedSuccessfully: true };
+    }
+  } catch (stage2Err: any) {
+    console.warn('PDF.js Stage 2 (Data URI Fallback) failed, attempting Stage 3 (Main-Thread PDF.js Fallback):', stage2Err);
+  }
+
+  // Stage 3: Main-Thread PDF.js Fallback (iOS WebKit / Standalone PWA Safe)
+  try {
+    console.info('Schedule PDF: worker extraction unavailable/failed, attempting Stage 3 main-thread PDF.js...');
+    try {
+      if (pdfjsLib.GlobalWorkerOptions) {
+        pdfjsLib.GlobalWorkerOptions.workerPort = null;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+      }
+    } catch {
+      // ignore
+    }
+
+    const loadingTask = pdfjsLib.getDocument({
+      data: safeData,
+      useSystemFonts: true,
+      disableWorker: true,
+    });
+
     const doc = await loadingTask.promise;
     const items = await parsePdfDocItems(doc);
+    console.info(`Schedule PDF: Stage 3 main-thread PDF.js extraction succeeded with ${items.length} text items`);
     return { items, openedSuccessfully: true };
-  } catch (stage2Err: any) {
-    console.warn('PDF.js Stage 2 (Data URI Fallback) failed:', stage2Err);
+  } catch (stage3Err: any) {
+    console.warn('PDF.js Stage 3 (Main-Thread Fallback) failed:', stage3Err);
 
-    const errMsg = (stage2Err?.message || stage2Err?.name || String(stage2Err)).toLowerCase();
+    const errMsg = (stage3Err?.message || stage3Err?.name || String(stage3Err)).toLowerCase();
     let errorReason: 'encrypted' | 'corrupted' | 'unreadable' = 'unreadable';
 
-    if (stage2Err?.name === 'PasswordException' || errMsg.includes('password') || errMsg.includes('encrypt')) {
+    if (stage3Err?.name === 'PasswordException' || errMsg.includes('password') || errMsg.includes('encrypt')) {
       errorReason = 'encrypted';
     } else if (
-      stage2Err?.name === 'InvalidPDFException' ||
-      stage2Err?.name === 'FormatError' ||
+      stage3Err?.name === 'InvalidPDFException' ||
+      stage3Err?.name === 'FormatError' ||
       errMsg.includes('invalid') ||
       errMsg.includes('corrupt') ||
       errMsg.includes('structure') ||
@@ -848,7 +1020,7 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
       errorReason = 'corrupted';
     }
 
-    return { items: [], openedSuccessfully: false, errorReason, errorDetails: stage2Err?.message };
+    return { items: [], openedSuccessfully: false, errorReason, errorDetails: stage3Err?.message };
   }
 }
 
@@ -889,34 +1061,56 @@ export async function extractScheduleFromDoctorPdf(file: File): Promise<Extracte
 
   const studentMeta = extractStudentMetadata(pdfItems);
 
-  // Strategy 1: 2D Spatial Tabular Matrix
+  // Strategy 1: Universal 2D Tabular Grid Parser
   if (pdfItems.length > 0) {
     const { clinicalSessions, allSessions } = extract2DTabularSchedule(pdfItems);
-    if (clinicalSessions.length > 0) {
+    if (clinicalSessions.length > 0 || allSessions.length > 0) {
+      const activeSessions = clinicalSessions.length > 0 ? clinicalSessions : allSessions;
       return {
-        sessions: clinicalSessions,
-        allSessions: allSessions.length > 0 ? allSessions : clinicalSessions,
+        sessions: activeSessions,
+        allSessions: allSessions.length > 0 ? allSessions : activeSessions,
         studentMeta,
         fileName,
         source: 'offline-pdf-parser',
-        message: `Extracted ${clinicalSessions.length} clinical duty sessions from ${fileName}`,
+        message: `Extracted ${activeSessions.length} sessions from ${fileName}`,
       };
     }
   }
 
-  // Strategy 2: Agenda Section Headers / Line Extractor
-  if (pdfItems.length > 0) {
-    const lines = pdfItems.map((it) => it.str);
-    const { clinicalSessions: agendaClin, allSessions: agendaAll } = extractAgendaSchedule(lines);
+  // Reconstruct spatial horizontal lines from PDF coordinates
+  const reconstructedLines = groupPdfItemsIntoLines(pdfItems);
+  const lineTexts = reconstructedLines.map((l) => l.text);
+
+  // Strategy 2: Agenda Section Headers & Line Extractor
+  if (lineTexts.length > 0) {
+    const { clinicalSessions: agendaClin, allSessions: agendaAll } = extractAgendaSchedule(lineTexts);
 
     if (agendaClin.length > 0 || agendaAll.length > 0) {
+      const activeSessions = agendaClin.length > 0 ? agendaClin : agendaAll;
       return {
-        sessions: agendaClin.length > 0 ? agendaClin : agendaAll,
-        allSessions: agendaAll,
+        sessions: activeSessions,
+        allSessions: agendaAll.length > 0 ? agendaAll : activeSessions,
         studentMeta,
         fileName,
         source: 'offline-pdf-parser',
-        message: `Extracted ${agendaAll.length} sessions from ${fileName}`,
+        message: `Extracted ${activeSessions.length} sessions from ${fileName}`,
+      };
+    }
+  }
+
+  // Strategy 3: Spatial Proximity & Token Cluster Extractor (Fallback)
+  if (reconstructedLines.length > 0) {
+    const { clinicalSessions: proxClin, allSessions: proxAll } = extractProximitySchedule(reconstructedLines);
+
+    if (proxClin.length > 0 || proxAll.length > 0) {
+      const activeSessions = proxClin.length > 0 ? proxClin : proxAll;
+      return {
+        sessions: activeSessions,
+        allSessions: proxAll.length > 0 ? proxAll : activeSessions,
+        studentMeta,
+        fileName,
+        source: 'offline-pdf-parser',
+        message: `Extracted ${activeSessions.length} sessions from ${fileName}`,
       };
     }
   }
