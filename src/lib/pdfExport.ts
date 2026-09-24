@@ -38,9 +38,16 @@ export function generateExportFilename(
   return `DentaTrack - ${cleanPatient} - ${cleanDocType} - ${cleanDate}.pdf`;
 }
 
+export interface PdfExportResult {
+  success: boolean;
+  method: 'share' | 'download' | 'share_cancelled';
+  filename: string;
+}
+
 /**
  * Converts SVG data URLs or markup strings into crisp PNG raster data URLs.
  * Handles base64, utf8 URL-encoded strings, missing viewBox/dimensions, and XML namespaces.
+ * Uses inline Data URIs and explicit Image element dimensions for 100% mobile WebKit/iOS compatibility.
  */
 async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage | null> {
   return new Promise((resolve) => {
@@ -99,25 +106,40 @@ async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage |
       svgEl.setAttribute('height', height.toString());
 
       const cleanedSvgStr = new XMLSerializer().serializeToString(svgEl);
-      const svgBlob = new Blob([cleanedSvgStr], { type: 'image/svg+xml;charset=utf-8' });
-      const blobUrl = URL.createObjectURL(svgBlob);
+
+      // Use clean Base64 Data URI instead of Blob URL to prevent WebKit / iOS canvas security errors
+      let svgDataUri = '';
+      try {
+        svgDataUri = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(cleanedSvgStr)))}`;
+      } catch {
+        svgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(cleanedSvgStr)}`;
+      }
+
+      const MAX_DIM = 1200;
+      let targetW = width;
+      let targetH = height;
+
+      if (targetW > MAX_DIM || targetH > MAX_DIM) {
+        if (targetW > targetH) {
+          targetH = Math.round((targetH * MAX_DIM) / targetW);
+          targetW = MAX_DIM;
+        } else {
+          targetW = Math.round((targetW * MAX_DIM) / targetH);
+          targetH = MAX_DIM;
+        }
+      }
 
       const img = new Image();
-      // DO NOT set crossOrigin for Blob or local data URIs!
+      img.width = targetW;
+      img.height = targetH;
 
-      img.onload = () => {
-        const MAX_DIM = 1200;
-        let targetW = width;
-        let targetH = height;
-
-        if (targetW > MAX_DIM || targetH > MAX_DIM) {
-          if (targetW > targetH) {
-            targetH = Math.round((targetH * MAX_DIM) / targetW);
-            targetW = MAX_DIM;
-          } else {
-            targetW = Math.round((targetW * MAX_DIM) / targetH);
-            targetH = MAX_DIM;
+      const renderToCanvas = async () => {
+        try {
+          if ('decode' in img) {
+            await img.decode().catch(() => {});
           }
+        } catch {
+          // Ignore decode errors and proceed to canvas
         }
 
         const canvas = document.createElement('canvas');
@@ -131,7 +153,6 @@ async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage |
           ctx.drawImage(img, 0, 0, targetW, targetH);
 
           const pngDataUrl = canvas.toDataURL('image/png', 0.95);
-          URL.revokeObjectURL(blobUrl);
 
           resolve({
             dataUrl: pngDataUrl,
@@ -141,17 +162,19 @@ async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage |
             isSupportedImage: true,
           });
         } else {
-          URL.revokeObjectURL(blobUrl);
           resolve(null);
         }
       };
 
+      img.onload = () => {
+        renderToCanvas();
+      };
+
       img.onerror = () => {
-        URL.revokeObjectURL(blobUrl);
         convertRasterImage(svgInput).then(resolve);
       };
 
-      img.src = blobUrl;
+      img.src = svgDataUri;
     } catch (err) {
       console.warn('SVG rasterization notice:', err);
       convertRasterImage(svgInput).then(resolve);
@@ -431,7 +454,7 @@ async function renderAttachmentBlock(params: RenderAttachmentParams): Promise<nu
 /**
  * Generates an academic-grade clinical case report PDF for Moodle submission.
  */
-export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<void> {
+export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<PdfExportResult> {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -714,8 +737,32 @@ export async function generateCaseMoodlePDF(dentalCase: DentalCase): Promise<voi
   }
 
   const filename = generateExportFilename(dentalCase.patientName, 'Case Report');
-  doc.save(filename);
   sendAnalyticsEvent('case_exported');
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+  if (isMobile && typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      const pdfBlob = doc.output('blob');
+      const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        await navigator.share({
+          files: [pdfFile],
+          title: filename,
+        });
+        return { success: true, method: 'share', filename };
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.message?.includes('cancel') || err.message?.includes('cancellation')) {
+        return { success: true, method: 'share_cancelled', filename };
+      }
+      console.warn('Native PDF share notice, falling back to download:', err);
+    }
+  }
+
+  doc.save(filename);
+  return { success: true, method: 'download', filename };
 }
 
 /**

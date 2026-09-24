@@ -23,6 +23,7 @@ import { RubricUploadModal } from './RubricUploadModal';
 import { EvidenceUploadModal } from './EvidenceUploadModal';
 import { AddProcedureModal } from './AddProcedureModal';
 import { generateCaseMoodlePDF } from '../lib/pdfExport';
+import { ExportToast, ToastMessage } from './ExportToast';
 import { getProcedureMacroStepStatus, resolveToothInfo } from '../lib/macroSteps';
 import { ModalPortal } from './ModalPortal';
 import { haptic } from '../lib/haptics';
@@ -52,16 +53,22 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
   const [chairMode, setChairMode] = useState<'all' | 'dual'>('dual');
   const [selectedClinicFilter, setSelectedClinicFilter] = useState<ClinicPlace | 'ALL'>('ALL');
   const [exportingCaseId, setExportingCaseId] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   const handleExportPdf = async (c: DentalCase) => {
     if (exportingCaseId) return;
     setExportingCaseId(c.id);
     haptic.selection();
     try {
-      await generateCaseMoodlePDF(c);
+      const result = await generateCaseMoodlePDF(c);
+      if (result.success) {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        const message = (isMobile && result.method !== 'download') ? 'PDF ready' : 'PDF downloaded successfully';
+        setToast({ id: Date.now().toString(), type: 'success', message });
+      }
     } catch (err) {
       console.error('PDF Export error:', err);
-      alert('Failed to export PDF report. Please try again.');
+      setToast({ id: Date.now().toString(), type: 'error', message: 'Failed to export PDF report. Please try again.' });
     } finally {
       setExportingCaseId(null);
     }
@@ -735,6 +742,8 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
         </div>
       </ModalPortal>
     )}
+    {/* Floating Export Feedback Toast */}
+    <ExportToast toast={toast} onDismiss={() => setToast(null)} />
   </div>
   );
 };

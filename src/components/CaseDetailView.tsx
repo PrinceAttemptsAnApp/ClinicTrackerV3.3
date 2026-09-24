@@ -33,6 +33,7 @@ import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, Evide
 import { ProcedureDetailView } from './ProcedureDetailView';
 import { AddProcedureModal } from './AddProcedureModal';
 import { generateCaseMoodlePDF, exportCaseAsZip } from '../lib/pdfExport';
+import { ExportToast, ToastMessage } from './ExportToast';
 import { computeIsComprehensive } from '../lib/storage';
 import { ModalPortal } from './ModalPortal';
 import { 
@@ -70,16 +71,22 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   const [isDeleteCaseModalOpen, setIsDeleteCaseModalOpen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingZip, setIsExportingZip] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   const handleExportPdf = async () => {
     if (isExportingPdf || isExportingZip) return;
     setIsExportingPdf(true);
     haptic.selection();
     try {
-      await generateCaseMoodlePDF(dentalCase);
+      const result = await generateCaseMoodlePDF(dentalCase);
+      if (result.success) {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        const message = (isMobile && result.method !== 'download') ? 'PDF ready' : 'PDF downloaded successfully';
+        setToast({ id: Date.now().toString(), type: 'success', message });
+      }
     } catch (err) {
       console.error('PDF export error:', err);
-      alert('Failed to export PDF report. Please try again.');
+      setToast({ id: Date.now().toString(), type: 'error', message: 'Failed to export PDF report. Please try again.' });
     } finally {
       setIsExportingPdf(false);
     }
@@ -91,9 +98,10 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
     haptic.selection();
     try {
       await exportCaseAsZip(dentalCase);
+      setToast({ id: Date.now().toString(), type: 'success', message: 'ZIP archive downloaded successfully' });
     } catch (err) {
       console.error('ZIP export error:', err);
-      alert('Failed to export ZIP archive. Please try again.');
+      setToast({ id: Date.now().toString(), type: 'error', message: 'Failed to export ZIP archive. Please try again.' });
     } finally {
       setIsExportingZip(false);
     }
@@ -951,6 +959,8 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           templates={templates}
         />
       )}
+      {/* Floating Export Feedback Toast */}
+      <ExportToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   );
 };
