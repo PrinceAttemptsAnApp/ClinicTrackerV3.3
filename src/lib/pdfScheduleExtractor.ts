@@ -1,8 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 // @ts-ignore
 import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs';
-// @ts-ignore
-import PdfWorkerConstructor from 'pdfjs-dist/build/pdf.worker.mjs?worker&inline';
 import { ClinicSession, ClinicPlace, DisciplineType } from '../types';
 
 if (typeof Promise.try !== 'function') {
@@ -18,20 +16,13 @@ try {
   console.warn('PDF worker URL resolution warning:', e);
 }
 
-// Cached worker instance
-let cachedInlineWorker: Worker | null = null;
-
-function getInlineWorkerInstance(): Worker | null {
-  if (cachedInlineWorker) return cachedInlineWorker;
+// Set PDF.js workerSrc to the locally bundled asset (100% Offline, zero CDN)
+if (typeof window !== 'undefined' && pdfWorkerUrl) {
   try {
-    if (typeof PdfWorkerConstructor === 'function') {
-      cachedInlineWorker = new PdfWorkerConstructor();
-      return cachedInlineWorker;
-    }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   } catch (e) {
-    console.warn('Inline PDF worker constructor failed:', e);
+    console.warn('PDF.js workerSrc initialization warning:', e);
   }
-  return null;
 }
 
 export const CLINICS: ClinicPlace[] = ['A', 'B', 'C', 'M', 'N', 'G'];
@@ -782,15 +773,8 @@ interface PdfExtractionResult {
 async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtractionResult> {
   const safeData = new Uint8Array(arrayBuffer.slice(0));
 
-  // Stage 1: Try inline Vite Blob worker first (iOS PWA & GitHub Pages Safe)
+  // Stage 1: Try normal PDF.js loading with configured workerSrc
   try {
-    const inlineWorker = getInlineWorkerInstance();
-    if (inlineWorker) {
-      pdfjsLib.GlobalWorkerOptions.workerPort = inlineWorker;
-    } else if (pdfWorkerUrl) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-    }
-
     const loadingTask = pdfjsLib.getDocument({
       data: safeData,
       useSystemFonts: true,
@@ -799,33 +783,19 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
     const doc = await Promise.race([
       loadingTask.promise,
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 3500)
+        setTimeout(() => reject(new Error('PDF.js worker loading timeout')), 2500)
       ),
     ]);
 
     const items = await parsePdfDocItems(doc);
     return { items, openedSuccessfully: true };
   } catch (stage1Err: any) {
-    console.warn('PDF.js Stage 1 (Inline Worker) failed, attempting Stage 2 (Data URI Worker Fallback):', stage1Err);
+    console.warn('PDF.js Stage 1 (Worker) failed, attempting Stage 2 (Main-Thread Fallback):', stage1Err);
   }
 
-  // Stage 2: Data URI Blob Worker Fallback
+  // Stage 2: PDF.js Main-Thread Fallback (uses imported pdfjsWorker directly in UI thread)
   try {
-    let workerCode = '';
-    if (typeof pdfjsWorker === 'string') {
-      workerCode = pdfjsWorker;
-    } else if (pdfjsWorker && typeof (pdfjsWorker as any).default === 'string') {
-      workerCode = (pdfjsWorker as any).default;
-    }
-
-    if (workerCode) {
-      const blob = new Blob([workerCode], { type: 'text/javascript' });
-      const blobUrl = URL.createObjectURL(blob);
-      pdfjsLib.GlobalWorkerOptions.workerSrc = blobUrl;
-    } else if (pdfWorkerUrl) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-    }
-
+    (globalThis as any).pdfjsWorker = pdfjsWorker;
     const loadingTask = pdfjsLib.getDocument({
       data: safeData,
       useSystemFonts: true,
@@ -835,7 +805,7 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
     const items = await parsePdfDocItems(doc);
     return { items, openedSuccessfully: true };
   } catch (stage2Err: any) {
-    console.warn('PDF.js Stage 2 (Data URI Fallback) failed:', stage2Err);
+    console.warn('PDF.js Stage 2 (Main-Thread) failed:', stage2Err);
 
     const errMsg = (stage2Err?.message || stage2Err?.name || String(stage2Err)).toLowerCase();
     let errorReason: 'encrypted' | 'corrupted' | 'unreadable' = 'unreadable';
