@@ -880,13 +880,8 @@ interface PdfExtractionResult {
   errorDetails?: string;
 }
 
-let pdfWorkerAssetUrl = '';
-try {
-  // Resolves to same-origin asset URL in Vite build (iOS PWA & WebKit Safe)
-  pdfWorkerAssetUrl = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
-} catch (e) {
-  console.warn('PDF worker URL resolution warning:', e);
-}
+// @ts-ignore
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 /**
  * Extracts structured items with coordinates using PDF.js (100% Offline with bundled worker & main-thread fallback)
@@ -910,8 +905,8 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
   // Tier A: Try same-origin worker URL (Standard Vite asset URL - Works natively on WebKit / iOS PWA)
   try {
     console.info('Schedule PDF: attempting Tier A worker extraction...');
-    if (pdfWorkerAssetUrl) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerAssetUrl;
+    if (pdfWorkerUrl) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
       pdfjsLib.GlobalWorkerOptions.workerPort = null;
     }
 
@@ -971,8 +966,8 @@ async function extractItemsWithPdfJs(arrayBuffer: ArrayBuffer): Promise<PdfExtra
   // Tier C: Fallback loading task
   try {
     console.info('Schedule PDF: attempting Tier C fallback extraction...');
-    if (pdfWorkerAssetUrl) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerAssetUrl;
+    if (pdfWorkerUrl) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
       pdfjsLib.GlobalWorkerOptions.workerPort = null;
     }
 
