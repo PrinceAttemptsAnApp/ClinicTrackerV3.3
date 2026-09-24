@@ -45,9 +45,188 @@ export interface PdfExportResult {
 }
 
 /**
+ * Safe, Native Canvas 2D SVG Renderer.
+ * Parses SVG XML elements and renders them directly onto Canvas 2D context using native commands.
+ * Completely eliminates HTMLImageElement image loading and WebKit canvas taint SecurityErrors on mobile.
+ */
+function renderSvgToCanvas(svgText: string, targetW: number, targetH: number): string | null {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+    const svgEl = doc.querySelector('svg');
+    if (!svgEl) return null;
+
+    const viewBox = svgEl.getAttribute('viewBox');
+    let vW = 600;
+    let vH = 600;
+    if (viewBox) {
+      const parts = viewBox.split(/[\s,]+/).map(parseFloat);
+      if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+        vW = parts[2];
+        vH = parts[3];
+      }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // Fill white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, targetW, targetH);
+
+    // Apply scaling from SVG viewBox to Canvas target dimensions
+    const scaleX = targetW / vW;
+    const scaleY = targetH / vH;
+    ctx.scale(scaleX, scaleY);
+
+    // Helper to parse transform string
+    const applyTransform = (transformStr?: string | null) => {
+      if (!transformStr) return;
+      const regex = /(translate|rotate|scale)\s*\(([^)]+)\)/g;
+      let match;
+      while ((match = regex.exec(transformStr)) !== null) {
+        const type = match[1];
+        const args = match[2].split(/[\s,]+/).map(parseFloat).filter((n) => !isNaN(n));
+        if (type === 'translate' && args.length >= 1) {
+          ctx.translate(args[0], args[1] || 0);
+        } else if (type === 'rotate' && args.length >= 1) {
+          ctx.rotate((args[0] * Math.PI) / 180);
+        } else if (type === 'scale' && args.length >= 1) {
+          ctx.scale(args[0], args.length >= 2 ? args[1] : args[0]);
+        }
+      }
+    };
+
+    // Helper to draw an SVG element node recursively
+    const drawNode = (node: Element, parentFill?: string, parentStroke?: string) => {
+      const tag = node.tagName.toLowerCase();
+      ctx.save();
+
+      const opacityAttr = node.getAttribute('opacity');
+      if (opacityAttr) {
+        const op = parseFloat(opacityAttr);
+        if (!isNaN(op)) ctx.globalAlpha *= op;
+      }
+
+      applyTransform(node.getAttribute('transform'));
+
+      const fill = node.getAttribute('fill') || parentFill || 'none';
+      const stroke = node.getAttribute('stroke') || parentStroke || 'none';
+      const strokeWidth = parseFloat(node.getAttribute('stroke-width') || '1');
+      const strokeDash = node.getAttribute('stroke-dasharray');
+
+      if (strokeDash) {
+        const dashes = strokeDash.split(/[\s,]+/).map(parseFloat).filter((n) => !isNaN(n));
+        ctx.setLineDash(dashes);
+      } else {
+        ctx.setLineDash([]);
+      }
+
+      const applyFillAndStroke = () => {
+        if (fill && fill !== 'none') {
+          ctx.fillStyle = fill;
+          ctx.fill();
+        }
+        if (stroke && stroke !== 'none') {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = strokeWidth;
+          ctx.stroke();
+        }
+      };
+
+      if (tag === 'rect') {
+        const x = parseFloat(node.getAttribute('x') || '0');
+        const y = parseFloat(node.getAttribute('y') || '0');
+        const w = parseFloat(node.getAttribute('width') || '0');
+        const h = parseFloat(node.getAttribute('height') || '0');
+        const rx = parseFloat(node.getAttribute('rx') || '0');
+
+        ctx.beginPath();
+        if (rx > 0 && typeof ctx.roundRect === 'function') {
+          ctx.roundRect(x, y, w, h, rx);
+        } else {
+          ctx.rect(x, y, w, h);
+        }
+        applyFillAndStroke();
+      } else if (tag === 'circle') {
+        const cx = parseFloat(node.getAttribute('cx') || '0');
+        const cy = parseFloat(node.getAttribute('cy') || '0');
+        const r = parseFloat(node.getAttribute('r') || '0');
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        applyFillAndStroke();
+      } else if (tag === 'line') {
+        const x1 = parseFloat(node.getAttribute('x1') || '0');
+        const y1 = parseFloat(node.getAttribute('y1') || '0');
+        const x2 = parseFloat(node.getAttribute('x2') || '0');
+        const y2 = parseFloat(node.getAttribute('y2') || '0');
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        applyFillAndStroke();
+      } else if (tag === 'path') {
+        const d = node.getAttribute('d');
+        if (d && typeof Path2D !== 'undefined') {
+          const path2d = new Path2D(d);
+          if (fill && fill !== 'none') {
+            ctx.fillStyle = fill;
+            ctx.fill(path2d);
+          }
+          if (stroke && stroke !== 'none') {
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = strokeWidth;
+            ctx.stroke(path2d);
+          }
+        }
+      } else if (tag === 'text') {
+        const x = parseFloat(node.getAttribute('x') || '0');
+        const y = parseFloat(node.getAttribute('y') || '0');
+        const textContent = node.textContent || '';
+        const fontFamily = node.getAttribute('font-family') || 'Arial, sans-serif';
+        const fontSize = node.getAttribute('font-size') || '14';
+        const fontWeight = node.getAttribute('font-weight') || 'normal';
+        const textAnchor = node.getAttribute('text-anchor') || 'start';
+
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        ctx.textAlign = textAnchor === 'middle' ? 'center' : textAnchor === 'end' ? 'right' : 'left';
+        ctx.textBaseline = 'alphabetic';
+
+        if (fill && fill !== 'none') {
+          ctx.fillStyle = fill;
+          ctx.fillText(textContent, x, y);
+        }
+        if (stroke && stroke !== 'none') {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = strokeWidth;
+          ctx.strokeText(textContent, x, y);
+        }
+      } else if (tag === 'g' || tag === 'svg') {
+        for (const child of Array.from(node.children)) {
+          drawNode(child, fill, stroke);
+        }
+      }
+
+      ctx.restore();
+    };
+
+    drawNode(svgEl);
+
+    return canvas.toDataURL('image/png', 0.95);
+  } catch (err) {
+    console.warn('Native Canvas SVG rendering notice:', err);
+    return null;
+  }
+}
+
+/**
  * Converts SVG data URLs or markup strings into crisp PNG raster data URLs.
  * Handles base64, utf8 URL-encoded strings, missing viewBox/dimensions, and XML namespaces.
- * Uses inline Data URIs and explicit Image element dimensions for 100% mobile WebKit/iOS compatibility.
+ * Uses native Canvas 2D vector rendering to bypass HTMLImageElement canvas taint on Mobile WebKit.
  */
 async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage | null> {
   return new Promise((resolve) => {
@@ -72,17 +251,13 @@ async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage |
         return convertRasterImage(svgInput).then(resolve);
       }
 
-      // Parse with DOMParser to fix dimensions and xmlns
+      // Parse with DOMParser to get target dimensions
       const parser = new DOMParser();
       const doc = parser.parseFromString(svgText, 'image/svg+xml');
       const svgEl = doc.querySelector('svg');
 
       if (!svgEl) {
         return convertRasterImage(svgInput).then(resolve);
-      }
-
-      if (!svgEl.hasAttribute('xmlns')) {
-        svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
       }
 
       let width = parseFloat(svgEl.getAttribute('width') || '0');
@@ -99,21 +274,8 @@ async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage |
         }
       }
 
-      if (!width || isNaN(width) || width <= 0) width = 800;
-      if (!height || isNaN(height) || height <= 0) height = 800;
-
-      svgEl.setAttribute('width', width.toString());
-      svgEl.setAttribute('height', height.toString());
-
-      const cleanedSvgStr = new XMLSerializer().serializeToString(svgEl);
-
-      // Use clean Base64 Data URI instead of Blob URL to prevent WebKit / iOS canvas security errors
-      let svgDataUri = '';
-      try {
-        svgDataUri = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(cleanedSvgStr)))}`;
-      } catch {
-        svgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(cleanedSvgStr)}`;
-      }
+      if (!width || isNaN(width) || width <= 0) width = 600;
+      if (!height || isNaN(height) || height <= 0) height = 600;
 
       const MAX_DIM = 1200;
       let targetW = width;
@@ -129,52 +291,20 @@ async function convertSvgToRaster(svgInput: string): Promise<ProcessedPdfImage |
         }
       }
 
-      const img = new Image();
-      img.width = targetW;
-      img.height = targetH;
+      // 1. Primary path: Native Canvas 2D vector rendering (Mobile WebKit safe)
+      const pngDataUrl = renderSvgToCanvas(svgText, targetW, targetH);
+      if (pngDataUrl && pngDataUrl.startsWith('data:image/png')) {
+        return resolve({
+          dataUrl: pngDataUrl,
+          width: targetW,
+          height: targetH,
+          format: 'PNG',
+          isSupportedImage: true,
+        });
+      }
 
-      const renderToCanvas = async () => {
-        try {
-          if ('decode' in img) {
-            await img.decode().catch(() => {});
-          }
-        } catch {
-          // Ignore decode errors and proceed to canvas
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = targetW;
-        canvas.height = targetH;
-        const ctx = canvas.getContext('2d');
-
-        if (ctx) {
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, targetW, targetH);
-          ctx.drawImage(img, 0, 0, targetW, targetH);
-
-          const pngDataUrl = canvas.toDataURL('image/png', 0.95);
-
-          resolve({
-            dataUrl: pngDataUrl,
-            width: targetW,
-            height: targetH,
-            format: 'PNG',
-            isSupportedImage: true,
-          });
-        } else {
-          resolve(null);
-        }
-      };
-
-      img.onload = () => {
-        renderToCanvas();
-      };
-
-      img.onerror = () => {
-        convertRasterImage(svgInput).then(resolve);
-      };
-
-      img.src = svgDataUri;
+      // 2. Secondary fallback: convertRasterImage
+      return convertRasterImage(svgInput).then(resolve);
     } catch (err) {
       console.warn('SVG rasterization notice:', err);
       convertRasterImage(svgInput).then(resolve);
