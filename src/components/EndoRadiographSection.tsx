@@ -102,7 +102,7 @@ export const EndoRadiographSection: React.FC<EndoRadiographSectionProps> = ({
   };
 
   return (
-    <div className="frosted-card rounded-2xl p-5 border border-sky-200/80 bg-gradient-to-br from-sky-50/40 via-white to-slate-50 shadow-sm space-y-5">
+    <div className="frosted-card rounded-2xl p-5 border border-sky-200/80 dark:border-slate-700/80 bg-gradient-to-br from-sky-50/40 via-white to-slate-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-900 shadow-sm space-y-5">
       {/* Hidden input for slot direct uploads */}
       <input
         ref={fileInputRef}
@@ -137,14 +137,14 @@ export const EndoRadiographSection: React.FC<EndoRadiographSectionProps> = ({
           return (
             <div
               key={toothLabel}
-              className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-3"
+              className="p-4 rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700/90 shadow-2xs space-y-3"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/70 pb-2">
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-extrabold text-xs tracking-wide">
+                  <span className="px-2.5 py-1 rounded-lg badge-info font-extrabold text-xs tracking-wide">
                     {toothLabel}
                   </span>
-                  <span className="text-xs font-semibold text-slate-600">
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                     Endodontic Radiographic Stages
                   </span>
                 </div>

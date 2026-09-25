@@ -26,6 +26,7 @@ const DISCIPLINES: DisciplineType[] = [
   'Oral Surgery',
   'Pediatric Dentistry',
   'Orthodontics',
+  'Comprehensive Clinic',
 ];
 
 export const AddCaseModal: React.FC<AddCaseModalProps> = ({
@@ -226,7 +227,7 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
 
           {/* Clinic Place Selection: A, C, B, M, N, G */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">
+            <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">
               Clinic Place
             </label>
             <div className="grid grid-cols-6 gap-2">
@@ -238,7 +239,7 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                   className={`py-2 rounded-xl font-bold text-xs transition cursor-pointer text-center ${
                     clinicPlace === clinic
                       ? 'bg-sky-600 text-white shadow-md shadow-sky-600/30'
-                      : 'neu-btn text-slate-700 hover:bg-white'
+                      : 'neu-btn text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
                   }`}
                 >
                   Clinic {clinic}
@@ -249,7 +250,7 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
 
           {/* Starting Procedure Discipline */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">
+            <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">
               Starting Discipline
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -264,8 +265,8 @@ export const AddCaseModal: React.FC<AddCaseModalProps> = ({
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer ${
                     selectedDiscipline === disc
-                      ? 'bg-slate-800 text-white shadow-sm'
-                      : 'neu-btn text-slate-700 hover:bg-white'
+                      ? 'bg-sky-600 text-white shadow-sm'
+                      : 'neu-btn text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
                   }`}
                 >
                   {disc}

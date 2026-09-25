@@ -131,24 +131,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </span>
               )}
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 mt-2">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-[#f8fafc] mt-2">
               Clinical Requirements Progress
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-[#cbd5e1] mt-0.5">
               Accumulating points across disciplines • Monitored for year-end presentation
             </p>
           </div>
 
           {/* Points Badge */}
-          <div className="neu-btn px-5 py-3 rounded-2xl flex items-center gap-4 bg-white/70">
+          <div className="neu-btn px-5 py-3 rounded-2xl flex items-center gap-4 bg-white/70 dark:bg-[#1e293b]">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Points</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#cbd5e1]">Total Points</p>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl sm:text-3xl font-black text-sky-600">{pointsAcquired}</span>
-                <span className="text-xs font-semibold text-slate-400">/ {pointsTarget} pts</span>
+                <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400">{pointsAcquired}</span>
+                <span className="text-xs font-semibold text-slate-400 dark:text-[#cbd5e1]">/ {pointsTarget} pts</span>
               </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 font-black flex items-center justify-center text-sm border border-sky-200">
+            <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 font-black flex items-center justify-center text-sm border border-sky-200 dark:border-sky-800">
               {overallPercent}%
             </div>
           </div>
@@ -156,11 +156,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Clinical Points Progress Bar */}
         <div className="mt-5">
-          <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1.5">
+          <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-[#e2e8f0] mb-1.5">
             <span>Overall Clinical Progress</span>
-            <span className="text-sky-700 font-bold">{overallPercent}% completed ({pointsAcquired}/{pointsTarget} pts)</span>
+            <span className="text-sky-700 dark:text-sky-400 font-bold">{overallPercent}% completed ({pointsAcquired}/{pointsTarget} pts)</span>
           </div>
-          <div className="w-full h-3.5 rounded-full bg-slate-200/80 overflow-hidden p-0.5 shadow-inner">
+          <div className="w-full h-3.5 rounded-full bg-slate-200/80 dark:bg-slate-700/60 overflow-hidden p-0.5 shadow-inner">
             <div
               className="h-full rounded-full bg-gradient-to-r from-sky-500 to-sky-600 transition-all duration-500 shadow-sm"
               style={{ width: `${overallPercent}%` }}
@@ -169,13 +169,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Today's Clinical Progress Bar */}
-        <div className="mt-4 pt-4 border-t border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="mt-4 pt-4 border-t border-slate-200/70 dark:border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex-1">
-            <div className="flex justify-between font-semibold text-slate-600 mb-1">
+            <div className="flex justify-between font-semibold text-slate-600 dark:text-[#cbd5e1] mb-1">
               <span>Today&apos;s Clinic Chairside Progress</span>
               <span>{todayProgressPercent}% ({todayStepsCompleted}/{todaySteps.length || 0} steps today)</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-slate-200/70 overflow-hidden">
+            <div className="w-full h-2 rounded-full bg-slate-200/70 dark:bg-slate-700/60 overflow-hidden">
               <div
                 className="h-full rounded-full bg-emerald-500 transition-all duration-500"
                 style={{ width: `${todayProgressPercent}%` }}
@@ -206,14 +206,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition" />
+            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition" />
           </div>
-          <p className="text-xl font-black text-slate-800 mt-2">{awaitingSignatures}</p>
-          <p className="text-xs font-semibold text-amber-700">Awaiting Signature</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Click to view cases</p>
+          <p className="text-xl font-black text-slate-800 dark:text-[#f8fafc] mt-2">{awaitingSignatures}</p>
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Awaiting Signature</p>
+          <p className="text-[10px] text-slate-400 dark:text-[#cbd5e1] mt-0.5">Click to view cases</p>
         </button>
 
         {/* Ready for Moodle */}
@@ -225,14 +225,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
               <Send className="w-4 h-4" />
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition" />
+            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition" />
           </div>
-          <p className="text-xl font-black text-slate-800 mt-2">{readyForMoodle}</p>
-          <p className="text-xs font-semibold text-purple-700">Ready for Moodle</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Signed & ready to export</p>
+          <p className="text-xl font-black text-slate-800 dark:text-[#f8fafc] mt-2">{readyForMoodle}</p>
+          <p className="text-xs font-semibold text-purple-700 dark:text-purple-400">Ready for Moodle</p>
+          <p className="text-[10px] text-slate-400 dark:text-[#cbd5e1] mt-0.5">Signed & ready to export</p>
         </button>
 
         {/* Completed / Submitted */}
@@ -244,14 +244,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition" />
+            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition" />
           </div>
-          <p className="text-xl font-black text-slate-800 mt-2">{fullySubmitted}</p>
-          <p className="text-xs font-semibold text-emerald-700">Moodle Submitted</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Archived & uploaded</p>
+          <p className="text-xl font-black text-slate-800 dark:text-[#f8fafc] mt-2">{fullySubmitted}</p>
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Moodle Submitted</p>
+          <p className="text-[10px] text-slate-400 dark:text-[#cbd5e1] mt-0.5">Archived & uploaded</p>
         </button>
 
         {/* Comprehensive Cases */}
@@ -263,14 +263,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition" />
+            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition" />
           </div>
-          <p className="text-xl font-black text-slate-800 mt-2">{comprehensiveCases}</p>
-          <p className="text-xs font-semibold text-sky-700">Comprehensive Cases</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">3+ disciplines combined</p>
+          <p className="text-xl font-black text-slate-800 dark:text-[#f8fafc] mt-2">{comprehensiveCases}</p>
+          <p className="text-xs font-semibold text-sky-700 dark:text-sky-400">Comprehensive Cases</p>
+          <p className="text-[10px] text-slate-400 dark:text-[#cbd5e1] mt-0.5">3+ disciplines combined</p>
         </button>
       </div>
 
@@ -279,11 +279,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Action Required Column */}
         <div className="lg:col-span-2 frosted-card rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+            <h3 className="font-extrabold text-slate-800 dark:text-[#f8fafc] text-sm flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
               Action Required Chairside
             </h3>
-            <span className="text-[11px] font-semibold text-slate-400">
+            <span className="text-[11px] font-semibold text-slate-400 dark:text-[#cbd5e1]">
               {actionItems.length} items needing attention
             </span>
           </div>
@@ -297,7 +297,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     haptic.light();
                     onSelectCase(item.caseId);
                   }}
-                  className="p-3 rounded-xl bg-white/75 border border-slate-200/80 hover:border-sky-300 transition flex items-center justify-between gap-3 cursor-pointer group shadow-2xs active:scale-[0.99]"
+                  className="p-3 rounded-xl surface-card-interactive hover:border-sky-300 dark:hover:border-sky-500 transition flex items-center justify-between gap-3 cursor-pointer group shadow-2xs active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="text-sm">
@@ -305,27 +305,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-bold text-slate-800 text-xs truncate">
+                        <p className="font-bold text-slate-800 dark:text-[#f8fafc] text-xs truncate">
                           {item.patientName}
                         </p>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                        <span className="badge-neutral text-[10px] font-mono px-1.5 py-0.5 rounded">
                           #{item.fileNumber}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                      <p className="text-[11px] text-slate-600 dark:text-[#cbd5e1] truncate mt-0.5 font-medium">
                         {item.message}
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 transition flex-shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition flex-shrink-0" />
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center rounded-xl bg-white/50 border border-slate-200/50">
+            <div className="p-8 text-center rounded-xl surface-muted border border-slate-200/60 dark:border-slate-700/60">
               <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-              <p className="font-bold text-slate-700 text-xs">All signatures and submissions up to date!</p>
-              <p className="text-[11px] text-slate-400 mt-1">No overdue clinical rubrics or Moodle uploads pending.</p>
+              <p className="font-bold text-slate-800 dark:text-[#f8fafc] text-xs">All signatures and submissions up to date!</p>
+              <p className="text-[11px] text-slate-500 dark:text-[#94a3b8] mt-1 font-medium">No overdue clinical rubrics or Moodle uploads pending.</p>
             </div>
           )}
         </div>
@@ -333,25 +333,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Discipline / Course Progress */}
         <div className="frosted-card rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-sky-600" />
+            <h3 className="font-extrabold text-slate-800 dark:text-[#f8fafc] text-sm flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-sky-600 dark:text-sky-400" />
               Course Progress
             </h3>
-            <span className="text-[11px] text-slate-400 font-semibold">{disciplines.length} Courses</span>
+            <span className="text-[11px] text-slate-400 dark:text-[#cbd5e1] font-semibold">{disciplines.length} Courses</span>
           </div>
 
           <div className="space-y-3 text-xs">
             {disciplineStats.map((stat) => (
               <div key={stat.name} className="space-y-1">
-                <div className="flex justify-between font-semibold text-slate-700 text-[11px]">
-                  <span>{stat.name}</span>
-                  <span className="text-slate-500">
+                <div className="flex justify-between font-semibold text-[11px]">
+                  <span className="font-bold text-slate-800 dark:text-[#f8fafc]">{stat.name}</span>
+                  <span className="text-slate-500 dark:text-[#cbd5e1] font-medium">
                     {stat.completed} completed ({stat.pct}%)
                   </span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-200/80 overflow-hidden">
+                <div className="w-full h-2 rounded-full bg-slate-200/80 dark:bg-slate-700/60 overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-sky-600 transition-all duration-300"
+                    className="h-full rounded-full bg-sky-600 dark:bg-sky-500 transition-all duration-300"
                     style={{ width: `${stat.pct}%` }}
                   />
                 </div>

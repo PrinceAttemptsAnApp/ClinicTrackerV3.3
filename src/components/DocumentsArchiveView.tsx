@@ -173,10 +173,10 @@ export const DocumentsArchiveView: React.FC<DocumentsArchiveViewProps> = ({ case
             <button
               key={tab.id}
               onClick={() => setFilterType(tab.id)}
-              className={`px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer ${
+              className={`filter-tab px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer active:scale-95 ${
                 filterType === tab.id
-                  ? 'bg-slate-800 text-white shadow-sm'
-                  : 'neu-btn text-slate-600 hover:text-slate-900'
+                  ? 'filter-tab-active active'
+                  : ''
               }`}
             >
               {tab.label}
@@ -197,7 +197,7 @@ export const DocumentsArchiveView: React.FC<DocumentsArchiveViewProps> = ({ case
                 {/* Thumbnail Preview */}
                 <div
                   onClick={() => setPreviewDoc(doc)}
-                  className="w-full h-32 rounded-xl bg-slate-100 overflow-hidden relative cursor-pointer flex items-center justify-center border border-slate-200 group-hover:border-sky-300 transition"
+                  className="w-full h-32 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden relative cursor-pointer flex items-center justify-center border border-slate-200 dark:border-slate-700 group-hover:border-sky-300 transition"
                 >
                   {doc.fileDataUrl?.startsWith('data:image') ? (
                     <img
@@ -221,7 +221,7 @@ export const DocumentsArchiveView: React.FC<DocumentsArchiveViewProps> = ({ case
                         ? 'bg-emerald-600 text-white'
                         : doc.status === 'Pending'
                         ? 'bg-amber-500 text-white'
-                        : 'bg-slate-800/80 text-white'
+                        : 'bg-sky-600 text-white'
                     }`}
                   >
                     {doc.status || doc.category}

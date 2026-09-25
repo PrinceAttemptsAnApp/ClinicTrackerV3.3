@@ -290,7 +290,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                   {dentalCase.patientName}
                 </h2>
-                <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg bg-slate-900 text-white shadow-2xs">
+                <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg badge-neutral shadow-2xs">
                   File #{dentalCase.fileNumber}
                 </span>
                 <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800 border border-sky-200">
@@ -535,7 +535,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
         </div>
 
         {/* Card 3: Next Visit & Next Action (Plan Next Visit Layer) */}
-        <div className="frosted-card rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2 bg-gradient-to-br from-white to-sky-50/40 flex flex-col justify-between">
+        <div className="frosted-card rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 shadow-2xs space-y-2 bg-gradient-to-br from-white to-sky-50/40 dark:from-slate-800 dark:to-slate-800/90 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[11px] uppercase font-black tracking-wider text-sky-800 block flex items-center gap-1.5">

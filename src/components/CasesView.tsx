@@ -177,14 +177,14 @@ export const CasesView: React.FC<CasesViewProps> = ({
           </div>
 
           {/* Clinic Place Filter */}
-          <div className="flex items-center gap-1 neu-input p-1 rounded-xl text-xs font-semibold overflow-x-auto">
+          <div className="flex items-center gap-1 filter-well p-1 rounded-xl text-xs font-semibold overflow-x-auto">
             <button
               onClick={() => {
                 haptic.selection();
                 setSelectedClinic('all');
               }}
-              className={`px-2.5 py-1 rounded-lg transition active:scale-95 cursor-pointer ${
-                selectedClinic === 'all' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600'
+              className={`filter-pill px-2.5 py-1 rounded-lg text-xs ${
+                selectedClinic === 'all' ? 'filter-pill-selected active' : ''
               }`}
             >
               All Clinics
@@ -196,8 +196,8 @@ export const CasesView: React.FC<CasesViewProps> = ({
                   haptic.selection();
                   setSelectedClinic(clinic);
                 }}
-                className={`w-6 h-6 rounded-lg transition active:scale-95 cursor-pointer flex items-center justify-center ${
-                  selectedClinic === clinic ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600'
+                className={`filter-pill w-7 h-7 rounded-lg text-xs flex items-center justify-center ${
+                  selectedClinic === clinic ? 'filter-pill-selected active' : ''
                 }`}
               >
                 {clinic}
@@ -207,7 +207,7 @@ export const CasesView: React.FC<CasesViewProps> = ({
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 text-xs">
+        <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/80 text-xs">
           {[
             { id: 'all', label: 'All Cases' },
             { id: 'in-progress', label: 'In Progress' },
@@ -222,10 +222,8 @@ export const CasesView: React.FC<CasesViewProps> = ({
                 haptic.selection();
                 setFilterTab(tab.id);
               }}
-              className={`px-3 py-1.5 rounded-xl font-semibold transition active:scale-95 cursor-pointer ${
-                filterTab === tab.id
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'neu-btn text-slate-600 hover:text-slate-900'
+              className={`filter-tab px-3 py-1.5 rounded-xl font-semibold transition active:scale-95 cursor-pointer ${
+                filterTab === tab.id ? 'filter-tab-active active' : ''
               }`}
             >
               {tab.label}
@@ -362,10 +360,10 @@ export const CasesView: React.FC<CasesViewProps> = ({
                               return (
                                 <span
                                   key={p.id}
-                                  className="px-2 py-0.5 rounded-md bg-white/90 border border-slate-200 text-slate-700 text-[11px] shadow-2xs"
+                                  className="px-2 py-0.5 rounded-md bg-white/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-[11px] shadow-2xs"
                                 >
                                   <strong>{p.discipline}:</strong> {pTitle}
-                                  {pTeeth && <span className="text-sky-700 font-bold ml-1">({pTeeth})</span>}
+                                  {pTeeth && <span className="text-sky-700 dark:text-sky-400 font-bold ml-1">({pTeeth})</span>}
                                 </span>
                               );
                             })

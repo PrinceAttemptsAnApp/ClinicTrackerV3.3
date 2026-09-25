@@ -427,15 +427,15 @@ export const RemovableSelector: React.FC<RemovableSelectorProps> = ({
   };
 
   return (
-    <div className="rounded-2xl bg-white/95 border border-sky-200/90 shadow-xs p-3 sm:p-4 space-y-4 w-full">
+    <div className="rounded-2xl bg-white/95 dark:bg-[#1e293b] border border-sky-200/90 dark:border-slate-700/80 shadow-xs p-3 sm:p-4 space-y-4 w-full">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-2.5">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-600 flex items-center justify-center border border-sky-500/30">
+          <div className="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center border border-sky-500/30">
             <Layers className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-800">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-[#f8fafc]">
               Removable Prosthodontics Configuration
             </h4>
             <p className="text-[11px] text-slate-500">
@@ -485,8 +485,8 @@ export const RemovableSelector: React.FC<RemovableSelectorProps> = ({
             onClick={() => handleMaxTypeChange('none')}
             className={`p-2 sm:p-2.5 rounded-xl border text-center transition cursor-pointer ${
               maxType === 'none'
-                ? 'bg-slate-700 text-white border-slate-700 font-bold shadow-xs'
-                : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 font-semibold'
+                ? 'bg-sky-600 text-white border-sky-600 font-bold shadow-xs'
+                : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold'
             }`}
           >
             <span className="block text-xs">○ None</span>
@@ -659,8 +659,8 @@ export const RemovableSelector: React.FC<RemovableSelectorProps> = ({
             onClick={() => handleMandTypeChange('none')}
             className={`p-2 sm:p-2.5 rounded-xl border text-center transition cursor-pointer ${
               mandType === 'none'
-                ? 'bg-slate-700 text-white border-slate-700 font-bold shadow-xs'
-                : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 font-semibold'
+                ? 'bg-sky-600 text-white border-sky-600 font-bold shadow-xs'
+                : 'bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold'
             }`}
           >
             <span className="block text-xs">○ None</span>

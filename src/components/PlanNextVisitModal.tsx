@@ -195,19 +195,19 @@ export const PlanNextVisitModal: React.FC<PlanNextVisitModalProps> = ({
         aria-modal="true"
         aria-labelledby="plan-visit-title"
       >
-        <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] sm:max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in slide-in-from-bottom duration-200">
+        <div className="modal-surface w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200">
           
           {/* MODAL HEADER */}
-          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0 bg-slate-50/70">
+          <div className="modal-header-hero px-5 py-4 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 flex items-center justify-center font-bold">
                 <CalendarDays className="w-4 h-4" />
               </div>
               <div>
-                <h3 id="plan-visit-title" className="text-base font-black text-slate-900">
+                <h3 id="plan-visit-title" className="text-base font-black text-slate-900 dark:text-[#f8fafc]">
                   Plan Next Visit
                 </h3>
-                <p className="text-[11px] text-slate-500 font-medium">
+                <p className="text-[11px] text-slate-600 dark:text-[#cbd5e1] font-medium">
                   Associate next clinical action with your extracted timetable
                 </p>
               </div>
@@ -216,7 +216,7 @@ export const PlanNextVisitModal: React.FC<PlanNextVisitModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Close dialog"
             >
               <X className="w-5 h-5" />
@@ -506,7 +506,7 @@ export const PlanNextVisitModal: React.FC<PlanNextVisitModalProps> = ({
           </div>
 
           {/* MODAL ACTIONS FOOTER (Fixed thumb-friendly bottom bar) */}
-          <div className="p-4 border-t border-slate-200/80 bg-slate-50/90 flex items-center justify-between gap-2.5 flex-shrink-0 safe-area-bottom">
+          <div className="modal-footer p-4 flex items-center justify-between gap-2.5 flex-shrink-0 safe-area-bottom">
             {currentPlan.isPlanned ? (
               <button
                 type="button"

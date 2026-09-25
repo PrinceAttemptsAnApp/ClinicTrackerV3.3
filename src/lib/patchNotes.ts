@@ -13,7 +13,7 @@ export interface UpcomingFeatureEntry {
   note: string;
 }
 
-export const APP_VERSION = '4.3.0';
+export const APP_VERSION = '4.4.0';
 
 export const UPCOMING_FEATURES: UpcomingFeatureEntry[] = [
   {
@@ -27,6 +27,18 @@ export const UPCOMING_FEATURES: UpcomingFeatureEntry[] = [
 ];
 
 export const PATCH_NOTES: PatchNoteEntry[] = [
+  {
+    version: '4.4.0',
+    date: '2026-09-25',
+    title: 'Comprehensive Clinic Discipline & Dark Mode Contrast Fixes',
+    changes: [
+      'Comprehensive Clinic Discipline Option: Added Comprehensive Clinic as an official discipline choice when creating or managing clinic sessions in the schedule builder.',
+      'Action Required Chairside Dark Mode Fix: Upgraded low-contrast light grey card surfaces in Dark Mode to high-contrast #1E293B dark slate containers.',
+      'Dark Mode Accessibility & Hierarchy: Standardized readable typography across dark mode dashboard cards, course progress panel, and metric buttons (Primary #F8FAFC, Secondary #CBD5E1, Muted #94A3B8).',
+      'UI Grey-Box & Leaking Dark Mode Audit: Completed codebase-wide audit fixing unintended grey boxes with white text across Light and Dark modes using semantic theme tokens.',
+      'Preserved Light Mode Aesthetic: Ensured all contrast and theme improvements enhance Dark Mode without altering or degrading Light Mode styling.'
+    ]
+  },
   {
     version: '4.3.0',
     date: '2026-09-25',

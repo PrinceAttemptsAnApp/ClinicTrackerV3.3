@@ -27,6 +27,7 @@ const DISCIPLINES: DisciplineType[] = [
   'Oral Surgery',
   'Pediatric Dentistry',
   'Orthodontics',
+  'Comprehensive Clinic',
 ];
 
 export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
@@ -173,7 +174,7 @@ export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Discipline tabs */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">
+            <label className="block font-bold text-slate-700 dark:text-slate-200 mb-1.5">
               Select Discipline
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -189,7 +190,7 @@ export const AddProcedureModal: React.FC<AddProcedureModalProps> = ({
                   className={`px-3 py-1.5 rounded-xl font-semibold transition cursor-pointer ${
                     discipline === disc
                       ? 'bg-sky-600 text-white shadow-sm'
-                      : 'neu-btn text-slate-700 hover:bg-white'
+                      : 'neu-btn text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700'
                   }`}
                 >
                   {disc}

@@ -529,7 +529,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
             {/* Case Filter Row (Station Filter Pills clearly associated with Case List) */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div 
-                className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/70"
+                className="flex items-center gap-1 p-1 filter-well rounded-xl"
                 role="tablist"
                 aria-label="Filter cases by clinic place"
               >
@@ -539,10 +539,8 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                     haptic.selection();
                     setSelectedClinicFilter('ALL');
                   }}
-                  className={`px-2.5 h-7 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 ${
-                    selectedClinicFilter === 'ALL'
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                  className={`filter-pill px-2.5 h-7 rounded-lg text-xs font-bold ${
+                    selectedClinicFilter === 'ALL' ? 'filter-pill-selected active' : ''
                   }`}
                   title="View cases across all clinics"
                 >
@@ -557,10 +555,8 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                       setSelectedClinicFilter(clinic);
                       onChangeClinicPlace(clinic);
                     }}
-                    className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer active:scale-95 flex items-center justify-center ${
-                      selectedClinicFilter === clinic
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                    className={`filter-pill w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center ${
+                      selectedClinicFilter === clinic ? 'filter-pill-selected active' : ''
                     }`}
                     title={`Filter by Clinic ${clinic}`}
                   >
@@ -858,18 +854,18 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                         onSelectCase(item.caseId);
                       }
                     }}
-                    className="p-2.5 rounded-xl bg-white/90 border border-slate-200/80 hover:border-sky-300 transition cursor-pointer flex items-center justify-between gap-2 shadow-2xs active:scale-[0.99]"
+                    className="p-2.5 rounded-xl bg-white/90 dark:bg-[#1e293b] border border-slate-200/80 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 transition cursor-pointer flex items-center justify-between gap-2 shadow-2xs active:scale-[0.99]"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-800 truncate">
+                      <p className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] truncate">
                         {item.title}
                       </p>
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                      <p className="text-[11px] text-slate-500 dark:text-[#cbd5e1] truncate mt-0.5">
                         {item.description}
                       </p>
                     </div>
 
-                    <span className="text-[10px] font-bold text-slate-600 flex-shrink-0">
+                    <span className="text-[10px] font-bold text-slate-600 dark:text-[#cbd5e1] flex-shrink-0">
                       {item.badge}
                     </span>
                   </div>
@@ -896,49 +892,49 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
               <button
                 type="button"
                 onClick={onOpenAddCaseModal}
-                className="p-3 rounded-xl bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/40 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
+                className="p-3 rounded-xl bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50/40 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
               >
-                <div className="flex items-center justify-between text-sky-600">
+                <div className="flex items-center justify-between text-sky-600 dark:text-sky-400">
                   <User className="w-4 h-4" />
                   <Plus className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-bold text-slate-800 mt-1">+ New Case</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] mt-1">+ New Case</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleTriggerQuickAction('procedure')}
-                className="p-3 rounded-xl bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/40 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
+                className="p-3 rounded-xl bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50/40 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
               >
-                <div className="flex items-center justify-between text-purple-600">
+                <div className="flex items-center justify-between text-purple-600 dark:text-purple-400">
                   <Layers className="w-4 h-4" />
                   <Plus className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-bold text-slate-800 mt-1">+ Procedure</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] mt-1">+ Procedure</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleTriggerQuickAction('rubric')}
-                className="p-3 rounded-xl bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/40 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
+                className="p-3 rounded-xl bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50/40 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
               >
-                <div className="flex items-center justify-between text-amber-600">
+                <div className="flex items-center justify-between text-amber-600 dark:text-amber-400">
                   <Camera className="w-4 h-4" />
                   <FileCheck2 className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-bold text-slate-800 mt-1">Scan Rubric</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] mt-1">Scan Rubric</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleTriggerQuickAction('evidence')}
-                className="p-3 rounded-xl bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/40 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
+                className="p-3 rounded-xl bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50/40 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
               >
-                <div className="flex items-center justify-between text-emerald-600">
+                <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
                   <ImageIcon className="w-4 h-4" />
                   <Plus className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-bold text-slate-800 mt-1">Add Photo</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] mt-1">Add Photo</span>
               </button>
             </div>
           </section>
@@ -969,18 +965,18 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                 {todaySessions.map((session, sIdx) => (
                   <div
                     key={session.id || sIdx}
-                    className="p-2 rounded-xl bg-slate-50 border border-slate-200/70 text-xs flex items-center justify-between gap-2"
+                    className="p-2 rounded-xl surface-muted border text-xs flex items-center justify-between gap-2"
                   >
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-bold text-sky-800">
+                      <span className="font-bold text-sky-800 dark:text-sky-400">
                         Clinic {session.clinicPlace}
                       </span>
-                      <span aria-hidden="true" className="text-slate-400">·</span>
-                      <span className="font-semibold text-slate-800 truncate">
+                      <span aria-hidden="true" className="text-slate-400 dark:text-slate-500">·</span>
+                      <span className="font-semibold text-slate-800 dark:text-[#f8fafc] truncate">
                         {session.discipline}
                       </span>
                     </div>
-                    <span className="text-slate-500 font-medium text-[11px] flex-shrink-0">
+                    <span className="text-slate-600 dark:text-[#cbd5e1] font-medium text-[11px] flex-shrink-0">
                       {session.startTime} – {session.endTime}
                     </span>
                   </div>
@@ -1031,13 +1027,13 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                         onSelectCase(c.id);
                       }
                     }}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-200 text-left transition cursor-pointer flex items-center justify-between"
+                    className="surface-muted w-full p-2.5 rounded-xl border text-left transition cursor-pointer flex items-center justify-between hover:border-sky-300 dark:hover:border-sky-500"
                   >
                     <div>
-                      <p className="text-xs font-bold text-slate-800">{c.patientName}</p>
-                      <p className="text-[11px] text-slate-500">#{c.fileNumber} · Clinic {c.clinicPlace}</p>
+                      <p className="text-xs font-bold text-slate-800 dark:text-[#f8fafc]">{c.patientName}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-[#cbd5e1]">#{c.fileNumber} · Clinic {c.clinicPlace}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400" />
                   </button>
                 ))}
               </div>

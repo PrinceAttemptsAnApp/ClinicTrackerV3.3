@@ -166,7 +166,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
               <select
                 value={day}
                 onChange={(e) => setDay(e.target.value as any)}
-                className="neu-input w-full px-3 py-2 rounded-xl bg-white/80"
+                className="neu-input w-full px-3 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100"
               >
                 {DAYS.map((d) => (
                   <option key={d} value={d}>
@@ -177,11 +177,11 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
             </div>
 
             <div>
-              <label className="block font-medium text-slate-700 mb-1">Clinic Place</label>
+              <label className="block font-medium text-slate-700 dark:text-slate-200 mb-1">Clinic Place</label>
               <select
                 value={clinicPlace}
                 onChange={(e) => setClinicPlace(e.target.value as any)}
-                className="neu-input w-full px-3 py-2 rounded-xl bg-white/80"
+                className="neu-input w-full px-3 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100"
               >
                 {CLINICS.map((c) => (
                   <option key={c} value={c}>
@@ -192,11 +192,11 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
             </div>
 
             <div>
-              <label className="block font-medium text-slate-700 mb-1">Discipline / Specialty</label>
+              <label className="block font-medium text-slate-700 dark:text-slate-200 mb-1">Discipline / Specialty</label>
               <select
                 value={discipline}
                 onChange={(e) => setDiscipline(e.target.value as any)}
-                className="neu-input w-full px-3 py-2 rounded-xl bg-white/80"
+                className="neu-input w-full px-3 py-2 rounded-xl bg-white/80 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100"
               >
                 <option value="Fixed">Fixed Prosthodontics</option>
                 <option value="Operative">Operative Dentistry</option>
@@ -205,6 +205,8 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                 <option value="Perio">Periodontics</option>
                 <option value="Oral Surgery">Oral Surgery</option>
                 <option value="Pediatric Dentistry">Pediatric Dentistry</option>
+                <option value="Orthodontics">Orthodontics</option>
+                <option value="Comprehensive Clinic">Comprehensive Clinic</option>
               </select>
             </div>
           </div>
@@ -281,34 +283,34 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                     daySessions.map((sess) => (
                       <div
                         key={sess.id}
-                        className="p-3 rounded-xl bg-white/75 border border-slate-200/80 shadow-2xs space-y-1.5 group"
+                        className="p-3 rounded-xl bg-white/75 dark:bg-[#1e293b] border border-slate-200/80 dark:border-slate-700/80 shadow-2xs space-y-1.5 group"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-slate-800">
+                          <span className="font-bold text-xs text-slate-800 dark:text-[#f8fafc]">
                             {sess.discipline}
                           </span>
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-sky-100 text-sky-800">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-transparent dark:border-sky-800/60">
                             Clinic {sess.clinicPlace}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-[#cbd5e1]">
+                          <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-400" />
                           <span>{sess.startTime} – {sess.endTime}</span>
                           <span>•</span>
                           <span>2 Chairs</span>
                         </div>
 
                         {sess.notes && (
-                          <p className="text-[11px] text-slate-600 italic">
+                          <p className="text-[11px] text-slate-600 dark:text-[#cbd5e1] italic">
                             {sess.notes}
                           </p>
                         )}
 
-                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
                           <button
                             onClick={() => onNavigateToClinic(sess.clinicPlace)}
-                            className="text-[11px] font-bold text-sky-600 hover:underline flex items-center gap-1 cursor-pointer"
+                            className="text-[11px] font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
                           >
                             <Stethoscope className="w-3 h-3" />
                             <span>Open Today&apos;s Clinic &rarr;</span>
@@ -316,7 +318,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
 
                           <button
                             onClick={() => handleDeleteSession(sess.id)}
-                            className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                            className="text-slate-400 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 cursor-pointer"
                             title="Delete session"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

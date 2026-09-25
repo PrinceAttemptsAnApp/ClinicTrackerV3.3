@@ -818,8 +818,8 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
         aria-label={`Quadrant ${tooth.quadrantName}, tooth ${tooth.palmer} (${tooth.name})`}
         className={`w-full min-w-[36px] xs:min-w-[40px] min-h-[44px] xs:min-h-[48px] sm:min-h-[56px] p-0.5 sm:p-1 rounded-xl flex flex-col items-center justify-between transition-colors cursor-pointer relative select-none touch-manipulation active:scale-95 ${
           isSelected
-            ? 'bg-sky-500 text-white border-2 border-sky-600 shadow-sm ring-2 ring-sky-300/80 z-10'
-            : 'bg-white hover:bg-sky-50/80 border border-slate-200/90 hover:border-sky-300'
+            ? 'bg-sky-600 dark:bg-sky-600 text-white border-2 border-sky-700 dark:border-sky-400 shadow-sm ring-2 ring-sky-300/80 z-10'
+            : 'bg-white dark:bg-slate-800 hover:bg-sky-50/80 dark:hover:bg-slate-700 border border-slate-200/90 dark:border-slate-700 hover:border-sky-300'
         }`}
         title={`${tooth.name} • Digital Palmer: ${tooth.digitalPalmer} • FDI #${tooth.fdi} • Universal #${tooth.universal}`}
       >
@@ -837,10 +837,10 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
             </div>
 
             {/* 3. Shortened Display Label */}
-            <div className="w-full pt-0.5 border-t border-slate-100/80 flex items-center justify-center pointer-events-none">
+            <div className="w-full pt-0.5 border-t border-slate-100/80 dark:border-slate-700/80 flex items-center justify-center pointer-events-none">
               <span 
                 className={`font-black text-[11px] xs:text-[12px] sm:text-[13px] leading-tight tracking-tight ${
-                  isSelected ? 'text-white font-extrabold' : 'text-slate-800'
+                  isSelected ? 'text-white font-extrabold' : 'text-slate-800 dark:text-slate-100'
                 }`}
               >
                 {displayLabel}
@@ -861,10 +861,10 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
             </div>
 
             {/* 3. Shortened Display Label */}
-            <div className="w-full pt-0.5 border-t border-slate-100/80 flex items-center justify-center pointer-events-none">
+            <div className="w-full pt-0.5 border-t border-slate-100/80 dark:border-slate-700/80 flex items-center justify-center pointer-events-none">
               <span 
                 className={`font-black text-[11px] xs:text-[12px] sm:text-[13px] leading-tight tracking-tight ${
-                  isSelected ? 'text-white font-extrabold' : 'text-slate-800'
+                  isSelected ? 'text-white font-extrabold' : 'text-slate-800 dark:text-slate-100'
                 }`}
               >
                 {displayLabel}
@@ -875,7 +875,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
 
         {/* Selection Checkmark Badge */}
         {isSelected && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-white text-sky-700 rounded-full flex items-center justify-center text-[10px] font-black shadow-xs pointer-events-none border border-sky-300">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-300 rounded-full flex items-center justify-center text-[10px] font-black shadow-xs pointer-events-none border border-sky-300 dark:border-sky-500">
             ✓
           </span>
         )}
@@ -884,12 +884,12 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
   };
 
   return (
-    <div className="rounded-2xl bg-white/95 border border-sky-200/90 shadow-xs p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 w-full">
+    <div className="rounded-2xl bg-white/95 dark:bg-[#1e293b] border border-sky-200/90 dark:border-slate-700/80 shadow-xs p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 w-full">
       {/* Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700/60 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-sky-600" />
+          <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-sky-600 dark:text-sky-400" />
             <span>{label}</span>
           </span>
           {value && (

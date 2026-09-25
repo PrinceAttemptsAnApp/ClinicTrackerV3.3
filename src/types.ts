@@ -10,7 +10,8 @@ export type DisciplineType =
   | 'Perio'
   | 'Oral Surgery'
   | 'Pediatric Dentistry'
-  | 'Orthodontics';
+  | 'Orthodontics'
+  | 'Comprehensive Clinic';
 
 export type CaseStatus = 
   | 'In Progress'

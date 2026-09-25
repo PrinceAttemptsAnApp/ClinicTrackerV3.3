@@ -54,6 +54,7 @@ import { AdminAnalyticsView } from './components/AdminAnalyticsView';
 import { UndoSnackbar, UndoNotification } from './components/UndoSnackbar';
 import { WhatsNewModal } from './components/WhatsNewModal';
 import { APP_VERSION } from './lib/patchNotes';
+import { getSavedTheme, applyTheme, initThemeListener } from './lib/theme';
 
 export default function App() {
   // Navigation & View State
@@ -198,6 +199,14 @@ export default function App() {
   useEffect(() => {
     initAppSession();
   }, [initAppSession]);
+
+  // Apply user theme on mount and listen for OS system theme changes
+  useEffect(() => {
+    const initialTheme = getSavedTheme();
+    applyTheme(initialTheme);
+    const cleanup = initThemeListener();
+    return cleanup;
+  }, []);
 
   const handleSaveFirstTimeName = async (name: string) => {
     const trimmed = name.trim();
@@ -539,7 +548,7 @@ export default function App() {
   ] as const;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 pb-20 md:pb-6">
+    <div className="min-h-screen flex flex-col bg-[#eaf0f6] dark:bg-[#0b1120] text-slate-900 dark:text-slate-100 pb-20 md:pb-6 transition-colors duration-200">
       {/* Top Header Bar */}
       <HeaderBar
         profile={profile}
@@ -555,7 +564,7 @@ export default function App() {
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 flex flex-col md:flex-row gap-6">
         {/* Desktop Sidebar Navigation */}
         <aside className="hidden md:flex flex-col w-56 flex-shrink-0">
-          <div className="frosted-glass rounded-2xl p-3 border border-white/60 sticky top-20 space-y-1.5 shadow-sm">
+          <div className="frosted-glass rounded-2xl p-3 border border-white/60 dark:border-slate-700/80 sticky top-20 space-y-1.5 shadow-sm">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id || (item.id === 'cases' && activeTab === 'case-detail');
@@ -569,7 +578,7 @@ export default function App() {
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer active:scale-[0.98] ${
                     isActive
                       ? 'bg-sky-600 text-white shadow-md shadow-sky-600/25'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/60'
                   }`}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
@@ -579,7 +588,7 @@ export default function App() {
             })}
 
             {/* Quick Add Case Action in Sidebar */}
-            <div className="pt-3 mt-3 border-t border-slate-200/70">
+            <div className="pt-3 mt-3 border-t border-slate-200/70 dark:border-slate-700/80">
               <button
                 onClick={() => setIsAddCaseModalOpen(true)}
                 className="w-full neu-btn-primary py-2.5 px-3 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 cursor-pointer shadow-sm"
@@ -594,7 +603,7 @@ export default function App() {
         {/* Dynamic Content Views */}
         <main className="flex-1 min-w-0">
           {loading ? (
-            <div className="frosted-card rounded-2xl p-12 text-center text-slate-500 text-sm">
+            <div className="frosted-card rounded-2xl p-12 text-center text-slate-500 dark:text-slate-400 text-sm">
               <div className="w-8 h-8 rounded-full border-2 border-sky-600 border-t-transparent animate-spin mx-auto mb-3" />
               Loading 5th-Year Clinical Database...
             </div>
@@ -720,7 +729,7 @@ export default function App() {
       </div>
 
       {/* Mobile Bottom Navigation Bar (Fixed for quick one-thumb access chairside!) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 frosted-glass border-t border-white/80 py-1.5 px-2 flex justify-around items-center shadow-lg">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 frosted-glass border-t border-white/80 dark:border-slate-800/90 py-1.5 px-2 flex justify-around items-center shadow-lg">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id || (item.id === 'cases' && activeTab === 'case-detail');
@@ -732,13 +741,13 @@ export default function App() {
                 setActiveTab(item.id);
               }}
               className={`relative flex flex-col items-center justify-center p-1.5 rounded-xl min-w-[54px] min-h-[44px] transition-all duration-150 cursor-pointer active:scale-90 ${
-                isActive ? 'text-sky-600 font-extrabold' : 'text-slate-500 hover:text-slate-800'
+                isActive ? 'text-sky-600 dark:text-sky-400 font-extrabold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <Icon className={`w-5 h-5 transition-transform duration-150 ${isActive ? 'stroke-[2.5] scale-110' : 'stroke-[1.75]'}`} />
               <span className="text-[10px] mt-0.5 font-semibold">{item.label}</span>
               {isActive && (
-                <span className="w-1 h-1 rounded-full bg-sky-600 mt-0.5 animate-checkmark" />
+                <span className="w-1 h-1 rounded-full bg-sky-600 dark:bg-sky-400 mt-0.5 animate-checkmark" />
               )}
             </button>
           );

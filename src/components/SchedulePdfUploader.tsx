@@ -44,6 +44,7 @@ const DISCIPLINES: DisciplineType[] = [
   'Oral Surgery',
   'Pediatric Dentistry',
   'Orthodontics',
+  'Comprehensive Clinic',
 ];
 
 interface SchedulePdfUploaderProps {
@@ -335,17 +336,17 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
 
   // Active Extractor / Upload UI
   return (
-    <div className="rounded-xl bg-white/80 border border-slate-200/90 p-4 transition-all">
+    <div className="rounded-xl bg-white/80 dark:bg-[#1e293b] border border-slate-200/90 dark:border-slate-700/80 p-4 transition-all">
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="font-bold text-xs text-slate-800">
+            <h4 className="font-bold text-xs text-slate-800 dark:text-[#f8fafc]">
               {isAlreadyUploaded ? 'Update Schedule' : 'Import Clinical Schedule'}
             </h4>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-slate-500 dark:text-[#cbd5e1]">
               100% Offline • Processed locally on this device without internet connection.
             </p>
           </div>

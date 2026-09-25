@@ -33,6 +33,9 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SchedulePdfUploader } from './SchedulePdfUploader';
 import { APP_VERSION, PATCH_NOTES, UPCOMING_FEATURES } from '../lib/patchNotes';
 import { ModalPortal } from './ModalPortal';
+import { ThemeMode, getSavedTheme, applyTheme } from '../lib/theme';
+import { haptic } from '../lib/haptics';
+import { Sun, Moon, Monitor } from 'lucide-react';
 
 interface SettingsViewProps {
   profile: StudentProfile;
@@ -84,6 +87,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     return profile.toothNotation || (safeLocalStorage.getItem('dentatrack_notation') === 'fdi' ? 'fdi' : 'palmer');
   });
   const [notationSuccess, setNotationSuccess] = useState(false);
+
+  // Theme preference state
+  const [currentTheme, setCurrentTheme] = useState<ThemeMode>(() => getSavedTheme());
+  const [themeSuccess, setThemeSuccess] = useState(false);
+
+  const handleThemeChange = (mode: ThemeMode) => {
+    setCurrentTheme(mode);
+    applyTheme(mode);
+    haptic.selection();
+    setThemeSuccess(true);
+    setTimeout(() => setThemeSuccess(false), 2500);
+  };
 
   // Delete all data modal state
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
@@ -341,6 +356,143 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </form>
       </div>
 
+      {/* Appearance & Dark Mode Preference */}
+      <div className="frosted-card rounded-2xl p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-600 flex items-center justify-center border border-sky-500/30">
+              <Moon className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-extrabold text-slate-800">
+                Appearance & Theme
+              </h2>
+              <p className="text-xs text-slate-500">
+                Choose your preferred visual theme for clinical operatories and low-light environments
+              </p>
+            </div>
+          </div>
+
+          <span className="hidden sm:inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-200">
+            Active: {currentTheme === 'system' ? 'System Match' : currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+          </span>
+        </div>
+
+        {themeSuccess && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span>Theme preference updated and applied across all views!</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          {/* Light Mode Option */}
+          <button
+            type="button"
+            onClick={() => handleThemeChange('light')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              currentTheme === 'light'
+                ? 'bg-sky-50/90 border-sky-400 ring-2 ring-sky-400/30 shadow-sm'
+                : 'bg-white/70 border-slate-200 hover:border-slate-300 hover:bg-white'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Sun className="w-4 h-4 text-amber-500" />
+                  <span className="font-extrabold text-sm text-slate-800">Light</span>
+                </div>
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                    currentTheme === 'light'
+                      ? 'bg-sky-600 border-sky-600 text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}
+                >
+                  {currentTheme === 'light' && <Check className="w-3 h-3 stroke-[3]" />}
+                </div>
+              </div>
+              <p className="text-slate-600 leading-relaxed text-xs">
+                Classic high-clarity dental interface with crisp blue accents and soft frosted cards.
+              </p>
+            </div>
+            <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 font-medium">
+              Bright daylight operatory
+            </div>
+          </button>
+
+          {/* Dark Mode Option */}
+          <button
+            type="button"
+            onClick={() => handleThemeChange('dark')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              currentTheme === 'dark'
+                ? 'bg-sky-50/90 border-sky-400 ring-2 ring-sky-400/30 shadow-sm'
+                : 'bg-white/70 border-slate-200 hover:border-slate-300 hover:bg-white'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Moon className="w-4 h-4 text-sky-400" />
+                  <span className="font-extrabold text-sm text-slate-800">Dark</span>
+                </div>
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                    currentTheme === 'dark'
+                      ? 'bg-sky-600 border-sky-600 text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}
+                >
+                  {currentTheme === 'dark' && <Check className="w-3 h-3 stroke-[3]" />}
+                </div>
+              </div>
+              <p className="text-slate-600 leading-relaxed text-xs">
+                Deep charcoal & obsidian palette reducing glare during dark clinics and evening study.
+              </p>
+            </div>
+            <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 font-medium">
+              Low-glare night / clinic
+            </div>
+          </button>
+
+          {/* System Mode Option */}
+          <button
+            type="button"
+            onClick={() => handleThemeChange('system')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              currentTheme === 'system'
+                ? 'bg-sky-50/90 border-sky-400 ring-2 ring-sky-400/30 shadow-sm'
+                : 'bg-white/70 border-slate-200 hover:border-slate-300 hover:bg-white'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Monitor className="w-4 h-4 text-slate-500" />
+                  <span className="font-extrabold text-sm text-slate-800">System</span>
+                </div>
+                <div
+                  className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                    currentTheme === 'system'
+                      ? 'bg-sky-600 border-sky-600 text-white'
+                      : 'border-slate-300 bg-white'
+                  }`}
+                >
+                  {currentTheme === 'system' && <Check className="w-3 h-3 stroke-[3]" />}
+                </div>
+              </div>
+              <p className="text-slate-600 leading-relaxed text-xs">
+                Automatically syncs with your phone, tablet, or laptop&apos;s system display settings.
+              </p>
+            </div>
+            <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 font-medium">
+              Auto OS preference
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Dental Tooth Notation Preference */}
       <div className="frosted-card rounded-2xl p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3 mb-4">
@@ -548,31 +700,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         {/* Local Storage Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-3">
-          <div className="p-3 rounded-xl bg-white/70 border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Database</span>
-            <span className="font-extrabold text-xs text-emerald-600 flex items-center gap-1 mt-0.5">
+          <div className="p-3 rounded-xl bg-white/70 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-[#cbd5e1] uppercase tracking-wider block">Database</span>
+            <span className="font-extrabold text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               IndexedDB
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/70 border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Patient Cases</span>
-            <span className="font-extrabold text-xs text-slate-800 block mt-0.5">
+          <div className="p-3 rounded-xl bg-white/70 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-[#cbd5e1] uppercase tracking-wider block">Patient Cases</span>
+            <span className="font-extrabold text-xs text-slate-800 dark:text-[#f8fafc] block mt-0.5">
               {cases.length} cases
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/70 border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rubrics Stored</span>
-            <span className="font-extrabold text-xs text-slate-800 block mt-0.5">
+          <div className="p-3 rounded-xl bg-white/70 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-[#cbd5e1] uppercase tracking-wider block">Rubrics Stored</span>
+            <span className="font-extrabold text-xs text-slate-800 dark:text-[#f8fafc] block mt-0.5">
               {totalRubrics} documents
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-white/70 border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Photos / X-Rays</span>
-            <span className="font-extrabold text-xs text-slate-800 block mt-0.5">
+          <div className="p-3 rounded-xl bg-white/70 dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-[#cbd5e1] uppercase tracking-wider block">Photos / X-Rays</span>
+            <span className="font-extrabold text-xs text-slate-800 dark:text-[#f8fafc] block mt-0.5">
               {totalEvidence} files
             </span>
           </div>
@@ -806,17 +958,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {showPatchNotes && (
           <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-600 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
             {PATCH_NOTES.map((entry) => (
-              <div key={entry.version} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
+              <div key={entry.version} className="surface-muted p-3.5 rounded-xl border">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/50">
+                  <span className="badge-info font-mono text-xs font-black px-2 py-0.5 rounded-md">
                     v{entry.version}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">
+                  <span className="text-[10px] text-slate-500 dark:text-[#94a3b8] font-medium">
                     Released: {entry.date}
                   </span>
                 </div>
-                <h4 className="font-bold text-slate-800 text-xs mb-1.5">{entry.title}</h4>
-                <ul className="list-disc pl-4 space-y-1 text-slate-600">
+                <h4 className="font-bold text-slate-800 dark:text-[#f8fafc] text-xs mb-1.5">{entry.title}</h4>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600 dark:text-[#cbd5e1]">
                   {entry.changes.map((change, i) => (
                     <li key={i} className="leading-relaxed">{change}</li>
                   ))}
@@ -826,20 +978,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
             {/* Upcoming / In Development Section */}
             {UPCOMING_FEATURES.map((feat, idx) => (
-              <div key={`upcoming-${idx}`} className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80">
+              <div key={`upcoming-${idx}`} className="banner-upcoming p-4 rounded-xl shadow-2xs">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs font-black text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300">
+                  <span className="badge-warning font-mono text-xs font-black px-2.5 py-0.5 rounded-md">
                     {feat.status}
                   </span>
-                  <span className="text-[10px] text-amber-700 font-semibold px-2 py-0.5 rounded-full bg-amber-200/60">
+                  <span className="badge-neutral text-[10px] font-semibold px-2 py-0.5 rounded-full">
                     {feat.tag}
                   </span>
                 </div>
-                <h4 className="font-bold text-slate-800 text-xs mb-1.5">{feat.title}</h4>
-                <p className="text-slate-600 leading-relaxed text-xs mb-2">
+                <h4 className="font-bold text-slate-800 dark:text-[#f8fafc] text-xs mb-1.5">{feat.title}</h4>
+                <p className="text-slate-700 dark:text-[#cbd5e1] leading-relaxed text-xs mb-2 font-medium">
                   {feat.description}
                 </p>
-                <p className="text-[11px] font-semibold text-amber-800 italic">
+                <p className="text-[11px] font-bold text-amber-800 dark:text-amber-300 italic">
                   {feat.note}
                 </p>
               </div>
