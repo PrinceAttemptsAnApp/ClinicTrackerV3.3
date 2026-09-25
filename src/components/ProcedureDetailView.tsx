@@ -21,12 +21,14 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
-import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, EvidenceFile, MoodleStatus } from '../types';
+import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, EvidenceFile, MoodleStatus, ClinicSession } from '../types';
 import { RubricUploadModal } from './RubricUploadModal';
 import { EvidenceUploadModal } from './EvidenceUploadModal';
+import { PlanNextVisitModal } from './PlanNextVisitModal';
 import { ModalPortal } from './ModalPortal';
 import { EndoRadiographSection } from './EndoRadiographSection';
 import { getProcedureMacroStepStatus, formatTeethDisplay, cleanProcedureTitle } from '../lib/macroSteps';
+import { resolvePlannedVisit } from '../lib/visitPlanner';
 import { computeIsComprehensive } from '../lib/storage';
 import { haptic } from '../lib/haptics';
 
@@ -37,6 +39,8 @@ interface ProcedureDetailViewProps {
   onUpdateCase: (updatedCase: DentalCase) => void;
   onDeleteProcedure: (procedureId: string, procedureSnapshot?: ClinicalProcedure) => void;
   templates: ProcedureTemplate[];
+  schedule?: ClinicSession[];
+  onNavigateToSchedule?: () => void;
 }
 
 export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
@@ -46,12 +50,15 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
   onUpdateCase,
   onDeleteProcedure,
   templates,
+  schedule = [],
+  onNavigateToSchedule,
 }) => {
   // Modals state
   const [isRubricModalOpen, setIsRubricModalOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isPlanVisitModalOpen, setIsPlanVisitModalOpen] = useState(false);
   
   // Custom Step Modal
   const [isAddStepModalOpen, setIsAddStepModalOpen] = useState(false);
@@ -65,6 +72,11 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
   const teethFormatted = formatTeethDisplay(procedure.toothNumber);
   const displayTitle = cleanProcedureTitle(procedure.title);
   const statusInfo = getProcedureMacroStepStatus(procedure);
+
+  const plannedVisitInfo = resolvePlannedVisit(dentalCase, schedule);
+  const isPlannedForThisProc =
+    plannedVisitInfo.isPlanned &&
+    (plannedVisitInfo.procedureId === procedure.id || (!plannedVisitInfo.procedureId && dentalCase.procedures[0]?.id === procedure.id));
 
   // Toggle single step completion
   const handleToggleStep = (stepId: string) => {
@@ -407,9 +419,24 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
                 <p className="font-black text-base text-sky-950 mt-0.5">
                   {statusInfo.nextStep.title}
                 </p>
-                <p className="text-xs text-sky-700 font-bold mt-1">
-                  Milestone {statusInfo.reachedStepIndex + 2} of {statusInfo.totalSteps}
-                </p>
+                <div className="flex items-center justify-between gap-2 flex-wrap mt-1">
+                  <p className="text-xs text-sky-700 font-bold">
+                    Milestone {statusInfo.reachedStepIndex + 2} of {statusInfo.totalSteps}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPlanVisitModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold shadow-2xs transition cursor-pointer"
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>
+                      {isPlannedForThisProc
+                        ? `Planned: ${plannedVisitInfo.dayName || plannedVisitInfo.formattedDate} (Clinic ${plannedVisitInfo.clinicPlace})`
+                        : 'Plan Next Visit'}
+                    </span>
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -877,6 +904,20 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
             </div>
           </div>
         </ModalPortal>
+      )}
+      {/* ========================================================================= */}
+      {/* MODAL: PLAN NEXT VISIT */}
+      {/* ========================================================================= */}
+      {isPlanVisitModalOpen && (
+        <PlanNextVisitModal
+          isOpen={isPlanVisitModalOpen}
+          onClose={() => setIsPlanVisitModalOpen(false)}
+          dentalCase={dentalCase}
+          schedule={schedule}
+          targetProcedure={procedure}
+          onSavePlan={onUpdateCase}
+          onNavigateToSchedule={onNavigateToSchedule}
+        />
       )}
     </div>
   );

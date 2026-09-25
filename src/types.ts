@@ -123,6 +123,15 @@ export interface DentalCase {
   updatedAt: string;
   targetNextVisitDate?: string;
   targetNextVisitPlan?: string;
+  plannedSessionId?: string;
+  plannedSessionDate?: string;
+  plannedSessionDay?: string;
+  plannedSessionTime?: string;
+  plannedSessionClinic?: ClinicPlace;
+  plannedSessionDiscipline?: string;
+  plannedAction?: string;
+  plannedProcedureId?: string;
+  plannedStepId?: string;
 }
 
 export interface ProcedureTemplate {

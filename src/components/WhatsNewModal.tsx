@@ -41,7 +41,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose })
             What's New in v{APP_VERSION}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Clinical Companion Update • Mobile PDF & Schedule Overhaul
+            {currentRelease.title}
           </p>
         </div>
 

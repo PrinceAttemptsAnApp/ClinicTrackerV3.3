@@ -5,9 +5,22 @@ export interface PatchNoteEntry {
   changes: string[];
 }
 
-export const APP_VERSION = '4.2.0';
+export const APP_VERSION = '4.3.0';
 
 export const PATCH_NOTES: PatchNoteEntry[] = [
+  {
+    version: '4.3.0',
+    date: '2026-09-25',
+    title: 'Plan Next Visit & Clinical Cockpit Overhaul',
+    changes: [
+      'Plan Next Visit Feature: Schedule upcoming procedure milestones directly to your extracted clinic sessions with intelligent discipline matching.',
+      'Schedule-Grounded Session Picker: 1-tap planning linked to your real upcoming timetable dates, clinic stations, and session time slots.',
+      'Clinical Cockpit Today\'s Clinic: Redesigned into a focused chairside cockpit answering "Where am I today?", "What cases am I treating?", and "What needs attention next?".',
+      'Semantic Schedule & Workload Separation: Clear distinction between days with scheduled clinic duty and active case workloads when off-duty.',
+      'Compact Case Cards & Visit Badges: High-density cards featuring tooth position, discipline, next clinical action, and live scheduled visit tags.',
+      'Milestone-Level Scheduling: Plan next visits directly from procedure macro-milestone checklists in Case Details with instant update and remove actions.'
+    ]
+  },
   {
     version: '4.2.0',
     date: '2026-09-24',

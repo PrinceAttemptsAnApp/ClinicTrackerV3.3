@@ -622,6 +622,7 @@ export default function App() {
               {activeTab === 'today' && (
                 <TodayClinicView
                   cases={cases}
+                  schedule={schedule}
                   activeClinicPlace={activeClinicPlace}
                   onChangeClinicPlace={setActiveClinicPlace}
                   onUpdateCase={handleUpdateCase}
@@ -629,6 +630,11 @@ export default function App() {
                   onSelectCase={(caseId) => {
                     setSelectedCaseId(caseId);
                     setActiveTab('case-detail');
+                  }}
+                  onNavigateToSchedule={() => setActiveTab('schedule')}
+                  onNavigateToCases={() => {
+                    setCasesFilter('all');
+                    setActiveTab('cases');
                   }}
                   templates={templates}
                 />
@@ -658,6 +664,8 @@ export default function App() {
                   onDeleteCase={handleDeleteCase}
                   onDeleteProcedure={handleDeleteProcedure}
                   templates={templates}
+                  schedule={schedule}
+                  onNavigateToSchedule={() => setActiveTab('schedule')}
                 />
               )}
 

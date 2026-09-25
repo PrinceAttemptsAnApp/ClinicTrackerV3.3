@@ -29,9 +29,10 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, EvidenceFile, MoodleStatus } from '../types';
+import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, EvidenceFile, MoodleStatus, ClinicSession } from '../types';
 import { ProcedureDetailView } from './ProcedureDetailView';
 import { AddProcedureModal } from './AddProcedureModal';
+import { PlanNextVisitModal } from './PlanNextVisitModal';
 import { generateCaseMoodlePDF, exportCaseAsZip } from '../lib/pdfExport';
 import { ExportToast, ToastMessage } from './ExportToast';
 import { computeIsComprehensive } from '../lib/storage';
@@ -42,6 +43,7 @@ import {
   getCaseInvolvedTeeth, 
   cleanProcedureTitle 
 } from '../lib/macroSteps';
+import { resolvePlannedVisit } from '../lib/visitPlanner';
 import { haptic } from '../lib/haptics';
 
 interface CaseDetailViewProps {
@@ -52,6 +54,8 @@ interface CaseDetailViewProps {
   onDeleteProcedure?: (procedureId: string, deletedProcedure?: ClinicalProcedure) => void;
   templates: ProcedureTemplate[];
   initialProcedureId?: string | null;
+  schedule?: ClinicSession[];
+  onNavigateToSchedule?: () => void;
 }
 
 export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
@@ -62,6 +66,8 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   onDeleteProcedure,
   templates,
   initialProcedureId = null,
+  schedule = [],
+  onNavigateToSchedule,
 }) => {
   // Navigation: which procedure is currently selected (null = Case Details page)
   const [selectedProcedureId, setSelectedProcedureId] = useState<string | null>(initialProcedureId);
@@ -72,6 +78,10 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  // Plan Next Visit Modal State
+  const [isPlanVisitModalOpen, setIsPlanVisitModalOpen] = useState(false);
+  const [planTargetProcedure, setPlanTargetProcedure] = useState<ClinicalProcedure | null>(null);
 
   const handleExportPdf = async () => {
     if (isExportingPdf || isExportingZip) return;
@@ -156,6 +166,8 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           setSelectedProcedureId(null);
         }}
         templates={templates}
+        schedule={schedule}
+        onNavigateToSchedule={onNavigateToSchedule}
       />
     );
   }
@@ -252,6 +264,9 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
     return status.nextStep !== null;
   });
   const nextUpcomingStep = nextMilestoneProc ? getProcedureMacroStepStatus(nextMilestoneProc).nextStep : null;
+
+  // Resolve planned visit information with schedule
+  const plannedVisitInfo = resolvePlannedVisit(dentalCase, schedule);
 
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
@@ -519,98 +534,78 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           </div>
         </div>
 
-        {/* Card 3: What Happens Next */}
-        <div className="frosted-card rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2 bg-gradient-to-br from-white to-sky-50/40">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] uppercase font-black tracking-wider text-sky-800 block flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-sky-600" />
-              <span>Next Visit & Next Step</span>
-            </span>
-            <button
-              onClick={() => setIsEditingNextVisit(true)}
-              className="text-[11px] font-bold text-sky-600 hover:underline cursor-pointer"
-            >
-              {dentalCase.targetNextVisitDate ? 'Edit' : '+ Schedule'}
-            </button>
+        {/* Card 3: Next Visit & Next Action (Plan Next Visit Layer) */}
+        <div className="frosted-card rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2 bg-gradient-to-br from-white to-sky-50/40 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] uppercase font-black tracking-wider text-sky-800 block flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                <span>Next Visit</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPlanTargetProcedure(null);
+                  setIsPlanVisitModalOpen(true);
+                }}
+                className="text-[11px] font-bold text-sky-700 hover:text-sky-900 cursor-pointer"
+              >
+                {plannedVisitInfo.isPlanned ? 'Change Plan' : '+ Plan Visit'}
+              </button>
+            </div>
+
+            {plannedVisitInfo.isPlanned ? (
+              <div className="mt-1.5 space-y-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-extrabold text-xs text-slate-900">
+                    📅 {plannedVisitInfo.formattedDate}
+                  </span>
+                  <span className="text-[10px] font-bold text-sky-800 bg-sky-100 px-1.5 py-0.2 rounded">
+                    Clinic {plannedVisitInfo.clinicPlace}
+                  </span>
+                  {plannedVisitInfo.time && (
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      · {plannedVisitInfo.time}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-700 font-bold truncate">
+                  Action: {plannedVisitInfo.actionText}
+                </p>
+                {plannedVisitInfo.isStale && (
+                  <p className="text-[10px] text-amber-700 font-medium">
+                    ⚠ Timetable session updated
+                  </p>
+                )}
+              </div>
+            ) : nextUpcomingStep ? (
+              <div className="mt-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Next Milestone:</span>
+                <p className="font-extrabold text-xs text-slate-900 truncate mt-0.5">
+                  ⚡ {nextUpcomingStep.title}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  No clinic session planned yet
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 mt-1.5">No planned visit or pending clinical steps.</p>
+            )}
           </div>
 
-          {dentalCase.targetNextVisitDate ? (
-            <div>
-              <p className="font-extrabold text-xs text-slate-900">
-                📅 {dentalCase.targetNextVisitDate}
-              </p>
-              <p className="text-xs text-slate-600 mt-0.5 truncate">
-                {dentalCase.targetNextVisitPlan || 'Clinical session planned'}
-              </p>
-            </div>
-          ) : nextUpcomingStep ? (
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase">Immediate Milestone:</span>
-              <p className="font-extrabold text-xs text-slate-900 truncate mt-0.5">
-                ⚡ {nextUpcomingStep.title}
-              </p>
-            </div>
-          ) : (
-            <p className="text-xs text-slate-500">No scheduled visit or pending clinical steps.</p>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setPlanTargetProcedure(nextMilestoneProc || null);
+              setIsPlanVisitModalOpen(true);
+            }}
+            className="w-full mt-2 py-1.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold shadow-2xs transition cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>{plannedVisitInfo.isPlanned ? 'Manage Planned Visit' : 'Plan Next Visit'}</span>
+          </button>
         </div>
       </div>
-
-      {/* Next Visit Edit Form (Expandable) */}
-      {isEditingNextVisit && (
-        <div className="frosted-card rounded-2xl p-4 border border-sky-200 bg-sky-50/50 space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-sky-900 flex items-center gap-1.5">
-              <CalendarDays className="w-4 h-4 text-sky-600" />
-              <span>Plan Next Clinical Session</span>
-            </h4>
-            <button
-              type="button"
-              onClick={() => setIsEditingNextVisit(false)}
-              className="p-1 rounded text-slate-400 hover:text-slate-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Target Date:</label>
-              <input
-                type="date"
-                value={nextVisitDate}
-                onChange={(e) => setNextVisitDate(e.target.value)}
-                className="neu-input w-full p-2 rounded-xl text-xs font-semibold text-slate-800"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Clinical Plan / Agenda:</label>
-              <input
-                type="text"
-                value={nextVisitPlan}
-                onChange={(e) => setNextVisitPlan(e.target.value)}
-                placeholder="e.g. Tooth #14 post cementation & core build-up"
-                className="neu-input w-full p-2 rounded-xl text-xs text-slate-800"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => setIsEditingNextVisit(false)}
-              className="px-3 py-1.5 rounded-xl neu-btn text-xs font-semibold text-slate-600 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveNextVisit}
-              className="px-4 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs cursor-pointer"
-            >
-              Save Schedule
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ========================================================================= */}
       {/* 3. PROCEDURES SECTION - CLEAR CARD PER PROCEDURE (LEVEL 2 TO LEVEL 3) */}
@@ -710,10 +705,30 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                         </span>
 
                         {statusInfo.nextStep ? (
-                          <span className="inline-flex items-center gap-1 font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
-                            <ArrowRight className="w-3 h-3" />
-                            <span>Next: {statusInfo.nextStep.title}</span>
-                          </span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center gap-1 font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
+                              <ArrowRight className="w-3 h-3" />
+                              <span>Next: {statusInfo.nextStep.title}</span>
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPlanTargetProcedure(proc);
+                                setIsPlanVisitModalOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-900 bg-sky-50/90 hover:bg-sky-100 px-2 py-0.5 rounded-md border border-sky-200 transition cursor-pointer"
+                              title="Plan upcoming clinic session for this procedure"
+                            >
+                              <CalendarDays className="w-3 h-3 text-sky-600" />
+                              <span>
+                                {plannedVisitInfo.isPlanned && (plannedVisitInfo.procedureId === proc.id || (!plannedVisitInfo.procedureId && dentalCase.procedures[0]?.id === proc.id))
+                                  ? `Planned: ${plannedVisitInfo.dayName || plannedVisitInfo.formattedDate}`
+                                  : 'Plan Visit'}
+                              </span>
+                            </button>
+                          </div>
                         ) : (
                           <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
                             <Check className="w-3 h-3" />
@@ -959,6 +974,24 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           templates={templates}
         />
       )}
+      {/* ========================================================================= */}
+      {/* MODAL: PLAN NEXT VISIT MODAL */}
+      {/* ========================================================================= */}
+      {isPlanVisitModalOpen && (
+        <PlanNextVisitModal
+          isOpen={isPlanVisitModalOpen}
+          onClose={() => {
+            setIsPlanVisitModalOpen(false);
+            setPlanTargetProcedure(null);
+          }}
+          dentalCase={dentalCase}
+          schedule={schedule}
+          targetProcedure={planTargetProcedure}
+          onSavePlan={onUpdateCase}
+          onNavigateToSchedule={onNavigateToSchedule}
+        />
+      )}
+
       {/* Floating Export Feedback Toast */}
       <ExportToast toast={toast} onDismiss={() => setToast(null)} />
     </div>
