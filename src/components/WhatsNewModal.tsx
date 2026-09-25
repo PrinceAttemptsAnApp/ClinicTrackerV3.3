@@ -1,6 +1,6 @@
 import React from 'react';
-import { Sparkles, Info, Check, ShieldAlert } from 'lucide-react';
-import { PATCH_NOTES, APP_VERSION } from '../lib/patchNotes';
+import { Sparkles, Info, Check, ShieldAlert, CalendarClock } from 'lucide-react';
+import { PATCH_NOTES, APP_VERSION, UPCOMING_FEATURES } from '../lib/patchNotes';
 import { haptic } from '../lib/haptics';
 import { ModalPortal } from './ModalPortal';
 
@@ -12,7 +12,7 @@ interface WhatsNewModalProps {
 export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  // Find the entry for the current canonical version (v4.2.0)
+  // Find the entry for the current canonical version (v4.3.0)
   const currentRelease = PATCH_NOTES.find((entry) => entry.version === APP_VERSION) || PATCH_NOTES[0];
 
   const handleGotIt = () => {
@@ -64,6 +64,34 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose })
               ))}
             </ul>
           </div>
+
+          {/* Upcoming / In Development Feature Section */}
+          {UPCOMING_FEATURES.length > 0 && (
+            <div className="pt-3 border-t border-slate-100 space-y-2.5">
+              <h3 className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
+                <CalendarClock className="w-4 h-4 text-amber-600" />
+                Upcoming / In Development:
+              </h3>
+              {UPCOMING_FEATURES.map((feat, idx) => (
+                <div key={idx} className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/90 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-800 text-xs">
+                      {feat.title}
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-md">
+                      {feat.status}
+                    </span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    {feat.description}
+                  </p>
+                  <p className="text-[10px] font-bold text-amber-800 italic">
+                    {feat.note}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bottom Button Action */}

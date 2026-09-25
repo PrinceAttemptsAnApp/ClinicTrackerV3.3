@@ -31,7 +31,7 @@ import { safeLocalStorage } from '../lib/safeStorage';
 import { PWAInstallButton } from './PWAInstallButton';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SchedulePdfUploader } from './SchedulePdfUploader';
-import { APP_VERSION, PATCH_NOTES } from '../lib/patchNotes';
+import { APP_VERSION, PATCH_NOTES, UPCOMING_FEATURES } from '../lib/patchNotes';
 import { ModalPortal } from './ModalPortal';
 
 interface SettingsViewProps {
@@ -821,6 +821,27 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <li key={i} className="leading-relaxed">{change}</li>
                   ))}
                 </ul>
+              </div>
+            ))}
+
+            {/* Upcoming / In Development Section */}
+            {UPCOMING_FEATURES.map((feat, idx) => (
+              <div key={`upcoming-${idx}`} className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-xs font-black text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-md border border-amber-300">
+                    {feat.status}
+                  </span>
+                  <span className="text-[10px] text-amber-700 font-semibold px-2 py-0.5 rounded-full bg-amber-200/60">
+                    {feat.tag}
+                  </span>
+                </div>
+                <h4 className="font-bold text-slate-800 text-xs mb-1.5">{feat.title}</h4>
+                <p className="text-slate-600 leading-relaxed text-xs mb-2">
+                  {feat.description}
+                </p>
+                <p className="text-[11px] font-semibold text-amber-800 italic">
+                  {feat.note}
+                </p>
               </div>
             ))}
           </div>

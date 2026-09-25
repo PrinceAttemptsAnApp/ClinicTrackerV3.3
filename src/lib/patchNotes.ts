@@ -5,7 +5,26 @@ export interface PatchNoteEntry {
   changes: string[];
 }
 
+export interface UpcomingFeatureEntry {
+  title: string;
+  status: string;
+  tag: string;
+  description: string;
+  note: string;
+}
+
 export const APP_VERSION = '4.3.0';
+
+export const UPCOMING_FEATURES: UpcomingFeatureEntry[] = [
+  {
+    title: '📅 Calendar & Reminder Integration — In Development',
+    status: 'In Development',
+    tag: 'Upcoming',
+    description:
+      "We're working on the ability to add planned clinical visits from DentaTrack directly to your phone's Calendar or Reminder app. This will let you take a planned visit, including the clinical milestone, date, clinic/session time, and relevant details, and save it to your device's existing calendar/reminder system so your phone can handle the reminders and notifications.",
+    note: 'This feature is currently being worked on and is not yet available.'
+  }
+];
 
 export const PATCH_NOTES: PatchNoteEntry[] = [
   {
