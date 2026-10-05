@@ -463,7 +463,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
               <p className="text-slate-600 leading-relaxed text-xs">
-                Bright. Simple. Probably what your mother prefers.
+                Bright and clean. Easy to see in clinic.
               </p>
             </div>
             <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 font-medium">
