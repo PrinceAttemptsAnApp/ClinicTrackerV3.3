@@ -135,6 +135,36 @@ export interface DentalCase {
   plannedStepId?: string;
 }
 
+export interface RubricSectionCriterion {
+  name: string;
+  proper: string;
+  partial?: string;
+  improper: string;
+  maxMarks?: string;
+}
+
+export interface OfficialRubricDefinition {
+  id: string;
+  title: string;
+  discipline: DisciplineType;
+  totalMarks: string;
+  sections: {
+    sectionTitle: string;
+    sectionMarks?: string;
+    criteria: RubricSectionCriterion[];
+  }[];
+  difficultyModifiers?: {
+    level: string;
+    bonus: string;
+    description: string;
+  }[];
+  fatalErrors?: {
+    error: string;
+    deduction: string;
+    remarks?: string;
+  }[];
+}
+
 export interface ProcedureTemplate {
   id: string;
   discipline: DisciplineType;
@@ -142,6 +172,17 @@ export interface ProcedureTemplate {
   defaultSteps: string[];
   defaultPoints: number;
   rubricTitle: string;
+  difficulty?: string;
+  category?: string;
+  evidenceRequirements?: string[];
+  stagePointPercentages?: { stage: string; cumulativePercent: number }[];
+  templateVersion?: string;
+  isOfficialMiuTemplate?: boolean;
+  supportStatus?: 'EXPLICIT' | 'INFERRED' | 'LEGACY';
+  miuSourcePage?: string;
+  pointSystemType?: 'COURSE_CREDIT' | 'FIXED_STAGE_PERCENT' | 'RUBRIC_MAX_MARKS' | 'INFERRED_POINT_SCALE';
+  pointSystemDescription?: string;
+  isComprehensiveCoreDiscipline?: boolean;
 }
 
 export interface ClinicScheduleItem {

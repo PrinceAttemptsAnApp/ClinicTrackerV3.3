@@ -103,13 +103,14 @@ export const DECIDUOUS_TEETH: ToothInfo[] = [
 
 export type NumberingSystem = 'palmer' | 'fdi' | 'universal';
 
-interface ToothDiagramSelectorProps {
+export interface ToothDiagramSelectorProps {
   value: string;
   onChange: (value: string) => void;
   discipline?: DisciplineType;
   label?: string;
   allowSurfaces?: boolean;
   notation?: 'palmer' | 'fdi';
+  defaultExpanded?: boolean;
 }
 
 const COMMON_SURFACES = ['O', 'MO', 'DO', 'MOD', 'B', 'L', 'P', 'Class I', 'Class II', 'Class III', 'Class IV', 'Class V'];
@@ -621,6 +622,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
   label = 'Tooth Selection (Quadrant Diagram)',
   allowSurfaces = true,
   notation,
+  defaultExpanded = false,
 }) => {
   // Pediatric teeth are ONLY shown when Pediatric Dentistry is selected.
   // When Pediatric Dentistry is selected, adult teeth are hidden and only pediatric teeth are shown.
@@ -635,7 +637,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
 
   const [selectedSurface, setSelectedSurface] = useState<string>('');
   const [hoveredTooth, setHoveredTooth] = useState<ToothInfo | null>(null);
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
 
   // Local state for exact selected FDI numbers
   const [selectedFdis, setSelectedFdis] = useState<string[]>(() => {
@@ -884,16 +886,16 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
   };
 
   return (
-    <div className="rounded-2xl bg-white/95 dark:bg-[#1e293b] border border-sky-200/90 dark:border-slate-700/80 shadow-xs p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 w-full">
+    <div className="rounded-2xl bg-white/95 dark:bg-slate-850 border border-sky-200/90 dark:border-slate-700 shadow-xs p-2.5 sm:p-4 space-y-2.5 sm:space-y-3 w-full">
       {/* Header Controls */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700/60 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] flex items-center gap-1.5">
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
             <Layers className="w-4 h-4 text-sky-600 dark:text-sky-400" />
             <span>{label}</span>
           </span>
           {value && (
-            <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 text-[10px] sm:text-[11px] font-bold">
+            <span className="px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 text-[10px] sm:text-[11px] font-bold border border-sky-200/60 dark:border-sky-800/60">
               {value}
             </span>
           )}
@@ -902,26 +904,26 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
         <div className="flex items-center gap-2 text-[11px]">
           {/* Dentition Indicator (Context-Aware: Pediatric vs Adult) */}
           {isPediatric ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 font-bold text-[10px] sm:text-[11px] border border-amber-200 shadow-2xs">
-              <Baby className="w-3.5 h-3.5 text-amber-600" />
-              <span>Pediatric Dentition (20)</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 font-bold text-[10px] sm:text-[11px] border border-amber-200 dark:border-amber-800/60 shadow-2xs">
+              <Baby className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Pediatric (20)</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold text-[10px] sm:text-[11px] border border-slate-200">
-              <span>Adult Dentition (32)</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px] sm:text-[11px] border border-slate-200 dark:border-slate-700">
+              <span>Adult (32)</span>
             </span>
           )}
 
           {/* Notation Indicator Badge */}
-          <span className="px-2 py-1 rounded-lg bg-sky-50 text-sky-700 font-bold text-[10px] sm:text-[11px] border border-sky-200">
-            {effectiveNotation === 'palmer' ? 'Digital Palmer' : 'FDI Notation'}
+          <span className="px-2 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 font-bold text-[10px] sm:text-[11px] border border-sky-200 dark:border-sky-800/60">
+            {effectiveNotation === 'palmer' ? 'Palmer' : 'FDI'}
           </span>
 
           {/* Expand / Collapse Button */}
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+            className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-750 transition cursor-pointer"
             title={isExpanded ? 'Collapse Diagram' : 'Expand Diagram'}
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -932,28 +934,28 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
       {isExpanded && (
         <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-150 w-full">
           {/* Quick Presets & Clear */}
-          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 border-b border-slate-100 pb-2 text-[11px]">
-            <div className="flex flex-wrap items-center gap-1.5 text-slate-600 w-full xs:w-auto">
-              <span className="font-bold text-slate-400 uppercase tracking-wider text-[10px]">Quick Presets:</span>
+          <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700/60 pb-2 text-[11px]">
+            <div className="flex flex-wrap items-center gap-1.5 text-slate-600 dark:text-slate-300 w-full xs:w-auto">
+              <span className="font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider text-[10px]">Quick Presets:</span>
               <div className="grid grid-cols-3 xs:flex xs:flex-wrap gap-1.5 w-full xs:w-auto">
                 <button
                   type="button"
                   onClick={() => handleSelectArch('upper')}
-                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 border border-slate-200/80 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
+                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-sky-950/60 text-slate-700 hover:text-sky-800 dark:text-slate-200 dark:hover:text-sky-300 border border-slate-200/80 dark:border-slate-700 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
                 >
                   Maxillary
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSelectArch('lower')}
-                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 text-slate-700 hover:text-sky-800 border border-slate-200/80 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
+                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 dark:bg-slate-800 dark:hover:bg-sky-950/60 text-slate-700 hover:text-sky-800 dark:text-slate-200 dark:hover:text-sky-300 border border-slate-200/80 dark:border-slate-700 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
                 >
                   Mandibular
                 </button>
                 <button
                   type="button"
                   onClick={handleSelectFullMouth}
-                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800 border border-slate-200/80 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
+                  className="min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-purple-100 dark:bg-slate-800 dark:hover:bg-purple-950/60 text-slate-700 hover:text-purple-800 dark:text-slate-200 dark:hover:text-purple-300 border border-slate-200/80 dark:border-slate-700 transition cursor-pointer font-bold text-xs flex items-center justify-center active:scale-95 touch-manipulation"
                 >
                   Full Mouth
                 </button>
@@ -964,7 +966,7 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="min-h-[38px] px-2.5 py-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl border border-rose-200/70 flex items-center justify-center gap-1 font-bold text-xs cursor-pointer active:scale-95 touch-manipulation self-end xs:self-auto"
+                className="min-h-[38px] px-2.5 py-1.5 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl border border-rose-200/70 dark:border-rose-900/60 flex items-center justify-center gap-1 font-bold text-xs cursor-pointer active:scale-95 touch-manipulation self-end xs:self-auto"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Clear All</span>
@@ -973,17 +975,17 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
           </div>
 
           {/* Orientation & Legend Notice */}
-          <div className="flex flex-wrap items-center justify-between text-[9px] sm:text-[10px] font-bold text-slate-400 px-0.5 uppercase tracking-wider">
+          <div className="flex flex-wrap items-center justify-between text-[9px] sm:text-[10px] font-bold text-slate-400 dark:text-slate-400 px-0.5 uppercase tracking-wider">
             <span>← Patient&apos;s Right (UR / LR)</span>
-            <div className="flex items-center gap-2 sm:gap-3 normal-case font-medium text-slate-500">
+            <div className="flex items-center gap-2 sm:gap-3 normal-case font-medium text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-0.5">
-                <span className="font-bold text-slate-700">B</span> = Buccal
+                <span className="font-bold text-slate-700 dark:text-slate-200">B</span> = Buccal
               </span>
               <span className="flex items-center gap-0.5">
-                <span className="font-bold text-slate-700">O</span> = Occlusal
+                <span className="font-bold text-slate-700 dark:text-slate-200">O</span> = Occlusal
               </span>
-              <span className="text-sky-700 font-bold hidden xs:inline">
-                {effectiveNotation === 'palmer' ? 'Digital Palmer (UR / UL / LL / LR)' : 'FDI 2-Digit System'}
+              <span className="text-sky-700 dark:text-sky-400 font-bold hidden xs:inline">
+                {effectiveNotation === 'palmer' ? 'Palmer System' : 'FDI 2-Digit'}
               </span>
             </div>
             <span>Patient&apos;s Left (UL / LL) →</span>
@@ -994,23 +996,23 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
             Responsive fit on all screens (mobile to desktop) with ZERO horizontal scrolling needed!
             On mobile (<640px), 8-tooth permanent quadrants wrap into 2 rows of 4 teeth with 44px+ touch targets.
           */}
-          <div className="rounded-xl sm:rounded-2xl bg-[#f8fbfe] border border-sky-200 p-1 sm:p-2.5 w-full overflow-hidden">
+          <div className="rounded-xl sm:rounded-2xl bg-[#f8fbfe] dark:bg-slate-900/90 border border-sky-200 dark:border-slate-700/80 p-1 sm:p-2.5 w-full overflow-hidden">
             <div className="w-full mx-auto select-none space-y-0">
               
               {/* UPPER ARCH (MAXILLARY) */}
-              <div className="grid grid-cols-2 border-b-2 border-sky-400 pb-1.5 sm:pb-2">
+              <div className="grid grid-cols-2 border-b-2 border-sky-400 dark:border-slate-700 pb-1.5 sm:pb-2">
                 {/* Quadrant 1 / 5: Upper Right */}
-                <div className="border-r-2 border-sky-400 pr-1 sm:pr-2 flex flex-col justify-between">
+                <div className="border-r-2 border-sky-400 dark:border-slate-700 pr-1 sm:pr-2 flex flex-col justify-between">
                   <div className="w-full flex items-center justify-between pb-1 px-0.5">
                     <button
                       type="button"
                       onClick={() => handleSelectQuadrant(qUpperRight)}
-                      className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 hover:text-sky-600 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
+                      className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
                     >
                       <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q5: UR' : 'Q5 (51-55)') : (effectiveNotation === 'palmer' ? 'Q1: UR' : 'Q1 (11-18)')}</span>
                       {effectiveNotation === 'palmer' && <span className="text-sky-500 font-normal">┘</span>}
                     </button>
-                    <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">Midline →</span>
+                    <span className="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium hidden xs:inline">Midline →</span>
                   </div>
 
                   {/* Mobile 2-row layout vs Desktop 1-row layout */}
@@ -1040,11 +1042,11 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                 {/* Quadrant 2 / 6: Upper Left */}
                 <div className="pl-1 sm:pl-2 flex flex-col justify-between">
                   <div className="w-full flex items-center justify-between pb-1 px-0.5">
-                    <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">← Midline</span>
+                    <span className="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium hidden xs:inline">← Midline</span>
                     <button
                       type="button"
                       onClick={() => handleSelectQuadrant(qUpperLeft)}
-                      className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 hover:text-sky-600 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
+                      className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
                     >
                       {effectiveNotation === 'palmer' && <span className="text-sky-500 font-normal">└</span>}
                       <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q6: UL' : 'Q6 (61-65)') : (effectiveNotation === 'palmer' ? 'Q2: UL' : 'Q2 (21-28)')}</span>
@@ -1079,17 +1081,17 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
               {/* OCCLUSAL PLANE / MIDLINE DIVIDER */}
               <div className="relative flex items-center justify-center my-2 py-0.5">
                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t-2 border-dashed border-sky-300/80" />
+                  <div className="w-full border-t-2 border-dashed border-sky-300/80 dark:border-slate-700" />
                 </div>
-                <div className="relative z-10 flex items-center gap-1.5 bg-sky-600 text-white text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs border border-sky-700">
+                <div className="relative z-10 flex items-center gap-1.5 bg-sky-600 dark:bg-slate-800 text-white dark:text-slate-200 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full shadow-xs border border-sky-700 dark:border-slate-600">
                   <span>Occlusal Plane (Midline)</span>
                 </div>
               </div>
 
               {/* LOWER ARCH (MANDIBULAR) */}
-              <div className="grid grid-cols-2 border-t-2 border-sky-400 pt-1.5 sm:pt-2">
+              <div className="grid grid-cols-2 border-t-2 border-sky-400 dark:border-slate-700 pt-1.5 sm:pt-2">
                 {/* Quadrant 4 / 8: Lower Right */}
-                <div className="border-r-2 border-sky-400 pr-1 sm:pr-2 flex flex-col justify-between">
+                <div className="border-r-2 border-sky-400 dark:border-slate-700 pr-1 sm:pr-2 flex flex-col justify-between">
                   {/* Mobile 2-row layout vs Desktop 1-row layout */}
                   {isPediatric ? (
                     <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full">
@@ -1117,12 +1119,12 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSelectQuadrant(qLowerRight)}
-                      className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 hover:text-sky-600 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
+                      className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
                     >
                       <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q8: LR' : 'Q8 (81-85)') : (effectiveNotation === 'palmer' ? 'Q4: LR' : 'Q4 (41-48)')}</span>
                       {effectiveNotation === 'palmer' && <span className="text-sky-500 font-normal">┐</span>}
                     </button>
-                    <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">Midline →</span>
+                    <span className="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium hidden xs:inline">Midline →</span>
                   </div>
                 </div>
 
@@ -1152,11 +1154,11 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                   )}
 
                   <div className="w-full flex items-center justify-between pt-1 px-0.5">
-                    <span className="text-[8px] sm:text-[9px] text-slate-400 font-medium hidden xs:inline">← Midline</span>
+                    <span className="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500 font-medium hidden xs:inline">← Midline</span>
                     <button
                       type="button"
                       onClick={() => handleSelectQuadrant(qLowerLeft)}
-                      className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 hover:text-sky-600 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
+                      className="text-[9px] sm:text-[10px] font-extrabold text-sky-800 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 uppercase tracking-wider hover:underline cursor-pointer flex items-center gap-0.5"
                     >
                       {effectiveNotation === 'palmer' && <span className="text-sky-500 font-normal">┌</span>}
                       <span>{isPediatric ? (effectiveNotation === 'palmer' ? 'Q7: LL' : 'Q7 (71-75)') : (effectiveNotation === 'palmer' ? 'Q3: LL' : 'Q3 (31-38)')}</span>
@@ -1168,20 +1170,20 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
           </div>
 
           {/* Hovered / Selected Tooth Anatomical Detail Bar */}
-          <div className="min-h-5 flex flex-wrap items-center justify-between text-[10px] sm:text-[11px] px-1 text-slate-600">
+          <div className="min-h-5 flex flex-wrap items-center justify-between text-[10px] sm:text-[11px] px-1 text-slate-600 dark:text-slate-300">
             {hoveredTooth ? (
-              <span className="font-semibold text-sky-800 flex items-center gap-1.5 animate-in fade-in duration-100">
+              <span className="font-semibold text-sky-800 dark:text-sky-300 flex items-center gap-1.5 animate-in fade-in duration-100">
                 <Sparkles className="w-3.5 h-3.5 text-sky-500" />
                 <span>
                   <strong>{hoveredTooth.name}</strong> • {effectiveNotation === 'palmer' ? `Palmer: ${hoveredTooth.palmerSymbol}` : `FDI: ${hoveredTooth.fdi}`}
                 </span>
               </span>
             ) : selectedFdis.length > 0 ? (
-              <span className="text-slate-600 font-medium">
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
                 {selectedFdis.length} {selectedFdis.length === 1 ? 'tooth' : 'teeth'} selected: {value}
               </span>
             ) : (
-              <span className="text-slate-400 italic">
+              <span className="text-slate-400 dark:text-slate-500 italic">
                 Tap any tooth in the diagram to select or deselect.
               </span>
             )}
@@ -1189,16 +1191,16 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
 
           {/* Cavity / Restoration Surface Chips */}
           {allowSurfaces && (
-            <div className="pt-2.5 border-t border-slate-100 space-y-2">
+            <div className="pt-2.5 border-t border-slate-100 dark:border-slate-700/60 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
                   Cavity / Surface Classification (Optional):
                 </span>
                 {selectedSurface && (
                   <button
                     type="button"
                     onClick={() => handleSelectSurface('')}
-                    className="text-xs text-rose-600 hover:text-rose-700 font-bold hover:underline cursor-pointer"
+                    className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 font-bold hover:underline cursor-pointer"
                   >
                     Clear Surface
                   </button>
@@ -1214,8 +1216,8 @@ export const ToothDiagramSelector: React.FC<ToothDiagramSelectorProps> = ({
                       onClick={() => handleSelectSurface(surf)}
                       className={`min-h-[38px] px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center justify-center active:scale-95 touch-manipulation ${
                         isSurfSelected
-                          ? 'bg-purple-600 text-white shadow-xs ring-2 ring-purple-300'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                          ? 'bg-purple-600 dark:bg-purple-600 text-white shadow-xs ring-2 ring-purple-300 dark:ring-purple-500/50'
+                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'
                       }`}
                     >
                       {surf}

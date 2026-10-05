@@ -26,8 +26,9 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { StudentProfile, ProcedureTemplate, DentalCase, ClinicSession, Semester } from '../types';
-import { exportAllDataBackup, importDataBackup, resetToDefaultDemoData, clearAllData } from '../lib/storage';
+import { exportAllDataBackup, importDataBackup, resetToDefaultDemoData, clearAllData, parseAndValidateBackupSummary, BackupSummary } from '../lib/storage';
 import { safeLocalStorage } from '../lib/safeStorage';
+import { getStorageHealth, requestPersistentStorage, StorageHealthReport } from '../lib/storagePersistence';
 import { PWAInstallButton } from './PWAInstallButton';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SchedulePdfUploader } from './SchedulePdfUploader';
@@ -79,6 +80,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     return localStorage.getItem('dentatrack_install_dismissed') === 'true';
   });
   const [shareLinkCopied, setShareLinkCopied] = useState(false);
+
+  // Storage Health Diagnostics State
+  const [storageHealth, setStorageHealth] = useState<StorageHealthReport | null>(null);
+
+  React.useEffect(() => {
+    getStorageHealth().then(setStorageHealth).catch(() => {});
+  }, []);
+
+  const handleRequestPersistence = async () => {
+    haptic.light();
+    await requestPersistentStorage();
+    const updated = await getStorageHealth();
+    setStorageHealth(updated);
+  };
+
+  // Backup inspection & restoration preview state
+  const [pendingBackupSummary, setPendingBackupSummary] = useState<BackupSummary | null>(null);
+  const [pendingBackupJson, setPendingBackupJson] = useState<string | null>(null);
+  const [isRestoringBackup, setIsRestoringBackup] = useState(false);
+  const [lastBackupDate, setLastBackupDate] = useState<string | null>(() => {
+    return safeLocalStorage.getItem('dentatrack_last_backup_date');
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -190,6 +213,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleBackupDownload = async () => {
     await exportAllDataBackup();
+    setLastBackupDate(safeLocalStorage.getItem('dentatrack_last_backup_date') || new Date().toISOString());
   };
 
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,15 +224,40 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     reader.onload = async (event) => {
       try {
         const jsonContent = event.target?.result as string;
-        await importDataBackup(jsonContent);
-        await onRefreshData();
-        setImportNotice('Successfully restored complete clinical database and files!');
-        setTimeout(() => setImportNotice(null), 5000);
+        const summary = parseAndValidateBackupSummary(jsonContent);
+        if (!summary.isValid) {
+          alert('Backup File Rejected:\n' + summary.error);
+          return;
+        }
+        setPendingBackupSummary(summary);
+        setPendingBackupJson(jsonContent);
       } catch (err) {
-        alert('Invalid backup file. Please provide a valid DentaTrack JSON backup.');
+        alert('Invalid backup file. Please select a valid DentaTrack JSON backup.');
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleConfirmRestoreBackup = async () => {
+    if (!pendingBackupJson) return;
+    setIsRestoringBackup(true);
+    try {
+      await importDataBackup(pendingBackupJson);
+      await onRefreshData();
+      setLastBackupDate(safeLocalStorage.getItem('dentatrack_last_backup_date') || new Date().toISOString());
+      setImportNotice('Successfully restored complete clinical database and files!');
+      setTimeout(() => setImportNotice(null), 5000);
+      setPendingBackupSummary(null);
+      setPendingBackupJson(null);
+    } catch (err) {
+      alert('Error restoring backup file: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setIsRestoringBackup(false);
+    }
   };
 
   const handleResetDemo = async () => {
@@ -730,6 +779,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         </div>
 
+        {/* Storage Persistence & Health Bar */}
+        {storageHealth && (
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 my-3 text-xs space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className={`w-4 h-4 ${storageHealth.isPersisted ? 'text-emerald-500' : 'text-amber-500'}`} />
+                <span className="font-bold text-slate-800 dark:text-[#f8fafc]">
+                  Storage Protection: {storageHealth.isPersisted ? 'Persistent (Protected from OS Auto-Clear)' : 'Standard Web Quota'}
+                </span>
+              </div>
+              {!storageHealth.isPersisted && (
+                <button
+                  type="button"
+                  onClick={handleRequestPersistence}
+                  className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] transition shadow-xs cursor-pointer"
+                >
+                  Enable OS Protection
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-[#cbd5e1]">
+              <span>IndexedDB Usage: <strong className="font-mono text-slate-800 dark:text-white">{storageHealth.usageFormatted}</strong> stored</span>
+              <span>Quota: <strong className="font-mono text-slate-800 dark:text-white">{storageHealth.quotaFormatted}</strong> available</span>
+            </div>
+          </div>
+        )}
+
         <p className="text-xs text-slate-600 leading-relaxed mb-4">
           DentaTrack uses local browser IndexedDB storage and a Workbox Service Worker. All patient data, rubric signature photographs, and clinical progress are stored 100% locally on your machine or mobile device and remain accessible when offline in clinics.
         </p>
@@ -1155,6 +1231,131 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 >
                   <Award className="w-3.5 h-3.5" />
                   <span>{isResettingDemo ? 'Resetting...' : 'Reset Demo Cases'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* Pre-Restore Backup Summary & Confirmation Modal */}
+      {pendingBackupSummary && (
+        <ModalPortal isOpen={Boolean(pendingBackupSummary)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+            <div className="frosted-card w-full max-w-lg rounded-2xl p-6 relative shadow-2xl border border-sky-300 dark:border-sky-700 max-h-[90vh] overflow-y-auto">
+              <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 flex items-center justify-center border border-sky-200 dark:border-sky-800 mb-4 mx-auto">
+                <FileJson className="w-6 h-6 text-sky-600 dark:text-sky-400" />
+              </div>
+
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-[#f8fafc]">
+                  Backup File Verified & Ready
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-[#cbd5e1] mt-1">
+                  Inspect the contents of this backup before restoring to your local device.
+                </p>
+              </div>
+
+              {/* Metadata Header */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 mb-4 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-[#94a3b8]">Student Profile:</span>
+                  <strong className="font-semibold text-slate-800 dark:text-white">
+                    {pendingBackupSummary.studentName || 'Unspecified Student'}
+                  </strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-[#94a3b8]">Export Timestamp:</span>
+                  <strong className="font-mono text-slate-700 dark:text-slate-300">
+                    {pendingBackupSummary.exportDate ? new Date(pendingBackupSummary.exportDate).toLocaleString() : 'Legacy Backup'}
+                  </strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 dark:text-[#94a3b8]">Application Version:</span>
+                  <strong className="font-mono text-sky-700 dark:text-sky-400">
+                    {pendingBackupSummary.appVersion || 'v4.4.0'} (Format v{pendingBackupSummary.backupFormatVersion})
+                  </strong>
+                </div>
+              </div>
+
+              {/* Inventory Breakdown Grid */}
+              <div className="grid grid-cols-2 gap-2.5 mb-4 text-xs">
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Patient Cases</span>
+                  <span className="font-extrabold text-sm text-slate-800 dark:text-white mt-1">
+                    {pendingBackupSummary.casesCount} cases
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Procedures</span>
+                  <span className="font-extrabold text-sm text-slate-800 dark:text-white mt-1">
+                    {pendingBackupSummary.proceduresCount} procedures
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Evaluation Rubrics</span>
+                  <span className="font-extrabold text-sm text-slate-800 dark:text-white mt-1">
+                    {pendingBackupSummary.rubricsCount} rubrics
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Photos & X-Rays</span>
+                  <span className="font-extrabold text-sm text-slate-800 dark:text-white mt-1">
+                    {pendingBackupSummary.attachmentsCount} files
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Schedules</span>
+                  <span className="font-extrabold text-sm text-slate-800 dark:text-white mt-1">
+                    {pendingBackupSummary.schedulesCount} sessions
+                  </span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">Planned Visits</span>
+                  <span className="font-extrabold text-sm text-slate-800 dark:text-white mt-1">
+                    {pendingBackupSummary.plannedVisitsCount} visits
+                  </span>
+                </div>
+              </div>
+
+              {/* Safety Confirmation Notice */}
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 mb-5 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                  <span>Restore Safety Notice</span>
+                </p>
+                <p className="leading-relaxed text-[11px] text-amber-800 dark:text-amber-300">
+                  Restoring this backup will safely synchronize your IndexedDB storage on this device with the records in this file. Current data will be safely replaced with this snapshot.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingBackupSummary(null);
+                    setPendingBackupJson(null);
+                  }}
+                  disabled={isRestoringBackup}
+                  className="neu-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmRestoreBackup}
+                  disabled={isRestoringBackup}
+                  className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{isRestoringBackup ? 'Restoring Backup...' : 'Confirm & Restore Backup'}</span>
                 </button>
               </div>
             </div>

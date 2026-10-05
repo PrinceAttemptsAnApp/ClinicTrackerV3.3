@@ -7,29 +7,28 @@ import {
   FileDown, 
   Archive, 
   CheckCircle2, 
-  Circle, 
-  Camera, 
   Clock, 
   FileCheck2, 
-  Send, 
-  Trash2,
-  AlertTriangle,
-  Eye,
-  X,
-  Phone,
-  PhoneCall,
-  Copy,
-  Check,
-  Edit3,
-  ChevronRight,
-  Stethoscope,
-  ArrowRight,
-  Layers,
-  Calendar,
-  AlertCircle,
-  Loader2
+  Trash2, 
+  AlertTriangle, 
+  X, 
+  Phone, 
+  PhoneCall, 
+  Copy, 
+  Check, 
+  Edit3, 
+  ChevronRight, 
+  Stethoscope, 
+  ArrowRight, 
+  Calendar, 
+  AlertCircle, 
+  Loader2, 
+  MoreVertical,
+  Award,
+  Activity,
+  FileText
 } from 'lucide-react';
-import { DentalCase, ClinicalProcedure, ProcedureTemplate, RubricDocument, EvidenceFile, MoodleStatus, ClinicSession } from '../types';
+import { DentalCase, ClinicalProcedure, ProcedureTemplate, ClinicSession } from '../types';
 import { ProcedureDetailView } from './ProcedureDetailView';
 import { AddProcedureModal } from './AddProcedureModal';
 import { PlanNextVisitModal } from './PlanNextVisitModal';
@@ -43,6 +42,12 @@ import {
   getCaseInvolvedTeeth, 
   cleanProcedureTitle 
 } from '../lib/macroSteps';
+import { 
+  getPatientInitials, 
+  getPatientAvatarTheme, 
+  getDisciplineIcon, 
+  getDisciplineTheme 
+} from '../lib/clinicalVisuals';
 import { resolvePlannedVisit } from '../lib/visitPlanner';
 import { haptic } from '../lib/haptics';
 
@@ -75,6 +80,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   // Modals state
   const [isAddProcOpen, setIsAddProcOpen] = useState(false);
   const [isDeleteCaseModalOpen, setIsDeleteCaseModalOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
@@ -83,7 +89,41 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   const [isPlanVisitModalOpen, setIsPlanVisitModalOpen] = useState(false);
   const [planTargetProcedure, setPlanTargetProcedure] = useState<ClinicalProcedure | null>(null);
 
+  // Procedure Delete State
+  const [procedurePendingDelete, setProcedurePendingDelete] = useState<{
+    id: string;
+    title: string;
+    discipline: string;
+    toothNumber?: string;
+  } | null>(null);
+
+  // Phone & Notes Editor State
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState(dentalCase.patientPhone || '');
+  const [copiedPhone, setCopiedPhone] = useState(false);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notesInput, setNotesInput] = useState(dentalCase.notes || '');
+
+  useEffect(() => {
+    setPhoneInput(dentalCase.patientPhone || '');
+  }, [dentalCase.patientPhone]);
+
+  useEffect(() => {
+    setNotesInput(dentalCase.notes || '');
+  }, [dentalCase.notes]);
+
+  // Close overflow menu on outside click
+  useEffect(() => {
+    const handleOutsideClick = () => setIsMenuOpen(false);
+    if (isMenuOpen) {
+      window.addEventListener('click', handleOutsideClick);
+    }
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [isMenuOpen]);
+
+  // Export handlers
   const handleExportPdf = async () => {
+    setIsMenuOpen(false);
     if (isExportingPdf || isExportingZip) return;
     setIsExportingPdf(true);
     haptic.selection();
@@ -91,7 +131,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
       const result = await generateCaseMoodlePDF(dentalCase);
       if (result.success) {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-        const message = (isMobile && result.method !== 'download') ? 'PDF ready' : 'PDF downloaded successfully';
+        const message = (isMobile && result.method !== 'download') ? 'PDF ready' : 'PDF exported successfully';
         setToast({ id: Date.now().toString(), type: 'success', message });
       }
     } catch (err) {
@@ -103,6 +143,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   };
 
   const handleExportZip = async () => {
+    setIsMenuOpen(false);
     if (isExportingPdf || isExportingZip) return;
     setIsExportingZip(true);
     haptic.selection();
@@ -116,63 +157,38 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
       setIsExportingZip(false);
     }
   };
-  const [procedurePendingDelete, setProcedurePendingDelete] = useState<{
-    id: string;
-    title: string;
-    discipline: string;
-    toothNumber?: string;
-  } | null>(null);
 
-  // Next Visit Editor
-  const [isEditingNextVisit, setIsEditingNextVisit] = useState(false);
-  const [nextVisitDate, setNextVisitDate] = useState(dentalCase.targetNextVisitDate || '');
-  const [nextVisitPlan, setNextVisitPlan] = useState(dentalCase.targetNextVisitPlan || '');
+  // Add Procedure Callback
+  const handleProcedureAdded = (newProc: ClinicalProcedure) => {
+    const updated = [...dentalCase.procedures, newProc];
+    const disciplines = Array.from(new Set(updated.map((p) => p.discipline)));
+    onUpdateCase({
+      ...dentalCase,
+      procedures: updated,
+      disciplines,
+      isComprehensive: computeIsComprehensive(updated),
+    });
+    setSelectedProcedureId(newProc.id);
+  };
 
-  // Patient Phone State & Editor
-  const [isEditingPhone, setIsEditingPhone] = useState(false);
-  const [phoneInput, setPhoneInput] = useState(dentalCase.patientPhone || '');
-  const [copiedPhone, setCopiedPhone] = useState(false);
-
-  // Case Notes Editor
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [notesInput, setNotesInput] = useState(dentalCase.notes || '');
-
-  useEffect(() => {
-    setPhoneInput(dentalCase.patientPhone || '');
-  }, [dentalCase.patientPhone]);
-
-  useEffect(() => {
-    setNotesInput(dentalCase.notes || '');
-  }, [dentalCase.notes]);
-
-  useEffect(() => {
-    setNextVisitDate(dentalCase.targetNextVisitDate || '');
-    setNextVisitPlan(dentalCase.targetNextVisitPlan || '');
-  }, [dentalCase.targetNextVisitDate, dentalCase.targetNextVisitPlan]);
-
-  // Selected procedure object (Level 3)
-  const selectedProcedure = dentalCase.procedures.find((p) => p.id === selectedProcedureId);
-
-  // If a procedure is selected, render the dedicated Level 3 Procedure Details View!
-  if (selectedProcedureId && selectedProcedure) {
-    return (
-      <ProcedureDetailView
-        procedure={selectedProcedure}
-        dentalCase={dentalCase}
-        onBack={() => setSelectedProcedureId(null)}
-        onUpdateCase={onUpdateCase}
-        onDeleteProcedure={(procId, snapshot) => {
-          handleDeleteProcedure(procId, snapshot);
-          setSelectedProcedureId(null);
-        }}
-        templates={templates}
-        schedule={schedule}
-        onNavigateToSchedule={onNavigateToSchedule}
-      />
-    );
-  }
-
-  // --- Handlers for Case Details (Level 2) ---
+  // Delete Procedure Execution
+  const handleDeleteProcedure = (procId: string, snapshot?: ClinicalProcedure) => {
+    const procedureToDelete = snapshot || dentalCase.procedures.find((p) => p.id === procId);
+    
+    if (onDeleteProcedure) {
+      onDeleteProcedure(procId, procedureToDelete);
+    } else {
+      const updated = dentalCase.procedures.filter((p) => p.id !== procId);
+      const disciplines = Array.from(new Set(updated.map((p) => p.discipline)));
+      onUpdateCase({
+        ...dentalCase,
+        procedures: updated,
+        disciplines,
+        isComprehensive: computeIsComprehensive(updated),
+      });
+    }
+    setProcedurePendingDelete(null);
+  };
 
   const handleSavePhone = () => {
     const trimmed = phoneInput.trim();
@@ -196,468 +212,414 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
   const handleSaveNotes = () => {
     onUpdateCase({
       ...dentalCase,
-      notes: notesInput.trim() || undefined,
+      notes: notesInput.trim(),
       updatedAt: new Date().toISOString(),
     });
     setIsEditingNotes(false);
   };
 
-  const handleSaveNextVisit = () => {
-    onUpdateCase({
-      ...dentalCase,
-      targetNextVisitDate: nextVisitDate || undefined,
-      targetNextVisitPlan: nextVisitPlan.trim() || undefined,
-      updatedAt: new Date().toISOString(),
-    });
-    setIsEditingNextVisit(false);
-  };
+  // Selected procedure object (Level 3)
+  const selectedProcedure = dentalCase.procedures.find((p) => p.id === selectedProcedureId);
 
-  // Add Procedure Callback
-  const handleProcedureAdded = (newProc: ClinicalProcedure) => {
-    const updated = [...dentalCase.procedures, newProc];
-    const disciplines = Array.from(new Set(updated.map((p) => p.discipline)));
-    onUpdateCase({
-      ...dentalCase,
-      procedures: updated,
-      disciplines,
-      isComprehensive: computeIsComprehensive(updated),
-    });
-    // Immediately open the newly created procedure details for seamless workflow
-    setSelectedProcedureId(newProc.id);
-  };
+  // If a procedure is selected, render the dedicated Level 3 Procedure Details View!
+  if (selectedProcedureId && selectedProcedure) {
+    return (
+      <ProcedureDetailView
+        procedure={selectedProcedure}
+        dentalCase={dentalCase}
+        onBack={() => {
+          setSelectedProcedureId(null);
+        }}
+        onUpdateCase={onUpdateCase}
+        onDeleteProcedure={handleDeleteProcedure}
+        templates={templates}
+        schedule={schedule}
+        onNavigateToSchedule={onNavigateToSchedule}
+      />
+    );
+  }
 
-  // Delete Procedure Execution
-  const handleDeleteProcedure = (procId: string, snapshot?: ClinicalProcedure) => {
-    const procedureToDelete = snapshot || dentalCase.procedures.find((p) => p.id === procId);
-    
-    if (onDeleteProcedure) {
-      onDeleteProcedure(procId, procedureToDelete);
-    } else {
-      const updated = dentalCase.procedures.filter((p) => p.id !== procId);
-      const disciplines = Array.from(new Set(updated.map((p) => p.discipline)));
-      onUpdateCase({
-        ...dentalCase,
-        procedures: updated,
-        disciplines,
-        isComprehensive: computeIsComprehensive(updated),
-      });
-    }
-    setProcedurePendingDelete(null);
-  };
-
-  // Calculations for Case Overview
-  const involvedTeeth = getCaseInvolvedTeeth(dentalCase.procedures);
-  const allSteps = dentalCase.procedures.flatMap((p) => p.steps);
-  const completedSteps = allSteps.filter((s) => s.isCompleted);
-  const totalMilestones = allSteps.length;
+  // Calculate Metrics
+  const allMilestones = dentalCase.procedures.flatMap((p) => p.steps);
+  const totalMilestones = allMilestones.length;
+  const completedSteps = allMilestones.filter((s) => s.isCompleted);
   const progressPercent = totalMilestones > 0 ? Math.round((completedSteps.length / totalMilestones) * 100) : 0;
-
+  
   const allRubrics = dentalCase.procedures.flatMap((p) => p.rubrics);
   const signedRubrics = allRubrics.filter((r) => r.status === 'Signed');
+  const totalPoints = dentalCase.procedures.reduce((acc, p) => acc + (p.points || 10), 0);
 
-  const allEvidence = dentalCase.procedures.flatMap((p) => p.evidenceFiles);
-  const submittedProcedures = dentalCase.procedures.filter((p) => p.moodleStatus === 'Submitted');
-
-  // Find next upcoming milestone across all procedures
+  // Next Milestone Across Case
   const nextMilestoneProc = dentalCase.procedures.find((p) => {
     const status = getProcedureMacroStepStatus(p);
     return status.nextStep !== null;
   });
   const nextUpcomingStep = nextMilestoneProc ? getProcedureMacroStepStatus(nextMilestoneProc).nextStep : null;
 
-  // Resolve planned visit information with schedule
+  // Planned Visit Info
   const plannedVisitInfo = resolvePlannedVisit(dentalCase, schedule);
 
+  // Patient Avatar theme
+  const initials = getPatientInitials(dentalCase.patientName);
+  const avatarTheme = getPatientAvatarTheme(dentalCase.patientName);
+
+  // Standard Status Tag & Indicator Styling
+  let statusText = 'In Progress';
+  let statusStyle = 'text-sky-700 dark:text-sky-300 bg-sky-50/80 dark:bg-sky-950/70 border-sky-200 dark:border-sky-900';
+  let statusDotColor = 'bg-sky-500';
+  let progressBarColor = 'bg-sky-500';
+
+  if (dentalCase.status === 'Completed' || (dentalCase.procedures.length > 0 && dentalCase.procedures.every((p) => p.moodleStatus === 'Submitted'))) {
+    statusText = 'Completed';
+    statusStyle = 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/70 border-emerald-200 dark:border-emerald-900';
+    statusDotColor = 'bg-emerald-500';
+    progressBarColor = 'bg-emerald-500';
+  } else if (
+    dentalCase.status === 'Finished (Awaiting Signatures)' ||
+    dentalCase.procedures.some((p) => p.rubrics.some((r) => r.status === 'Pending'))
+  ) {
+    statusText = 'Missing Signatures';
+    statusStyle = 'text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/70 border-amber-200 dark:border-amber-900';
+    statusDotColor = 'bg-amber-500';
+    progressBarColor = 'bg-amber-500';
+  } else if (dentalCase.status === 'Ready for Moodle') {
+    statusText = 'Ready for Moodle';
+    statusStyle = 'text-purple-700 dark:text-purple-300 bg-purple-50/80 dark:bg-purple-950/70 border-purple-200 dark:border-purple-900';
+    statusDotColor = 'bg-purple-500';
+    progressBarColor = 'bg-purple-500';
+  }
+
   return (
-    <div className="space-y-5 animate-in fade-in duration-150">
+    <div className="space-y-4 animate-in fade-in duration-150">
       {/* ========================================================================= */}
-      {/* 1. CASE HEADER: WHO IS THE PATIENT & WHAT IS THIS CASE */}
+      {/* 1. CASE HEADER: PATIENT IDENTITY & TOP LEVEL ACTIONS */}
       {/* ========================================================================= */}
-      <div className="frosted-card rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
             <button
+              type="button"
               onClick={onBack}
-              className="neu-btn p-2 rounded-xl text-slate-700 hover:text-sky-600 transition cursor-pointer mt-0.5 sm:mt-0 flex-shrink-0"
-              title="Back to Cases list"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
+              title="Back to Cases"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
 
-            <div>
-              {/* Patient Name, File Number & Clinic Place */}
+            {/* Patient Initials Avatar Circle */}
+            <div
+              className={`w-11 h-11 rounded-2xl ${avatarTheme.bg} ${avatarTheme.text} border ${avatarTheme.border} font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-2xs tracking-tight select-none mt-0.5`}
+            >
+              {initials}
+            </div>
+
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate">
                   {dentalCase.patientName}
                 </h2>
-                <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg badge-neutral shadow-2xs">
-                  File #{dentalCase.fileNumber}
-                </span>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-sky-100 text-sky-800 border border-sky-200">
-                  Clinic {dentalCase.clinicPlace}
-                </span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                  {dentalCase.semester} • {dentalCase.academicYear}
-                </span>
+              </div>
+
+              {/* Clean Unboxed Metadata with · separators */}
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                <span className="font-mono">#{dentalCase.fileNumber}</span>
+                <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">Clinic {dentalCase.clinicPlace}</span>
+                <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                <span>{dentalCase.semester}</span>
+                {dentalCase.isComprehensive && (
+                  <>
+                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                    <span className="text-purple-600 dark:text-purple-400 font-bold inline-flex items-center gap-0.5">
+                      <Award className="w-3 h-3" />
+                      <span>Comprehensive Case ⭐</span>
+                    </span>
+                  </>
+                )}
                 {dentalCase.isDemo && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-black px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-800 border border-amber-500/30">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    Demo Case
-                  </span>
+                  <>
+                    <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                    <span className="text-amber-600 font-bold">Demo</span>
+                  </>
                 )}
               </div>
 
-              {/* Patient Phone & Dialer */}
-              <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+              {/* Phone Row */}
+              <div className="mt-2 flex items-center gap-2 text-xs">
                 {isEditingPhone ? (
-                  <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-sky-50 border border-sky-200 shadow-2xs">
-                    <div className="relative">
-                      <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
-                      <input
-                        type="tel"
-                        autoFocus
-                        value={phoneInput}
-                        onChange={(e) => setPhoneInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSavePhone();
-                          if (e.key === 'Escape') setIsEditingPhone(false);
-                        }}
-                        placeholder="e.g. 01019283746"
-                        className="neu-input pl-8 pr-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-800 w-48 sm:w-56"
-                      />
-                    </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <input
+                      type="tel"
+                      autoFocus
+                      value={phoneInput}
+                      onChange={(e) => setPhoneInput(e.target.value)}
+                      placeholder="e.g. 01012345678"
+                      className="px-3 py-1.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white w-40 outline-none"
+                    />
                     <button
                       type="button"
                       onClick={handleSavePhone}
-                      className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl bg-sky-600 text-white font-bold text-xs cursor-pointer"
                     >
                       Save
                     </button>
-                    {dentalCase.patientPhone && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onUpdateCase({
-                            ...dentalCase,
-                            patientPhone: undefined,
-                            updatedAt: new Date().toISOString(),
-                          });
-                          setIsEditingPhone(false);
-                        }}
-                        className="px-2 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-semibold transition cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => setIsEditingPhone(false)}
-                      className="px-2 py-1.5 rounded-lg text-slate-500 text-xs hover:text-slate-800 transition cursor-pointer"
+                      className="px-2 py-1.5 text-slate-400 text-xs cursor-pointer"
                     >
                       Cancel
                     </button>
                   </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {dentalCase.patientPhone ? (
-                      <>
-                        <a
-                          href={`tel:${dentalCase.patientPhone.replace(/\s+/g, '')}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 font-bold hover:bg-emerald-600 hover:text-white border border-emerald-200 shadow-2xs transition cursor-pointer"
-                          title="Call patient"
-                        >
-                          <PhoneCall className="w-3.5 h-3.5" />
-                          <span>{dentalCase.patientPhone}</span>
-                        </a>
-
-                        <button
-                          type="button"
-                          onClick={handleCopyPhone}
-                          className="neu-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-600 hover:text-sky-600 flex items-center gap-1 cursor-pointer"
-                          title="Copy phone number"
-                        >
-                          {copiedPhone ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedPhone ? 'Copied' : 'Copy'}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingPhone(true)}
-                          className="text-slate-400 hover:text-slate-700 p-1 rounded transition cursor-pointer"
-                          title="Edit phone number"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setIsEditingPhone(true)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 hover:text-sky-700 hover:bg-sky-50 transition cursor-pointer text-xs font-semibold"
-                      >
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span>+ Add Patient Phone Number</span>
-                      </button>
-                    )}
+                ) : dentalCase.patientPhone ? (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`tel:${dentalCase.patientPhone.replace(/\s+/g, '')}`}
+                      className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200 hover:text-sky-600 font-medium"
+                      title="Call patient"
+                    >
+                      <PhoneCall className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{dentalCase.patientPhone}</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleCopyPhone}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title="Copy phone"
+                    >
+                      {copiedPhone ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingPhone(true)}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title="Edit phone"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingPhone(true)}
+                    className="text-slate-400 hover:text-sky-600 dark:hover:text-sky-400 text-xs flex items-center gap-1 cursor-pointer"
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span>+ Add Phone</span>
+                  </button>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Right Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
-            {/* Export PDF */}
-            <button
-              onClick={handleExportPdf}
-              disabled={isExportingPdf || isExportingZip}
-              className="neu-btn px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-sky-700 flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Export complete case summary as Moodle PDF"
-            >
-              {isExportingPdf ? (
-                <Loader2 className="w-4 h-4 text-sky-600 animate-spin" />
-              ) : (
-                <FileDown className="w-4 h-4 text-sky-600" />
-              )}
-              <span className="hidden sm:inline">
-                {isExportingPdf ? 'Generating PDF...' : 'Export PDF'}
-              </span>
-            </button>
+          {/* Right Header Controls: Status Badge, Add Procedure & Overflow Menu */}
+          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+            <span className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border ${statusStyle} inline-flex items-center gap-1.5`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor}`} />
+              <span>{statusText}</span>
+            </span>
 
-            {/* Export ZIP */}
-            <button
-              onClick={handleExportZip}
-              disabled={isExportingPdf || isExportingZip}
-              className="neu-btn px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-sky-700 flex items-center gap-1.5 cursor-pointer shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Download all signed rubrics and photo evidence in ZIP"
-            >
-              {isExportingZip ? (
-                <Loader2 className="w-4 h-4 text-sky-600 animate-spin" />
-              ) : (
-                <Archive className="w-4 h-4 text-sky-600" />
-              )}
-              <span className="hidden sm:inline">
-                {isExportingZip ? 'Creating ZIP...' : 'ZIP Archive'}
-              </span>
-            </button>
-
-            {/* Delete Case Button - Prominently accessible */}
             <button
               type="button"
-              onClick={() => setIsDeleteCaseModalOpen(true)}
-              className="neu-btn px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200/90 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
-              title="Delete this entire clinical case"
+              onClick={() => setIsAddProcOpen(true)}
+              className="min-h-[42px] px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] transition cursor-pointer flex items-center gap-1.5 shadow-sm shadow-sky-600/20"
             >
-              <Trash2 className="w-4 h-4 text-rose-600" />
-              <span>Delete Case</span>
+              <PlusCircle className="w-4 h-4" />
+              <span>Add Procedure</span>
             </button>
-          </div>
-        </div>
 
-        {/* Comprehensive Case Status Banner */}
-        <div className="mt-4 pt-3.5 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-600 flex-shrink-0" />
-            {dentalCase.isComprehensive ? (
-              <span className="font-bold text-purple-900">
-                ⭐ <strong>Comprehensive Case Verified:</strong> Features {dentalCase.disciplines.length} disciplines ({dentalCase.disciplines.join(', ')}). Valid for requirements presentation!
-              </span>
-            ) : (
-              <span className="text-slate-600">
-                Current disciplines: <strong className="text-slate-800">{dentalCase.disciplines.join(', ') || 'None'}</strong>. Add procedures from {Math.max(1, 3 - dentalCase.disciplines.length)} more discipline(s) to achieve Comprehensive status.
-              </span>
-            )}
-          </div>
+            {/* Overflow 3-Dots Menu */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMenuOpen(!isMenuOpen);
+                  haptic.selection();
+                }}
+                className="min-h-[42px] min-w-[42px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                title="More case options"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
 
-          {/* Quick Add Procedure Button in Header */}
-          <button
-            onClick={() => setIsAddProcOpen(true)}
-            className="neu-btn-primary px-3.5 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 shadow-sm cursor-pointer"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>+ Add Procedure</span>
-          </button>
+              {isMenuOpen && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-12 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-30 text-xs animate-in fade-in zoom-in-95 duration-100"
+                >
+                  <button
+                    type="button"
+                    onClick={handleExportPdf}
+                    disabled={isExportingPdf}
+                    className="w-full px-3.5 py-2 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer"
+                  >
+                    {isExportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-600" /> : <FileDown className="w-3.5 h-3.5 text-slate-400" />}
+                    <span>Export PDF Report</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExportZip}
+                    disabled={isExportingZip}
+                    className="w-full px-3.5 py-2 text-left text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer"
+                  >
+                    {isExportingZip ? <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-600" /> : <Archive className="w-3.5 h-3.5 text-slate-400" />}
+                    <span>Export ZIP Archive</span>
+                  </button>
+
+                  <div className="pt-1 mt-1 border-t border-slate-100 dark:border-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsDeleteCaseModalOpen(true);
+                      }}
+                      className="w-full px-3.5 py-2 text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 flex items-center gap-2 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                      <span>Delete Case</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. CASE AT A GLANCE: INVOLVED TEETH, PROGRESS & WHAT HAPPENS NEXT */}
+      {/* 2. CASE HEALTH & CLINICAL ACTION MODULES */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        {/* Card 1: Involved Teeth */}
-        <div className="frosted-card rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2">
-          <span className="text-[11px] uppercase font-black tracking-wider text-slate-400 block flex items-center gap-1.5">
-            <span>🦷</span>
-            <span>Involved Teeth</span>
-          </span>
-          {involvedTeeth.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {involvedTeeth.map((tooth) => (
-                <span
-                  key={tooth}
-                  className="px-2.5 py-1 rounded-xl bg-sky-50 text-sky-900 font-extrabold text-xs border border-sky-200 shadow-2xs"
-                >
-                  {tooth}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-slate-500 pt-1">No teeth associated with current procedures.</p>
-          )}
-          <p className="text-[11px] text-slate-400">
-            {dentalCase.procedures.length} procedure{dentalCase.procedures.length === 1 ? '' : 's'} across {dentalCase.disciplines.length} discipline{dentalCase.disciplines.length === 1 ? '' : 's'}
-          </p>
-        </div>
-
-        {/* Card 2: Overall Progress */}
-        <div className="frosted-card rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Overall Progress Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] uppercase font-black tracking-wider text-slate-400 block">
-              Overall Case Progress
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+              <span>Case Health & Progress</span>
             </span>
-            <span className="text-xs font-black text-slate-900">
-              {progressPercent}%
+            <span className="font-mono font-bold text-slate-900 dark:text-white tabular-nums text-xs">
+              {progressPercent}% Complete
             </span>
           </div>
 
-          {/* Progress bar */}
-          <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+          {/* Unified Progress Bar */}
+          <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <div
-              className="h-full bg-sky-600 rounded-full transition-all duration-300"
+              className={`h-full ${progressBarColor} rounded-full transition-all duration-500`}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
-            <span>{completedSteps.length} of {totalMilestones} Milestones</span>
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-medium pt-0.5">
+            <span>{completedSteps.length} of {totalMilestones} Milestones Done</span>
             <span>{signedRubrics.length}/{allRubrics.length} Rubrics Signed</span>
+            <span className="font-mono font-bold text-purple-600 dark:text-purple-400">{totalPoints} pts</span>
           </div>
         </div>
 
-        {/* Card 3: Next Visit & Next Action (Plan Next Visit Layer) */}
-        <div className="frosted-card rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 shadow-2xs space-y-2 bg-gradient-to-br from-white to-sky-50/40 dark:from-slate-800 dark:to-slate-800/90 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] uppercase font-black tracking-wider text-sky-800 block flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                <span>Next Visit</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setPlanTargetProcedure(null);
-                  setIsPlanVisitModalOpen(true);
-                }}
-                className="text-[11px] font-bold text-sky-700 hover:text-sky-900 cursor-pointer"
-              >
-                {plannedVisitInfo.isPlanned ? 'Change Plan' : '+ Plan Visit'}
-              </button>
-            </div>
+        {/* Next Visit / Next Action Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+              <span>Next Clinical Action</span>
+            </span>
 
-            {plannedVisitInfo.isPlanned ? (
-              <div className="mt-1.5 space-y-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-extrabold text-xs text-slate-900">
-                    📅 {plannedVisitInfo.formattedDate}
-                  </span>
-                  <span className="text-[10px] font-bold text-sky-800 bg-sky-100 px-1.5 py-0.2 rounded">
-                    Clinic {plannedVisitInfo.clinicPlace}
-                  </span>
-                  {plannedVisitInfo.time && (
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      · {plannedVisitInfo.time}
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-700 font-bold truncate">
-                  Action: {plannedVisitInfo.actionText}
-                </p>
-                {plannedVisitInfo.isStale && (
-                  <p className="text-[10px] text-amber-700 font-medium">
-                    ⚠ Timetable session updated
-                  </p>
-                )}
-              </div>
-            ) : nextUpcomingStep ? (
-              <div className="mt-1.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Next Milestone:</span>
-                <p className="font-extrabold text-xs text-slate-900 truncate mt-0.5">
-                  ⚡ {nextUpcomingStep.title}
-                </p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  No clinic session planned yet
-                </p>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500 mt-1.5">No planned visit or pending clinical steps.</p>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                setPlanTargetProcedure(nextMilestoneProc || null);
+                setIsPlanVisitModalOpen(true);
+              }}
+              className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline cursor-pointer"
+            >
+              {plannedVisitInfo.isPlanned ? 'Change Plan' : '+ Plan Visit'}
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setPlanTargetProcedure(nextMilestoneProc || null);
-              setIsPlanVisitModalOpen(true);
-            }}
-            className="w-full mt-2 py-1.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-95 text-white text-xs font-bold shadow-2xs transition cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <CalendarDays className="w-3.5 h-3.5" />
-            <span>{plannedVisitInfo.isPlanned ? 'Manage Planned Visit' : 'Plan Next Visit'}</span>
-          </button>
+          {plannedVisitInfo.isPlanned ? (
+            <div className="p-3 rounded-xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/60 dark:border-sky-900/50 text-xs space-y-1">
+              <p className="font-bold text-sky-950 dark:text-sky-100 flex items-center gap-1.5">
+                <span>📅</span>
+                <span>{plannedVisitInfo.formattedDate} · Clinic {plannedVisitInfo.clinicPlace}</span>
+              </p>
+              <p className="text-[11px] text-sky-800 dark:text-sky-300 font-medium truncate">
+                {plannedVisitInfo.actionText}
+              </p>
+            </div>
+          ) : nextUpcomingStep ? (
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs space-y-1">
+              <p className="font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                <ArrowRight className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                <span>Next Milestone: {nextUpcomingStep.title}</span>
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                No clinic date assigned yet. Tap &apos;+ Plan Visit&apos; to schedule.
+              </p>
+            </div>
+          ) : (
+            <div className="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/50 text-xs text-emerald-900 dark:text-emerald-200 font-medium flex items-center gap-1.5">
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>All clinical milestones in this case completed!</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. PROCEDURES SECTION - CLEAR CARD PER PROCEDURE (LEVEL 2 TO LEVEL 3) */}
+      {/* 3. PROCEDURES SECTION */}
       {/* ========================================================================= */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between px-1">
           <div>
-            <h3 className="font-black text-slate-900 text-base sm:text-lg flex items-center gap-2">
-              <Stethoscope className="w-5 h-5 text-sky-600" />
+            <h3 className="font-black text-slate-900 dark:text-white text-base sm:text-lg flex items-center gap-2">
+              <Stethoscope className="w-4 h-4 text-sky-600 dark:text-sky-400" />
               <span>Procedures ({dentalCase.procedures.length})</span>
             </h3>
-            <p className="text-xs text-slate-500">
-              Each procedure owns its associated teeth, milestones, rubrics, and clinical photography. Tap any procedure to open details.
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Tap any procedure to manage chairside milestones, rubrics & evidence
             </p>
           </div>
 
           <button
-            onClick={() => {
-              haptic.light();
-              setIsAddProcOpen(true);
-            }}
-            className="neu-btn-primary px-3.5 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+            type="button"
+            onClick={() => setIsAddProcOpen(true)}
+            className="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/50 border border-sky-200 dark:border-sky-800 transition cursor-pointer flex items-center gap-1.5"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>+ Add Procedure</span>
+            <PlusCircle className="w-3.5 h-3.5" />
+            <span>Add Procedure</span>
           </button>
         </div>
 
         {dentalCase.procedures.length === 0 ? (
-          <div className="frosted-card rounded-2xl p-8 text-center border border-dashed border-slate-200">
-            <Stethoscope className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-            <p className="text-sm font-bold text-slate-700">No clinical procedures added yet</p>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Start by adding a procedure (Fixed, Operative, Endo, Perio, Removable, Surgery).
-            </p>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 text-center border border-dashed border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 flex items-center justify-center mx-auto">
+              <Stethoscope className="w-6 h-6 stroke-[1.8]" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No procedures added yet</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-0.5">
+                Add an official MIU clinical procedure to begin logging milestones, rubrics, and clinical evidence.
+              </p>
+            </div>
             <button
-              onClick={() => {
-                haptic.light();
-                setIsAddProcOpen(true);
-              }}
-              className="mt-4 neu-btn-primary px-4 py-2 rounded-xl text-xs font-bold text-white inline-flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+              type="button"
+              onClick={() => setIsAddProcOpen(true)}
+              className="min-h-[42px] px-4 py-2 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 transition cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
             >
               <PlusCircle className="w-4 h-4" />
               <span>+ Add First Procedure</span>
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {dentalCase.procedures.map((proc) => {
               const statusInfo = getProcedureMacroStepStatus(proc);
               const teethDisplay = formatTeethDisplay(proc.toothNumber);
               const displayTitle = cleanProcedureTitle(proc.title);
+              const discTheme = getDisciplineTheme(proc.discipline);
 
               return (
                 <div
@@ -666,122 +628,66 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                     haptic.light();
                     setSelectedProcedureId(proc.id);
                   }}
-                  className="frosted-card rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-md transition active:scale-[0.99] cursor-pointer group select-none"
+                  className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-800 hover:border-sky-400 dark:hover:border-sky-600 transition shadow-xs cursor-pointer group select-none flex items-center justify-between gap-3 active:scale-[0.995]"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    {/* Left: Discipline, Title & Associated Teeth (Prominently visually owned by procedure) */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {/* Discipline Icon */}
+                    <div className={`w-10 h-10 rounded-xl ${discTheme.bg} ${discTheme.text} border ${discTheme.border} flex items-center justify-center shrink-0`}>
+                      {getDisciplineIcon(proc.discipline, 'w-5 h-5')}
+                    </div>
+
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                        <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-lg bg-sky-100 text-sky-800 border border-sky-200">
-                          {proc.discipline}
-                        </span>
-
-                        {/* Associated Teeth display: e.g. "UR4 · UR5" */}
-                        {teethDisplay ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-black px-2.5 py-0.5 rounded-lg bg-sky-50 text-sky-900 border border-sky-200/80 shadow-2xs">
-                            <span>🦷</span>
-                            <span>{teethDisplay}</span>
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                            General / Arch
-                          </span>
-                        )}
-
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200">
-                          {proc.points || 10} pts
-                        </span>
-                      </div>
-
                       {/* Procedure Title */}
-                      <h4 className="text-base font-extrabold text-slate-900 group-hover:text-sky-600 transition">
+                      <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors truncate">
                         {displayTitle}
                       </h4>
 
-                      {/* Milestone Summary & Next Step */}
-                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                        <span className="font-bold text-slate-700">
-                          Milestones: {statusInfo.completedCount} of {statusInfo.totalSteps} completed ({statusInfo.percent}%)
-                        </span>
-
-                        {statusInfo.nextStep ? (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center gap-1 font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
-                              <ArrowRight className="w-3 h-3" />
-                              <span>Next: {statusInfo.nextStep.title}</span>
-                            </span>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPlanTargetProcedure(proc);
-                                setIsPlanVisitModalOpen(true);
-                              }}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-700 hover:text-sky-900 bg-sky-50/90 hover:bg-sky-100 px-2 py-0.5 rounded-md border border-sky-200 transition cursor-pointer"
-                              title="Plan upcoming clinic session for this procedure"
-                            >
-                              <CalendarDays className="w-3 h-3 text-sky-600" />
-                              <span>
-                                {plannedVisitInfo.isPlanned && (plannedVisitInfo.procedureId === proc.id || (!plannedVisitInfo.procedureId && dentalCase.procedures[0]?.id === proc.id))
-                                  ? `Planned: ${plannedVisitInfo.dayName || plannedVisitInfo.formattedDate}`
-                                  : 'Plan Visit'}
-                              </span>
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-                            <Check className="w-3 h-3" />
-                            <span>All Milestones Complete</span>
-                          </span>
+                      {/* Procedure Subtitle */}
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{proc.discipline}</span>
+                        {teethDisplay && (
+                          <>
+                            <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                            <span className="text-sky-600 dark:text-sky-400 font-bold">🦷 {teethDisplay}</span>
+                          </>
                         )}
+                        <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                        <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">{proc.points || 10} pts</span>
+                      </div>
 
-                        <span className="text-slate-400">
-                          • {proc.rubrics.length} rubric{proc.rubrics.length === 1 ? '' : 's'} • {proc.evidenceFiles.length} photo{proc.evidenceFiles.length === 1 ? '' : 's'}
+                      {/* Micro Progress Bar */}
+                      <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                        <div className="w-24 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0">
+                          <div
+                            className={`h-full rounded-full ${statusInfo.isAllDone ? 'bg-emerald-500' : 'bg-sky-500'}`}
+                            style={{ width: `${statusInfo.percent}%` }}
+                          />
+                        </div>
+                        <span className="font-medium truncate">
+                          {statusInfo.isAllDone
+                            ? 'Completed ✓'
+                            : `${statusInfo.completedCount}/${statusInfo.totalSteps} steps`}
                         </span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Right: Status Pill, Open Button & Delete Action */}
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full ${
-                          proc.status === 'Submitted'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                            : proc.status === 'Ready for Moodle'
-                            ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                            : proc.status === 'Awaiting Signature'
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                            : 'bg-sky-100 text-sky-800 border border-sky-200'
-                        }`}
-                      >
-                        ● {proc.status}
-                      </span>
-
-                      {/* Delete Procedure Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          haptic.warning();
-                          setProcedurePendingDelete({
-                            id: proc.id,
-                            title: displayTitle,
-                            discipline: proc.discipline,
-                            toothNumber: teethDisplay,
-                          });
-                        }}
-                        className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition active:scale-95 cursor-pointer"
-                        title="Delete this procedure"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-
-                      {/* View Procedure Chevron */}
-                      <div className="p-1 text-slate-400 group-hover:text-sky-600 transition">
-                        <ChevronRight className="w-5 h-5" />
-                      </div>
-                    </div>
+                  {/* Right Status Badge & Arrow */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-xl border ${
+                        proc.status === 'Submitted'
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                          : proc.status === 'Ready for Moodle'
+                          ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                          : proc.status === 'Awaiting Signature'
+                          ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                          : 'bg-sky-50 text-sky-700 dark:bg-sky-950/70 dark:text-sky-300 border-sky-200 dark:border-sky-800'
+                      }`}
+                    >
+                      {proc.status}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition" />
                   </div>
                 </div>
               );
@@ -791,192 +697,76 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. CASE CLINICAL NOTES SECTION */}
+      {/* 4. CASE CLINICAL NOTES (COLLAPSIBLE / EDITABLE) */}
       {/* ========================================================================= */}
-      <div className="frosted-card rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-          <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-            <Edit3 className="w-4 h-4 text-slate-600" />
-            <span>Overall Case Clinical Notes</span>
-          </h4>
-          {!isEditingNotes ? (
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-slate-400" />
+            <span>Case Clinical Notes</span>
+          </span>
+
+          {!isEditingNotes && (
             <button
               type="button"
-              onClick={() => {
-                setNotesInput(dentalCase.notes || '');
-                setIsEditingNotes(true);
-              }}
-              className="text-xs font-bold text-sky-600 hover:underline cursor-pointer"
+              onClick={() => setIsEditingNotes(true)}
+              className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
             >
-              {dentalCase.notes ? 'Edit Notes' : '+ Add Notes'}
+              <Edit3 className="w-3 h-3" />
+              <span>{dentalCase.notes ? 'Edit Notes' : '+ Add Note'}</span>
             </button>
-          ) : (
-            <div className="flex items-center gap-2">
+          )}
+        </div>
+
+        {isEditingNotes ? (
+          <div className="space-y-2 pt-1">
+            <textarea
+              value={notesInput}
+              onChange={(e) => setNotesInput(e.target.value)}
+              placeholder="Record patient medical history, allergies, treatment plan notes..."
+              rows={3}
+              className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-sky-500/20"
+            />
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsEditingNotes(false)}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-700 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveNotes}
-                className="px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 cursor-pointer"
               >
                 Save Notes
               </button>
             </div>
-          )}
-        </div>
-
-        {isEditingNotes ? (
-          <textarea
-            autoFocus
-            rows={3}
-            value={notesInput}
-            onChange={(e) => setNotesInput(e.target.value)}
-            placeholder="Medical history alerts, allergy notes, treatment plan presentation remarks..."
-            className="neu-input w-full p-3 rounded-xl text-xs text-slate-800"
-          />
-        ) : (
-          <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">
-            {dentalCase.notes || 'No overall clinical notes recorded for this patient case.'}
+          </div>
+        ) : dentalCase.notes ? (
+          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap pt-0.5">
+            {dentalCase.notes}
           </p>
+        ) : (
+          <p className="text-xs text-slate-400 italic">No clinical notes recorded for this case.</p>
         )}
       </div>
 
       {/* ========================================================================= */}
-      {/* IN-APP MODAL: CONFIRM DELETE PROCEDURE */}
-      {/* ========================================================================= */}
-      {procedurePendingDelete && (
-        <ModalPortal isOpen={Boolean(procedurePendingDelete)}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-rose-200 animate-modal-pop">
-              <div className="flex items-start gap-3.5 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900">
-                    Delete Procedure?
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Are you sure you want to remove <strong className="text-slate-800">{procedurePendingDelete.title}</strong>
-                    {procedurePendingDelete.toothNumber ? ` (${procedurePendingDelete.toothNumber})` : ''} from this case?
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 mb-4 text-xs text-rose-800 space-y-1">
-                <p className="font-bold flex items-center gap-1.5">
-                  <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
-                  <span>Removing procedure:</span>
-                </p>
-                <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
-                  <li>All milestone steps and clinical records for this procedure will be removed</li>
-                  <li>Other procedures in this case will remain intact</li>
-                  <li>You will have an <strong>Undo</strong> option to restore this procedure</li>
-                </ul>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setProcedurePendingDelete(null)}
-                  className="px-4 py-2 rounded-xl neu-btn text-xs font-bold text-slate-700 active:scale-95 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    haptic.error();
-                    handleDeleteProcedure(procedurePendingDelete.id);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
-                >
-                  Delete Procedure
-                </button>
-              </div>
-            </div>
-          </div>
-        </ModalPortal>
-      )}
-
-      {/* ========================================================================= */}
-      {/* IN-APP MODAL: CONFIRM DELETE ENTIRE CASE */}
-      {/* ========================================================================= */}
-      {isDeleteCaseModalOpen && (
-        <ModalPortal isOpen={isDeleteCaseModalOpen}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-            <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-rose-200 animate-modal-pop">
-              <div className="flex items-start gap-3.5 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-                  <AlertTriangle className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-slate-900">
-                    Delete Entire Clinical Case?
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Patient: <strong className="text-slate-800">{dentalCase.patientName}</strong> (File #{dentalCase.fileNumber})
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 mb-4 text-xs text-rose-800 space-y-1">
-                <p className="font-bold flex items-center gap-1.5">
-                  <Trash2 className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
-                  <span>Removing clinical case:</span>
-                </p>
-                <ul className="list-disc list-inside text-[11px] text-rose-700/90 pl-1 space-y-0.5">
-                  <li>All {dentalCase.procedures.length} procedure(s) and milestone steps will be removed</li>
-                  <li>All rubric documents and clinical photos will be removed</li>
-                  <li>You will have an <strong>Undo</strong> window to restore this case immediately</li>
-                </ul>
-              </div>
-
-              <div className="flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsDeleteCaseModalOpen(false)}
-                  className="px-4 py-2 rounded-xl neu-btn text-xs font-bold text-slate-700 active:scale-95 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    haptic.error();
-                    setIsDeleteCaseModalOpen(false);
-                    onDeleteCase(dentalCase.id);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold shadow-sm transition active:scale-95 cursor-pointer"
-                >
-                  Delete Case
-                </button>
-              </div>
-            </div>
-          </div>
-        </ModalPortal>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: ADD PROCEDURE MODAL */}
+      {/* 5. MODALS & PORTALS */}
       {/* ========================================================================= */}
       {isAddProcOpen && (
         <AddProcedureModal
           isOpen={isAddProcOpen}
           onClose={() => setIsAddProcOpen(false)}
-          caseId={dentalCase.id}
           onProcedureAdded={handleProcedureAdded}
           templates={templates}
+          defaultDiscipline={dentalCase.disciplines[0] || 'Operative'}
+          caseId={dentalCase.id}
         />
       )}
-      {/* ========================================================================= */}
-      {/* MODAL: PLAN NEXT VISIT MODAL */}
-      {/* ========================================================================= */}
+
       {isPlanVisitModalOpen && (
         <PlanNextVisitModal
           isOpen={isPlanVisitModalOpen}
@@ -987,9 +777,81 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           dentalCase={dentalCase}
           schedule={schedule}
           targetProcedure={planTargetProcedure}
-          onSavePlan={onUpdateCase}
+          onSavePlan={(updated) => {
+            onUpdateCase(updated);
+            setIsPlanVisitModalOpen(false);
+            setPlanTargetProcedure(null);
+            haptic.success();
+          }}
           onNavigateToSchedule={onNavigateToSchedule}
         />
+      )}
+
+      {/* In-App Delete Case Confirmation Modal */}
+      {isDeleteCaseModalOpen && (
+        <ModalPortal isOpen={isDeleteCaseModalOpen}>
+          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-rose-100 dark:border-rose-950/50 space-y-4 animate-modal-pop text-slate-900 dark:text-slate-100">
+              <div className="flex items-start justify-between gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteCaseModalOpen(false)}
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                  Delete Clinical Case?
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                  Are you sure you want to delete the case for{' '}
+                  <strong className="text-slate-900 dark:text-white font-bold">{dentalCase.patientName}</strong>{' '}
+                  (File #{dentalCase.fileNumber}, Clinic {dentalCase.clinicPlace})?
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 text-xs text-rose-800 dark:text-rose-300 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <Trash2 className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                  <span>Removing clinical case:</span>
+                </p>
+                <ul className="list-disc list-inside text-[11px] text-rose-700/90 dark:text-rose-400/90 pl-1 space-y-0.5">
+                  <li>All {dentalCase.procedures.length} procedure(s) and milestones will be removed</li>
+                  <li>All attached rubrics and clinical evidence will be removed</li>
+                  <li>You will have an <strong>Undo</strong> window to restore this case</li>
+                </ul>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteCaseModalOpen(false)}
+                  className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic.error();
+                    setIsDeleteCaseModalOpen(false);
+                    onDeleteCase(dentalCase.id);
+                  }}
+                  className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Yes, Delete Case</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
       )}
 
       {/* Floating Export Feedback Toast */}

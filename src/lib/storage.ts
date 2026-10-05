@@ -2,6 +2,8 @@ import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { DentalCase, ClinicalProcedure, ProcedureTemplate, ClinicScheduleItem, StudentProfile, DisciplineType } from '../types';
 import { safeLocalStorage } from './safeStorage';
 import { APP_VERSION } from './patchNotes';
+import { requestPersistentStorage } from './storagePersistence';
+import { MIU_OFFICIAL_TEMPLATES } from './miuLogbookData';
 export { safeLocalStorage };
 
 interface DentaTrackDB extends DBSchema {
@@ -45,6 +47,10 @@ const DB_VERSION = 1;
 let dbPromise: Promise<IDBPDatabase<DentaTrackDB>> | null = null;
 
 export async function getDB(): Promise<IDBPDatabase<DentaTrackDB>> {
+  if (typeof indexedDB === 'undefined') {
+    throw new Error('IndexedDB is not supported or accessible in this environment.');
+  }
+
   if (!dbPromise) {
     dbPromise = openDB<DentaTrackDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
@@ -73,367 +79,37 @@ export async function getDB(): Promise<IDBPDatabase<DentaTrackDB>> {
           db.createObjectStore('blobs', { keyPath: 'id' });
         }
       },
+      blocked() {
+        console.warn('[DentaTrack Storage] Database upgrade temporarily blocked by another connection.');
+      },
+      blocking() {
+        console.warn('[DentaTrack Storage] Database connection closing to allow upgrade.');
+      },
+      terminated() {
+        console.warn('[DentaTrack Storage] Database connection terminated.');
+        dbPromise = null;
+      },
+    }).catch((err) => {
+      dbPromise = null;
+      throw err;
     });
   }
   return dbPromise;
 }
 
-// Default Templates for fast Chairside Procedure Creation - Clean Macro Milestones across all disciplines
-export const DEFAULT_TEMPLATES: ProcedureTemplate[] = [
-  // ================= FIXED PROSTHODONTICS =================
-  {
-    id: 'tmpl-fixed-single-crown',
-    discipline: 'Fixed',
-    name: 'Single Fixed Crown',
-    rubricTitle: 'Single Crown Clinical Evaluation Rubric',
-    defaultPoints: 15,
-    defaultSteps: [
-      'Temporisation index',
-      'Reduction',
-      'Temporary crown production',
-      'Secondary impression',
-      'Try-in',
-      'Delivery',
-    ],
-  },
-  {
-    id: 'tmpl-fixed-bridge',
-    discipline: 'Fixed',
-    name: 'Fixed Partial Denture (Bridge)',
-    rubricTitle: 'Fixed Bridge Clinical Evaluation Rubric',
-    defaultPoints: 20,
-    defaultSteps: [
-      'Diagnostic index / temporisation matrix',
-      'Abutment reduction',
-      'Temporary bridge production',
-      'Secondary impression',
-      'Framework try-in',
-      'Delivery',
-    ],
-  },
-  {
-    id: 'tmpl-fixed-post-core',
-    discipline: 'Fixed',
-    name: 'Post & Core Restoration',
-    rubricTitle: 'Post & Core Build-up Rubric',
-    defaultPoints: 12,
-    defaultSteps: [
-      'Gutta-percha de-obturation',
-      'Post space preparation & try-in',
-      'Post cementation & core build-up',
-      'Core finish line refinement',
-    ],
-  },
-  {
-    id: 'tmpl-fixed-veneer',
-    discipline: 'Fixed',
-    name: 'Porcelain / Ceramic Veneer',
-    rubricTitle: 'Laminate Veneer Clinical Rubric',
-    defaultPoints: 15,
-    defaultSteps: [
-      'Diagnostic mock-up & index',
-      'Enamel reduction & margin prep',
-      'Provisional veneer production',
-      'Secondary impression',
-      'Try-in (shade & fit)',
-      'Adhesive delivery & cementation',
-    ],
-  },
-  {
-    id: 'tmpl-fixed-endocrown',
-    discipline: 'Fixed',
-    name: 'Endocrown Restoration',
-    rubricTitle: 'Endocrown Evaluation Rubric',
-    defaultPoints: 14,
-    defaultSteps: [
-      'Pulp chamber base & preparation',
-      'Butt margin reduction',
-      'Secondary impression',
-      'Try-in',
-      'Delivery & bonding',
-    ],
-  },
+// Default Templates for fast Chairside Procedure Creation - Authoritative MIU 2026-2027 Practical Logbook Templates
+export const DEFAULT_TEMPLATES: ProcedureTemplate[] = MIU_OFFICIAL_TEMPLATES;
 
-  // ================= OPERATIVE / RESTORATIVE =================
-  {
-    id: 'tmpl-operative-class2',
-    discipline: 'Operative',
-    name: 'Class II Composite Restoration',
-    rubricTitle: 'Class II Restorative Rubric',
-    defaultPoints: 8,
-    defaultSteps: [
-      'Cavity preparation',
-      'Matrix band & wedge adaptation',
-      'Etching & adhesive bonding protocol',
-      'Incremental composite restoration',
-      'Finishing, occlusion adjustment & polish',
-    ],
-  },
-  {
-    id: 'tmpl-operative-class1',
-    discipline: 'Operative',
-    name: 'Class I Composite Restoration',
-    rubricTitle: 'Class I Restorative Rubric',
-    defaultPoints: 6,
-    defaultSteps: [
-      'Cavity preparation',
-      'Etching & bonding protocol',
-      'Composite placement & curing',
-      'Occlusal adjustment & polishing',
-    ],
-  },
-  {
-    id: 'tmpl-operative-class4',
-    discipline: 'Operative',
-    name: 'Class IV Anterior Composite',
-    rubricTitle: 'Class IV Aesthetic Restorative Rubric',
-    defaultPoints: 10,
-    defaultSteps: [
-      'Shade mapping & palatal silicone index',
-      'Enamel beveling & preparation',
-      'Palatal shelf & dentin layering',
-      'Finishing, texture carving & high polish',
-    ],
-  },
-  {
-    id: 'tmpl-operative-class5',
-    discipline: 'Operative',
-    name: 'Class V Cervical Restoration',
-    rubricTitle: 'Class V Restorative Rubric',
-    defaultPoints: 6,
-    defaultSteps: [
-      'Gingival retraction & cavity preparation',
-      'Adhesive protocol (etch & bond)',
-      'Composite restoration placement',
-      'Cervical finishing & polishing',
-    ],
-  },
-  {
-    id: 'tmpl-operative-inlay',
-    discipline: 'Operative',
-    name: 'Inlay / Onlay Restoration',
-    rubricTitle: 'Inlay/Onlay Clinical Rubric',
-    defaultPoints: 12,
-    defaultSteps: [
-      'Cavity preparation & margin refinement',
-      'Provisional restoration',
-      'Secondary impression',
-      'Try-in',
-      'Adhesive delivery & cementation',
-    ],
-  },
+// Official 5 MIU Clinical Comprehensive Care Disciplines
+export const MIU_COMPREHENSIVE_DISCIPLINES: DisciplineType[] = ['Fixed', 'Operative', 'Endo', 'Removable', 'Perio'];
 
-  // ================= ENDODONTICS =================
-  {
-    id: 'tmpl-endo-rct',
-    discipline: 'Endo',
-    name: 'Root Canal Treatment',
-    rubricTitle: 'Endodontics Clinical Workflow Rubric',
-    defaultPoints: 20,
-    defaultSteps: [
-      'Rubber dam isolation & access cavity',
-      'Working length determination & scouting',
-      'Mechanical instrumentation & irrigation',
-      'Master cone try-in',
-      'Obturation',
-      'Coronal seal',
-    ],
-  },
-  {
-    id: 'tmpl-endo-retreatment',
-    discipline: 'Endo',
-    name: 'Endodontic Retreatment',
-    rubricTitle: 'Endodontic Retreatment Rubric',
-    defaultPoints: 22,
-    defaultSteps: [
-      'Coronal access & de-obturation',
-      'Canal re-instrumentation & medication',
-      'Master cone try-in',
-      'Re-obturation',
-      'Coronal seal',
-    ],
-  },
-  {
-    id: 'tmpl-endo-pulpotomy',
-    discipline: 'Endo',
-    name: 'Vital Pulp Therapy / Pulpotomy',
-    rubricTitle: 'Vital Pulp Therapy Rubric',
-    defaultPoints: 10,
-    defaultSteps: [
-      'Isolation & caries removal',
-      'Coronal pulp amputation & hemostasis',
-      'Bioceramic / MTA placement',
-      'Coronal seal & definitive restoration',
-    ],
-  },
-
-  // ================= REMOVABLE PROSTHODONTICS =================
-  {
-    id: 'tmpl-removable-complete',
-    discipline: 'Removable',
-    name: 'Complete Denture',
-    rubricTitle: 'Complete Denture Clinical Rubric',
-    defaultPoints: 25,
-    defaultSteps: [
-      'Primary impression',
-      'Secondary impression & border molding',
-      'Jaw relation record',
-      'Try-in (teeth in wax)',
-      'Delivery & pressure spots relief',
-      'Post-insertion follow-up',
-    ],
-  },
-  {
-    id: 'tmpl-removable-partial',
-    discipline: 'Removable',
-    name: 'Removable Partial Denture (RPD)',
-    rubricTitle: 'RPD Clinical Rubric',
-    defaultPoints: 20,
-    defaultSteps: [
-      'Primary impression & mouth preparation',
-      'Secondary impression',
-      'Metal framework try-in & jaw relation',
-      'Wax try-in',
-      'Delivery & clasp adjustment',
-      'Post-insertion follow-up',
-    ],
-  },
-
-  // ================= PERIODONTICS =================
-  {
-    id: 'tmpl-perio-srp',
-    discipline: 'Perio',
-    name: 'Full Mouth Scaling & Root Planing (SRP)',
-    rubricTitle: 'Periodontal Therapy Rubric',
-    defaultPoints: 10,
-    defaultSteps: [
-      'Periodontal probing & baseline charting',
-      'Supragingival scaling',
-      'Subgingival root planing',
-      'Pocket irrigation & oral hygiene instructions',
-      'Re-evaluation (4-6 weeks re-probing)',
-    ],
-  },
-  {
-    id: 'tmpl-perio-crown-lengthening',
-    discipline: 'Perio',
-    name: 'Crown Lengthening / Gingivectomy',
-    rubricTitle: 'Periodontal Surgery Rubric',
-    defaultPoints: 12,
-    defaultSteps: [
-      'Periodontal probing & bone sounding',
-      'Surgical incision / flap reflection',
-      'Osseous reduction & margin relocation',
-      'Suturing & dressing',
-      'Suture removal & healing check',
-    ],
-  },
-
-  // ================= ORAL SURGERY =================
-  {
-    id: 'tmpl-surgery-simple-ext',
-    discipline: 'Oral Surgery',
-    name: 'Simple / Routine Tooth Extraction',
-    rubricTitle: 'Oral Surgery Routine Extraction Rubric',
-    defaultPoints: 10,
-    defaultSteps: [
-      'Pre-op radiographic evaluation & anesthesia',
-      'Syndesmotomy & elevation',
-      'Forceps delivery',
-      'Socket debridement & hemostasis',
-      'Post-extraction instructions',
-    ],
-  },
-  {
-    id: 'tmpl-surgery-surgical-ext',
-    discipline: 'Oral Surgery',
-    name: 'Surgical / Impacted Tooth Extraction',
-    rubricTitle: 'Surgical Extraction Rubric',
-    defaultPoints: 15,
-    defaultSteps: [
-      'Pre-op imaging & anesthesia',
-      'Mucoperiosteal flap reflection',
-      'Bone removal & tooth sectioning',
-      'Root delivery & socket curettage',
-      'Suturing & hemostasis',
-      'Suture removal & post-op follow-up',
-    ],
-  },
-
-  // ================= PEDIATRIC DENTISTRY =================
-  {
-    id: 'tmpl-pedia-pulpotomy-ssc',
-    discipline: 'Pediatric Dentistry',
-    name: 'Pulpotomy & Stainless Steel Crown (SSC)',
-    rubricTitle: 'Pediatric Pulpotomy & SSC Rubric',
-    defaultPoints: 12,
-    defaultSteps: [
-      'Coronal pulp amputation & hemostasis',
-      'Pulp medicament & base placement',
-      'Tooth reduction & slices',
-      'SSC selection, crimping & try-in',
-      'Cementation & clean-up',
-    ],
-  },
-  {
-    id: 'tmpl-pedia-restoration',
-    discipline: 'Pediatric Dentistry',
-    name: 'Pediatric Composite / Strip Crown',
-    rubricTitle: 'Pediatric Operative Restoration Rubric',
-    defaultPoints: 8,
-    defaultSteps: [
-      'Caries excavation & isolation',
-      'Matrix / Strip crown adaptation',
-      'Etching, bonding & composite placement',
-      'Finishing & occlusion adjustment',
-    ],
-  },
-  {
-    id: 'tmpl-pedia-space-maintainer',
-    discipline: 'Pediatric Dentistry',
-    name: 'Space Maintainer (Band & Loop)',
-    rubricTitle: 'Pediatric Space Maintainer Rubric',
-    defaultPoints: 10,
-    defaultSteps: [
-      'Band fitting & impression',
-      'Appliance try-in',
-      'Cementation & clean-up',
-    ],
-  },
-
-  // ================= ORTHODONTICS =================
-  {
-    id: 'tmpl-ortho-brackets',
-    discipline: 'Orthodontics',
-    name: 'Fixed Appliance (Brackets Bonding)',
-    rubricTitle: 'Orthodontic Direct Bonding Rubric',
-    defaultPoints: 15,
-    defaultSteps: [
-      'Diagnostic photos & records',
-      'Enamel etching & primer application',
-      'Bracket positioning & curing',
-      'Archwire engagement & ligation',
-      'Patient instructions & hygiene kit',
-    ],
-  },
-  {
-    id: 'tmpl-ortho-removable',
-    discipline: 'Orthodontics',
-    name: 'Removable Appliance (Hawley / Active Plate)',
-    rubricTitle: 'Orthodontic Removable Appliance Rubric',
-    defaultPoints: 10,
-    defaultSteps: [
-      'Alginate impression',
-      'Appliance try-in & retention adjustment',
-      'Delivery & activation instruction',
-      'Follow-up & reactivation',
-    ],
-  },
-];
-
-// Helper: Calculate whether a case is comprehensive (>= 3 distinct disciplines)
+// Helper: Calculate whether a case is comprehensive (>= 3 distinct official MIU disciplines)
 export function computeIsComprehensive(procedures: { discipline: DisciplineType }[]): boolean {
-  const distinctDisciplines = new Set(procedures.map(p => p.discipline));
+  const distinctDisciplines = new Set(
+    procedures
+      .map(p => p.discipline)
+      .filter((d): d is DisciplineType => MIU_COMPREHENSIVE_DISCIPLINES.includes(d))
+  );
   return distinctDisciplines.size >= 3;
 }
 
@@ -559,7 +235,7 @@ const DEMO_EVIDENCE_PREP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="6
 </svg>`;
 
 // Initial Sample Demo Data with Tooth-based procedures and clean Macro Milestones
-const INITIAL_DEMO_CASES: DentalCase[] = [
+export const INITIAL_DEMO_CASES: DentalCase[] = [
   {
     id: 'case-demo-001',
     isDemo: true,
@@ -926,7 +602,7 @@ const INITIAL_DEMO_CASES: DentalCase[] = [
   },
 ];
 
-const INITIAL_SCHEDULES: ClinicScheduleItem[] = [
+export const INITIAL_SCHEDULES: ClinicScheduleItem[] = [
   {
     id: 'sch-1',
     dayOfWeek: 'Sunday',
@@ -971,39 +647,48 @@ export const INITIAL_PROFILE: StudentProfile = {
 
 // Seed initial database if empty or sync updated macro templates
 export async function initStorage(): Promise<void> {
-  const db = await getDB();
-  const existingCount = await db.count('cases');
-  if (existingCount === 0) {
-    const tx = db.transaction(['cases', 'templates', 'schedules', 'profile'], 'readwrite');
-    for (const c of INITIAL_DEMO_CASES) {
-      await tx.objectStore('cases').put(c);
-    }
-    for (const t of DEFAULT_TEMPLATES) {
-      await tx.objectStore('templates').put(t);
-    }
-    for (const s of INITIAL_SCHEDULES) {
-      await tx.objectStore('schedules').put(s);
-    }
-    await tx.objectStore('profile').put(INITIAL_PROFILE);
-    await tx.done;
-  } else {
-    // Sync DEFAULT_TEMPLATES so that newly updated macro-step templates are readily available
-    try {
-      const tx = db.transaction(['templates'], 'readwrite');
+  try {
+    const db = await getDB();
+    const existingCount = await db.count('cases');
+    if (existingCount === 0) {
+      const tx = db.transaction(['cases', 'templates', 'schedules', 'profile'], 'readwrite');
+      for (const c of INITIAL_DEMO_CASES) {
+        await tx.objectStore('cases').put(c);
+      }
       for (const t of DEFAULT_TEMPLATES) {
         await tx.objectStore('templates').put(t);
       }
-      await tx.done;
-
-      // Also ensure case-demo-001 has the new multi-tooth macro procedures if it was from previous demo version
-      const demo1 = await db.get('cases', 'case-demo-001');
-      if (demo1 && (demo1.procedures.length < 4 || demo1.procedures[0]?.steps[0]?.title?.includes('Pre-op'))) {
-        await db.put('cases', INITIAL_DEMO_CASES[0]);
+      for (const s of INITIAL_SCHEDULES) {
+        await tx.objectStore('schedules').put(s);
       }
-    } catch (err) {
-      console.warn('Template sync notice:', err);
+      await tx.objectStore('profile').put(INITIAL_PROFILE);
+      await tx.done;
+    } else {
+      // Sync DEFAULT_TEMPLATES so that newly updated macro-step templates are readily available
+      try {
+        const tx = db.transaction(['templates'], 'readwrite');
+        for (const t of DEFAULT_TEMPLATES) {
+          await tx.objectStore('templates').put(t);
+        }
+        await tx.done;
+
+        // Also ensure case-demo-001 has the new multi-tooth macro procedures if it was from previous demo version
+        const demo1 = await db.get('cases', 'case-demo-001');
+        if (demo1 && (demo1.procedures.length < 4 || demo1.procedures[0]?.steps[0]?.title?.includes('Pre-op'))) {
+          await db.put('cases', INITIAL_DEMO_CASES[0]);
+        }
+      } catch (err) {
+        console.warn('Template sync notice:', err);
+      }
     }
+  } catch (err) {
+    console.warn('[DentaTrack Storage] Storage initialization notice:', err);
   }
+
+  // Non-blocking best-effort persistent storage request after IndexedDB initialization completes
+  Promise.resolve().then(() => {
+    requestPersistentStorage().catch(() => {});
+  });
 }
 
 // Cases CRUD
@@ -1091,11 +776,24 @@ export async function restoreProcedureToCase(
 export async function getAllTemplates(): Promise<ProcedureTemplate[]> {
   const db = await getDB();
   const stored = await db.getAll('templates');
+  const defaultMap = new Map<string, ProcedureTemplate>();
+  DEFAULT_TEMPLATES.forEach(t => defaultMap.set(t.id, t));
+
   const templateMap = new Map<string, ProcedureTemplate>();
   // Pre-fill with DEFAULT_TEMPLATES
   DEFAULT_TEMPLATES.forEach(t => templateMap.set(t.id, t));
-  // Overlay any custom or modified templates
-  stored.forEach(t => templateMap.set(t.id, t));
+  // Overlay any custom templates; for built-in template IDs, ensure official MIU logbook definitions stay up to date
+  stored.forEach(t => {
+    const builtIn = defaultMap.get(t.id);
+    if (builtIn) {
+      templateMap.set(t.id, {
+        ...t,
+        ...builtIn,
+      });
+    } else {
+      templateMap.set(t.id, t);
+    }
+  });
   return Array.from(templateMap.values());
 }
 
@@ -1207,6 +905,139 @@ export async function deleteBlob(id: string): Promise<void> {
   await db.delete('blobs', id);
 }
 
+export interface BackupSummary {
+  isValid: boolean;
+  error?: string;
+  backupFormatVersion: number;
+  appVersion?: string;
+  exportDate?: string;
+  casesCount: number;
+  proceduresCount: number;
+  rubricsCount: number;
+  attachmentsCount: number;
+  schedulesCount: number;
+  plannedVisitsCount: number;
+  studentName?: string;
+  rawBackupData?: any;
+}
+
+export function parseAndValidateBackupSummary(jsonString: string): BackupSummary {
+  try {
+    const data = JSON.parse(jsonString);
+
+    if (!data || typeof data !== 'object') {
+      return {
+        isValid: false,
+        error: 'Invalid file format: Content is not a valid JSON object.',
+        backupFormatVersion: 0,
+        casesCount: 0,
+        proceduresCount: 0,
+        rubricsCount: 0,
+        attachmentsCount: 0,
+        schedulesCount: 0,
+        plannedVisitsCount: 0,
+      };
+    }
+
+    if (!data.cases || !Array.isArray(data.cases)) {
+      return {
+        isValid: false,
+        error: 'Invalid backup file: Missing required patient cases collection.',
+        backupFormatVersion: 0,
+        casesCount: 0,
+        proceduresCount: 0,
+        rubricsCount: 0,
+        attachmentsCount: 0,
+        schedulesCount: 0,
+        plannedVisitsCount: 0,
+      };
+    }
+
+    // Inspect cases, procedures, rubrics, and attachments
+    let proceduresCount = 0;
+    let rubricsCount = 0;
+    let inlineAttachmentsCount = 0;
+    let plannedVisitsCount = 0;
+
+    for (const c of data.cases) {
+      if (!c.id || typeof c.id !== 'string') {
+        return {
+          isValid: false,
+          error: 'Malformed record: One or more case records are missing valid unique IDs.',
+          backupFormatVersion: 0,
+          casesCount: 0,
+          proceduresCount: 0,
+          rubricsCount: 0,
+          attachmentsCount: 0,
+          schedulesCount: 0,
+          plannedVisitsCount: 0,
+        };
+      }
+
+      if (c.targetNextVisitDate || c.targetNextVisitPlan) {
+        plannedVisitsCount += 1;
+      }
+
+      if (Array.isArray(c.procedures)) {
+        proceduresCount += c.procedures.length;
+        for (const p of c.procedures) {
+          if (Array.isArray(p.rubrics)) {
+            rubricsCount += p.rubrics.length;
+          }
+          if (Array.isArray(p.evidenceFiles)) {
+            inlineAttachmentsCount += p.evidenceFiles.length;
+          }
+          if (p.plannedVisitDate || p.plannedVisitClinicId) {
+            plannedVisitsCount += 1;
+          }
+        }
+      }
+    }
+
+    const blobsCount = Array.isArray(data.blobs) ? data.blobs.length : 0;
+    const attachmentsCount = inlineAttachmentsCount + blobsCount;
+    const schedulesCount = Array.isArray(data.schedules) ? data.schedules.length : 0;
+
+    let studentName = '';
+    if (Array.isArray(data.profile) && data.profile[0]?.studentName) {
+      studentName = data.profile[0].studentName;
+    } else if (data.profile && typeof data.profile === 'object' && (data.profile as any).studentName) {
+      studentName = (data.profile as any).studentName;
+    }
+
+    // Backward compatibility: If backupFormatVersion is missing, treat as format 1 (Legacy format)
+    const formatVer = typeof data.backupFormatVersion === 'number' ? data.backupFormatVersion : 1;
+
+    return {
+      isValid: true,
+      backupFormatVersion: formatVer,
+      appVersion: data.version || 'Legacy Build',
+      exportDate: data.exportDate || undefined,
+      casesCount: data.cases.length,
+      proceduresCount,
+      rubricsCount,
+      attachmentsCount,
+      schedulesCount,
+      plannedVisitsCount,
+      studentName: studentName || undefined,
+      rawBackupData: data,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      isValid: false,
+      error: `JSON Syntax Error: File could not be parsed (${msg}).`,
+      backupFormatVersion: 0,
+      casesCount: 0,
+      proceduresCount: 0,
+      rubricsCount: 0,
+      attachmentsCount: 0,
+      schedulesCount: 0,
+      plannedVisitsCount: 0,
+    };
+  }
+}
+
 // Full Export / Backup & Restore
 export async function exportFullBackup(): Promise<string> {
   const db = await getDB();
@@ -1216,10 +1047,13 @@ export async function exportFullBackup(): Promise<string> {
   const profile = await db.getAll('profile');
   const blobs = await db.getAll('blobs');
 
+  const exportDate = new Date().toISOString();
+
   const backupData = {
+    backupFormatVersion: 1,
     app: 'DentaTrack',
     version: APP_VERSION,
-    exportDate: new Date().toISOString(),
+    exportDate,
     cases,
     templates,
     schedules,
@@ -1227,36 +1061,52 @@ export async function exportFullBackup(): Promise<string> {
     blobs,
   };
 
+  // Record export date metadata in local storage
+  safeLocalStorage.setItem('dentatrack_last_backup_date', exportDate);
+
   return JSON.stringify(backupData, null, 2);
 }
 
 export async function restoreFullBackup(jsonString: string): Promise<{ success: boolean; message: string }> {
+  let emergencySnapshot: string | null = null;
   try {
-    const data = JSON.parse(jsonString);
-    if (!data.cases || !Array.isArray(data.cases)) {
-      return { success: false, message: 'Invalid backup format: Missing cases dataset.' };
+    const summary = parseAndValidateBackupSummary(jsonString);
+    if (!summary.isValid || !summary.rawBackupData) {
+      return { success: false, message: summary.error || 'Invalid backup file.' };
     }
 
+    // Emergency Pre-Restore Safety Snapshot of current state
+    try {
+      emergencySnapshot = await exportFullBackup();
+      safeLocalStorage.setItem('dentatrack_pre_restore_safety_backup', emergencySnapshot);
+    } catch (snapshotErr) {
+      console.warn('[DentaTrack Safety] Pre-restore emergency snapshot notice:', snapshotErr);
+    }
+
+    const data = summary.rawBackupData;
     const db = await getDB();
     const tx = db.transaction(['cases', 'templates', 'schedules', 'profile', 'blobs'], 'readwrite');
-    
-    // Clear existing
+
+    // Atomic replacement within transaction
     await tx.objectStore('cases').clear();
     for (const c of data.cases) {
       await tx.objectStore('cases').put(c);
     }
+
     if (Array.isArray(data.templates)) {
       await tx.objectStore('templates').clear();
       for (const t of data.templates) {
         await tx.objectStore('templates').put(t);
       }
     }
+
     if (Array.isArray(data.schedules)) {
       await tx.objectStore('schedules').clear();
       for (const s of data.schedules) {
         await tx.objectStore('schedules').put(s);
       }
     }
+
     if (Array.isArray(data.profile) && data.profile.length > 0) {
       await tx.objectStore('profile').clear();
       for (const p of data.profile) {
@@ -1269,7 +1119,19 @@ export async function restoreFullBackup(jsonString: string): Promise<{ success: 
           safeLocalStorage.setItem('dentatrack_tutorial_shown', 'true');
         }
       }
+    } else if (data.profile && typeof data.profile === 'object') {
+      await tx.objectStore('profile').clear();
+      const p = data.profile;
+      await tx.objectStore('profile').put(p);
+      if (p.studentName && p.studentName.trim() !== '') {
+        safeLocalStorage.setItem('dentatrack_student_name', p.studentName.trim());
+      }
+      if (p.onboardingCompleted) {
+        safeLocalStorage.setItem('dentatrack_onboarding_completed', 'true');
+        safeLocalStorage.setItem('dentatrack_tutorial_shown', 'true');
+      }
     }
+
     if (Array.isArray(data.blobs)) {
       await tx.objectStore('blobs').clear();
       for (const b of data.blobs) {
@@ -1278,10 +1140,18 @@ export async function restoreFullBackup(jsonString: string): Promise<{ success: 
     }
 
     await tx.done;
-    return { success: true, message: `Successfully restored ${data.cases.length} cases and clinical records!` };
+
+    // Record last restore date in local storage metadata
+    const restoreDate = data.exportDate || new Date().toISOString();
+    safeLocalStorage.setItem('dentatrack_last_backup_date', restoreDate);
+
+    return { 
+      success: true, 
+      message: `Successfully restored ${data.cases.length} cases, ${summary.proceduresCount} procedures, and ${summary.attachmentsCount} evidence files!` 
+    };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { success: false, message: `Error parsing backup: ${msg}` };
+    return { success: false, message: `Transaction failed during backup restore: ${msg}` };
   }
 }
 

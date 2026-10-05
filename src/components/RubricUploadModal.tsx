@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import { RubricDocument, SignatureStatus } from '../types';
+import { DisciplineType, RubricDocument, SignatureStatus } from '../types';
+import { getOfficialRubricsForProcedure } from '../lib/miuLogbookData';
 import { haptic } from '../lib/haptics';
 import { ModalPortal } from './ModalPortal';
 
@@ -19,9 +20,14 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
   discipline,
   onSaveRubric,
 }) => {
-  const [rubricTitle, setRubricTitle] = useState(`${discipline} Evaluation Rubric`);
+  const officialRubrics = getOfficialRubricsForProcedure(discipline as DisciplineType, procedureTitle);
+  const [rubricTitle, setRubricTitle] = useState(
+    officialRubrics[0]?.title || `${discipline} Evaluation Rubric`
+  );
   const [instructorName, setInstructorName] = useState('');
-  const [instructorRole, setInstructorRole] = useState<'Teaching Assistant (TA)' | 'PhD Holder' | 'Staff Doctor'>('Teaching Assistant (TA)');
+  const [instructorRole, setInstructorRole] = useState<'Teaching Assistant (TA)' | 'PhD Holder' | 'Staff Doctor'>(
+    discipline === 'Perio' ? 'PhD Holder' : 'Teaching Assistant (TA)'
+  );
   const [isSigned, setIsSigned] = useState<boolean | null>(null);
   const [signatureDate, setSignatureDate] = useState(new Date().toISOString().split('T')[0]);
   const [fileDataUrl, setFileDataUrl] = useState<string | null>(null);
@@ -117,6 +123,43 @@ export const RubricUploadModal: React.FC<RubricUploadModalProps> = ({
         )}
 
         <div className="space-y-4 text-xs">
+          {/* Official MIU Rubric Title Selector */}
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1">
+              Official MIU Rubric / Evaluation Sheet Title
+            </label>
+            {officialRubrics.length > 1 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {officialRubrics.map((rub) => (
+                  <button
+                    key={rub.id}
+                    type="button"
+                    onClick={() => setRubricTitle(rub.title)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                      rubricTitle === rub.title
+                        ? 'bg-sky-600 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {rub.title.replace('Rubric for ', '').replace(' (Self-assessment) 2026-2027', '')} ({rub.totalMarks.split(' ')[0]}M)
+                  </button>
+                ))}
+              </div>
+            )}
+            <input
+              type="text"
+              value={rubricTitle}
+              onChange={(e) => setRubricTitle(e.target.value)}
+              placeholder="e.g. Rubric for Practical Clinical Sessions"
+              className="neu-input w-full px-3 py-2 rounded-xl text-xs font-semibold text-slate-800"
+            />
+            {discipline === 'Perio' && (
+              <p className="text-[10px] text-amber-700 font-semibold mt-1">
+                Note (MIU Perio Logbook): Periodontal chart diagnosis rationale & pre-surgical approval require a PhD Holder signature.
+              </p>
+            )}
+          </div>
+
           {/* File Upload / Camera Buttons */}
           <div>
             <label className="block font-semibold text-slate-700 mb-1.5">

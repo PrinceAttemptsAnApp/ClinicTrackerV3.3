@@ -29,12 +29,71 @@ if (typeof Object !== 'undefined' && !(Object as any).groupBy) {
   };
 }
 
-import {StrictMode} from 'react';
+import {StrictMode, Component, ErrorInfo, ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
-import {registerSW} from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
 import { initAnalyticsHeartbeat } from './lib/analytics';
+
+// Visual Error Boundary for diagnostics
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
+
+class RootErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    this.setState({ errorInfo });
+    console.error('[DentaTrack Startup Error Boundary Caught]', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '24px', fontFamily: 'system-ui, sans-serif', maxWidth: '600px', margin: '40px auto', background: '#fff', borderRadius: '12px', border: '1px solid #fca5a5', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+          <h2 style={{ color: '#b91c1c', margin: '0 0 12px 0', fontSize: '18px', fontWeight: 'bold' }}>Startup Diagnostic Error</h2>
+          <p style={{ color: '#475569', fontSize: '14px', lineHeight: '1.5', margin: '0 0 16px 0' }}>
+            The application encountered an issue during startup:
+          </p>
+          <pre style={{ background: '#fef2f2', color: '#991b1b', padding: '12px', borderRadius: '8px', fontSize: '12px', overflowX: 'auto', whiteSpace: 'pre-wrap', border: '1px solid #fecaca' }}>
+            {this.state.error?.stack || this.state.error?.message || String(this.state.error)}
+          </pre>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{ marginTop: '16px', background: '#0284c7', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+          >
+            Reload DentaTrack
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Global window error catcher before React mount
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    console.error('[DentaTrack Global Error Handler]:', event.error || event.message);
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('[DentaTrack Unhandled Rejection Handler]:', event.reason);
+  });
+}
 
 // Initialize anonymous usage analytics and heartbeat
 try {
@@ -43,66 +102,40 @@ try {
   // Fail-silent
 }
 
-// Safely register service worker for offline functionality and instant updates
-try {
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    let refreshing = false;
-    const hadController = !!navigator.serviceWorker.controller;
+// Safely register service worker for offline functionality only in production
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && import.meta.env.PROD) {
+  import('virtual:pwa-register')
+    .then(({ registerSW }) => {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
 
-    // Reload once when a new service worker takes control (prevents stale cached assets on iOS/standalone PWA)
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hadController && !refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
+      const updateSW = registerSW({ 
+        immediate: true,
+        onNeedRefresh() {
+          updateSW(true);
+        },
+        onRegisterError(error: unknown) {
+          console.warn('Service worker registration notice:', error);
+        }
+      });
+    })
+    .catch((err) => {
+      console.warn('Service worker registration skipped:', err);
     });
-
-    const updateSW = registerSW({ 
-      immediate: true,
-      onNeedRefresh() {
-        // Automatically activate new service worker so users see updates immediately
-        updateSW(true);
-      },
-      onRegisteredSW(_swScriptUrl, registration) {
-        if (!registration) return;
-
-        const checkSWUpdate = () => {
-          if (registration.installing || !navigator.onLine) return;
-          registration.update().catch((err) => {
-            console.warn('Service worker update check failed:', err);
-          });
-        };
-
-        // Check for updates on initial registration
-        checkSWUpdate();
-
-        // Check for SW updates when iOS Home Screen app becomes visible or focused
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') {
-            checkSWUpdate();
-          }
-        });
-
-        window.addEventListener('pageshow', checkSWUpdate);
-        window.addEventListener('focus', checkSWUpdate);
-
-        // Periodic background update check every hour
-        setInterval(checkSWUpdate, 60 * 60 * 1000);
-      },
-      onRegisterError(error) {
-        console.warn('Service worker registration error:', error);
-      }
-    });
-  }
-} catch (err) {
-  console.warn('Service worker initialization skipped:', err);
 }
 
 const rootEl = document.getElementById('root');
 if (rootEl) {
   createRoot(rootEl).render(
     <StrictMode>
-      <App />
+      <RootErrorBoundary>
+        <App />
+      </RootErrorBoundary>
     </StrictMode>,
   );
 }

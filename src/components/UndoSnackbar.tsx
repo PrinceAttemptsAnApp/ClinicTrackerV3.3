@@ -32,24 +32,23 @@ export const UndoSnackbar: React.FC<UndoSnackbarProps> = ({
     }
 
     const duration = notification.durationMs || 6500;
-    const intervalMs = 50;
-    const step = (intervalMs / duration) * 100;
-
+    const startTime = Date.now();
     setProgress(100);
 
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev - step;
-        if (next <= 0) {
-          clearInterval(interval);
-          onDismiss();
-          return 0;
-        }
-        return next;
-      });
-    }, intervalMs);
+    const timer = setTimeout(() => {
+      onDismiss();
+    }, duration);
 
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remainingPct = Math.max(0, 100 - (elapsed / duration) * 100);
+      setProgress(remainingPct);
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [notification?.id, notification?.durationMs, onDismiss]);
 
   if (!notification) return null;

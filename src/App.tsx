@@ -32,6 +32,8 @@ import {
   saveClinicSchedule, 
   getProcedureTemplates,
   DEFAULT_TEMPLATES,
+  INITIAL_DEMO_CASES,
+  INITIAL_SCHEDULES,
   safeLocalStorage,
   initStorage
 } from './lib/storage';
@@ -63,6 +65,7 @@ export default function App() {
   >('dashboard');
   const [casesFilter, setCasesFilter] = useState<string>('all');
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [selectedProcedureId, setSelectedProcedureId] = useState<string | null>(null);
 
   // App Data State
   const [cases, setCases] = useState<DentalCase[]>([]);
@@ -132,19 +135,36 @@ export default function App() {
       setLoading(true);
       await initStorage();
 
-      const [dbCases, dbProfile, dbSchedule, dbTemplates] = await Promise.all([
-        getAllCases(),
-        getStudentProfile(),
-        getClinicSchedule(),
-        getProcedureTemplates(),
-      ]);
+      let dbCases: DentalCase[] = [];
+      let dbProfile: StudentProfile | null = null;
+      let dbSchedule: ClinicSession[] = [];
+      let dbTemplates: ProcedureTemplate[] = [];
 
-      setCases(dbCases);
-      if (dbSchedule.length > 0) setSchedule(dbSchedule);
-      if (dbTemplates.length > 0) setTemplates(dbTemplates);
+      try {
+        [dbCases, dbProfile, dbSchedule, dbTemplates] = await Promise.all([
+          getAllCases(),
+          getStudentProfile(),
+          getClinicSchedule(),
+          getProcedureTemplates(),
+        ]);
+      } catch (readErr) {
+        console.warn('Could not read from IndexedDB, using fallback in-memory defaults:', readErr);
+      }
+
+      setCases(dbCases.length > 0 ? dbCases : INITIAL_DEMO_CASES);
+      if (dbSchedule.length > 0) {
+        setSchedule(dbSchedule);
+      } else {
+        setSchedule(INITIAL_SCHEDULES);
+      }
+      if (dbTemplates.length > 0) {
+        setTemplates(dbTemplates);
+      } else {
+        setTemplates(DEFAULT_TEMPLATES);
+      }
 
       const activeProfile = dbProfile || {
-        studentName: '',
+        studentName: safeLocalStorage.getItem('dentatrack_student_name') || '',
         academicYear: '2026–2027',
         currentSemester: 'Semester 1',
         pointsTarget: 200,
@@ -198,6 +218,11 @@ export default function App() {
 
   useEffect(() => {
     initAppSession();
+    // Safety watchdog to ensure UI always renders even under extreme iframe latency
+    const watchdogTimer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+    return () => clearTimeout(watchdogTimer);
   }, [initAppSession]);
 
   // Apply user theme on mount and listen for OS system theme changes
@@ -621,6 +646,7 @@ export default function App() {
                   }}
                   onSelectCase={(caseId) => {
                     setSelectedCaseId(caseId);
+                    setSelectedProcedureId(null);
                     setActiveTab('case-detail');
                   }}
                   onNavigateToToday={() => setActiveTab('today')}
@@ -638,6 +664,7 @@ export default function App() {
                   onOpenAddCaseModal={() => setIsAddCaseModalOpen(true)}
                   onSelectCase={(caseId) => {
                     setSelectedCaseId(caseId);
+                    setSelectedProcedureId(null);
                     setActiveTab('case-detail');
                   }}
                   onNavigateToSchedule={() => setActiveTab('schedule')}
@@ -657,6 +684,7 @@ export default function App() {
                   activeSemester={activeSemester}
                   onSelectCase={(caseId) => {
                     setSelectedCaseId(caseId);
+                    setSelectedProcedureId(null);
                     setActiveTab('case-detail');
                   }}
                   onOpenAddCaseModal={() => setIsAddCaseModalOpen(true)}
@@ -668,7 +696,11 @@ export default function App() {
               {activeTab === 'case-detail' && currentCase && (
                 <CaseDetailView
                   dentalCase={currentCase}
-                  onBack={() => setActiveTab('cases')}
+                  initialProcedureId={selectedProcedureId}
+                  onBack={() => {
+                    setSelectedProcedureId(null);
+                    setActiveTab('cases');
+                  }}
                   onUpdateCase={handleUpdateCase}
                   onDeleteCase={handleDeleteCase}
                   onDeleteProcedure={handleDeleteProcedure}
@@ -684,22 +716,38 @@ export default function App() {
                   cases={cases}
                   onSelectCase={(caseId) => {
                     setSelectedCaseId(caseId);
+                    setSelectedProcedureId(null);
                     setActiveTab('case-detail');
                   }}
                 />
               )}
 
-              {/* Clinic Schedule / Timetable */}
+              {/* Clinic Schedule / Monthly Clinical Calendar */}
               {activeTab === 'schedule' && (
                 <ClinicScheduleView
                   schedule={schedule}
+                  cases={cases}
+                  templates={templates}
                   onUpdateSchedule={handleUpdateSchedule}
+                  onUpdateCase={handleUpdateCase}
                   onNavigateToClinic={(place) => {
                     setActiveClinicPlace(place);
                     setActiveTab('today');
                   }}
+                  onSelectCase={(caseId) => {
+                    setSelectedCaseId(caseId);
+                    setSelectedProcedureId(null);
+                    setActiveTab('case-detail');
+                  }}
+                  onSelectProcedure={(caseId, procedureId) => {
+                    setSelectedCaseId(caseId);
+                    setSelectedProcedureId(procedureId);
+                    setActiveTab('case-detail');
+                  }}
+                  onOpenAddCaseModal={() => setIsAddCaseModalOpen(true)}
                   profile={profile}
                   onUpdateProfile={handleUpdateProfile}
+                  onNavigateToSettings={() => setActiveTab('settings')}
                 />
               )}
 
