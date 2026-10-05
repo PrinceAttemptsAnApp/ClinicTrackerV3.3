@@ -44,14 +44,14 @@ export const FirstTimeNameModal: React.FC<FirstTimeNameModalProps> = ({
             Welcome to DentaTrack
           </h2>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-            Your personal 5th-year clinical requirements and chairside tracker. What is your name, Doctor?
+            Keep your cases, requirements, and signed rubrics in one spot. What&apos;s your name, Doctor?
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-              Doctor&apos;s Name / Title
+              Doctor&apos;s Name
             </label>
             <div className="relative">
               <input
@@ -68,7 +68,7 @@ export const FirstTimeNameModal: React.FC<FirstTimeNameModalProps> = ({
                   setName(e.target.value);
                   if (error) setError(null);
                 }}
-                placeholder="e.g. Sarah Ahmed or Omar"
+                placeholder="e.g. Sarah or Omar"
                 className="neu-input w-full px-4 py-3 rounded-xl text-sm font-semibold text-slate-800 bg-white placeholder:text-slate-400"
               />
             </div>
@@ -76,7 +76,7 @@ export const FirstTimeNameModal: React.FC<FirstTimeNameModalProps> = ({
               <p className="text-xs text-rose-600 font-medium mt-1.5">{error}</p>
             )}
             <p className="text-[11px] text-slate-400 mt-1.5">
-              We&apos;ll format this nicely on your header, rubrics, and clinical reports.
+              We&apos;ll put your name on your case reports and PDF exports.
             </p>
           </div>
 
@@ -84,7 +84,7 @@ export const FirstTimeNameModal: React.FC<FirstTimeNameModalProps> = ({
             type="submit"
             className="neu-btn-primary w-full py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-600/25 transition-all"
           >
-            <span>Start Using DentaTrack</span>
+            <span>Let&apos;s Go</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

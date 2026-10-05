@@ -287,7 +287,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               Student & Academic Settings
             </h2>
             <p className="text-xs text-slate-500">
-              Personalize student greeting, target clinical points (200), and academic year
+              Your name, point targets, and academic year
             </p>
           </div>
         </div>
@@ -390,7 +390,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </button>
             </div>
             <p className="text-[11px] text-slate-400 mt-1">
-              Controls case requirements, point tallies, and active clinic sessions.
+              Changes which cases and point targets you&apos;re working on.
             </p>
           </div>
 
@@ -418,7 +418,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 Appearance & Theme
               </h2>
               <p className="text-xs text-slate-500">
-                Choose your preferred visual theme for clinical operatories and low-light environments
+                Choose light or dark mode for clinic operatories
               </p>
             </div>
           </div>
@@ -431,7 +431,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {themeSuccess && (
           <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2 animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <span>Theme preference updated and applied across all views!</span>
+            <span>Theme updated!</span>
           </div>
         )}
 
@@ -463,11 +463,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
               <p className="text-slate-600 leading-relaxed text-xs">
-                Classic high-clarity dental interface with crisp blue accents and soft frosted cards.
+                Bright. Simple. Probably what your mother prefers.
               </p>
             </div>
             <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 font-medium">
-              Bright daylight operatory
+              Daytime &amp; bright clinic
             </div>
           </button>
 
@@ -498,11 +498,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
               <p className="text-slate-600 leading-relaxed text-xs">
-                Deep charcoal & obsidian palette reducing glare during dark clinics and evening study.
+                It&apos;s just dark. Like the inside of your head.
               </p>
             </div>
             <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 font-medium">
-              Low-glare night / clinic
+              Late nights &amp; dark clinics
             </div>
           </button>
 
@@ -533,11 +533,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               </div>
               <p className="text-slate-600 leading-relaxed text-xs">
-                Automatically syncs with your phone, tablet, or laptop&apos;s system display settings.
+                Whatever your phone decides.
               </p>
             </div>
             <div className="mt-3 pt-2 border-t border-slate-200/80 text-[11px] text-slate-500 font-medium">
-              Auto OS preference
+              Matches your device
             </div>
           </button>
         </div>
@@ -743,10 +743,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold text-slate-800">
-              Offline Mode & Local Storage
+              Local Storage &amp; Offline
             </h3>
             <p className="text-xs text-slate-500">
-              Zero cloud server reliance • Fully self-contained inside your device
+              Everything stays on this phone. No random servers.
             </p>
           </div>
         </div>
@@ -790,7 +790,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="flex items-center gap-2">
                 <ShieldCheck className={`w-4 h-4 ${storageHealth.isPersisted ? 'text-emerald-500' : 'text-amber-500'}`} />
                 <span className="font-bold text-slate-800 dark:text-[#f8fafc]">
-                  Storage Protection: {storageHealth.isPersisted ? 'Persistent (Protected from OS Auto-Clear)' : 'Standard Web Quota'}
+                  Storage Protection: {storageHealth.isPersisted ? 'Persistent (Protected from browser cleanup)' : 'Standard Storage'}
                 </span>
               </div>
               {!storageHealth.isPersisted && (
@@ -799,7 +799,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   onClick={handleRequestPersistence}
                   className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-[11px] transition shadow-xs cursor-pointer"
                 >
-                  Enable OS Protection
+                  Enable Protection
                 </button>
               )}
             </div>
@@ -811,7 +811,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         )}
 
         <p className="text-xs text-slate-600 leading-relaxed mb-4">
-          DentaTrack uses local browser IndexedDB storage and a Workbox Service Worker. All patient data, rubric signature photographs, and clinical progress are stored 100% locally on your machine or mobile device and remain accessible when offline in clinics.
+          Your patient cases, rubrics, and photos stay in this device&apos;s storage. It works in clinic basements even with zero signal.
         </p>
 
         {/* Installation Actions */}
@@ -821,7 +821,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             className="neu-btn-primary px-4 py-2 rounded-xl font-bold text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
           >
             <Smartphone className="w-4 h-4" />
-            <span>Open PWA & iOS Installation Guide</span>
+            <span>Install as Phone App</span>
           </button>
 
           {installDismissed && (
@@ -831,13 +831,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               title="Re-show the install button in the top header bar"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Restore Header Install Button</span>
+              <span>Restore Install Button</span>
             </button>
           )}
 
           <div className="text-[11px] text-slate-500 ml-auto flex items-center gap-1">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>{isInstalled ? 'Running in Standalone App Mode' : 'Running in Browser Mode'}</span>
+            <span>{isInstalled ? 'Installed App' : 'Browser'}</span>
           </div>
         </div>
       </div>
@@ -859,10 +859,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold text-slate-800">
-              Full Backup & Device Sync
+              Backup &amp; Restore
             </h3>
             <p className="text-xs text-slate-500">
-              Export everything to transfer between your Windows PC, Android phone, Mac, or iPad
+              Download your data file so you never lose it, or move it to your laptop
             </p>
           </div>
         </div>
@@ -876,7 +876,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
           <p>
-            All data (patient names, file numbers, chairside step milestones, photographed rubrics, signatures, and X-rays) is stored securely in your device&apos;s local IndexedDB.
+            Save a single backup file with all your cases, rubrics, and photos.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <button
@@ -884,7 +884,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               className="neu-btn-primary py-2.5 px-4 rounded-xl font-bold text-xs text-white flex items-center justify-center gap-2 cursor-pointer shadow-sm"
             >
               <Download className="w-4 h-4" />
-              <span>Backup Everything (JSON)</span>
+              <span>Download Backup (JSON)</span>
             </button>
 
             <button
@@ -914,17 +914,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold text-slate-800">
-              Share DentaTrack
+              Share with Classmates
             </h3>
             <p className="text-xs text-slate-500">
-              Free and accessible from any smartphone, tablet, or laptop
+              Free to use on any phone, tablet, or laptop
             </p>
           </div>
         </div>
 
         <div className="mt-3 p-4 rounded-xl bg-sky-50/70 border border-sky-100 text-xs text-slate-700 space-y-3.5">
           <p className="leading-relaxed text-slate-600">
-            DentaTrack is freely hosted on GitHub Pages, making it easy to share with classmates and access from any supported device without requiring downloads or purchases.
+            Send DentaTrack to your friends so they stop losing their paper rubrics too.
           </p>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
@@ -974,7 +974,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
 
             <span className="text-[11px] text-slate-500 italic text-center sm:text-left">
-              DentaTrack is free to use and can be installed as a PWA from your browser.
+              Works right in the browser, no downloads needed.
             </span>
           </div>
 

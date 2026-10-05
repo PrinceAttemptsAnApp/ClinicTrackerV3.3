@@ -233,10 +233,10 @@ export const PlanNextVisitModal: React.FC<PlanNextVisitModalProps> = ({
               </div>
               <div className="min-w-0">
                 <h3 id="plan-visit-title" className="text-base sm:text-lg font-bold truncate text-slate-900 dark:text-white">
-                  Plan Clinical Visit
+                  Plan Next Visit
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  Schedule upcoming procedure actions & dates
+                  Pick what to do next and choose a clinic session
                 </p>
               </div>
             </div>
@@ -289,7 +289,7 @@ export const PlanNextVisitModal: React.FC<PlanNextVisitModalProps> = ({
             {/* 1. CLINICAL ACTION TO PERFORM */}
             <div className="space-y-2">
               <label className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider text-[11px] block">
-                1. Clinical Action to Perform
+                1. What are you doing next?
               </label>
 
               <input
@@ -304,7 +304,7 @@ export const PlanNextVisitModal: React.FC<PlanNextVisitModalProps> = ({
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold flex items-center gap-1">
                   <Tag className="w-2.5 h-2.5" />
-                  <span>Presets:</span>
+                  <span>Quick pick:</span>
                 </span>
                 {ACTION_SUGGESTIONS.map((sugg) => (
                   <button

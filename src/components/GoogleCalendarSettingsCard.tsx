@@ -105,7 +105,7 @@ export const GoogleCalendarSettingsCard: React.FC<GoogleCalendarSettingsCardProp
               )}
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Sync planned patient appointments and clinical sessions to your personal calendar
+              Let Google remember your planned visits.
             </p>
           </div>
         </div>
@@ -126,7 +126,7 @@ export const GoogleCalendarSettingsCard: React.FC<GoogleCalendarSettingsCardProp
       {!isConnected ? (
         <div className="space-y-4 text-xs">
           <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-            Connect DentaTrack to Google Calendar to keep planned patient appointments and clinic shifts automatically organized on your phone and laptop.
+            Connect your Google account so your planned visits show up on your personal calendar.
           </p>
 
           {/* Official Sign in with Google Button */}
@@ -164,7 +164,7 @@ export const GoogleCalendarSettingsCard: React.FC<GoogleCalendarSettingsCardProp
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 flex items-start gap-2.5 text-slate-500 dark:text-slate-400">
             <ShieldCheck className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />
             <p className="leading-relaxed text-[11px]">
-              <strong>Privacy First:</strong> DentaTrack only sends planned appointment times and minimal procedure summaries that you choose to synchronize. Your patient database and radiographs remain stored locally on your device.
+              <strong>Privacy:</strong> Only planned visit dates and procedure names are sent to your calendar. Your full patient records and photos stay on your device.
             </p>
           </div>
 
@@ -185,7 +185,7 @@ export const GoogleCalendarSettingsCard: React.FC<GoogleCalendarSettingsCardProp
                 Google Account
               </span>
               <p className="font-bold text-slate-800 dark:text-slate-200 truncate">
-                {settings.userName || 'Authorized Doctor'}
+                {settings.userName || 'Connected Account'}
               </p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono">
                 {settings.userEmail}
@@ -221,7 +221,7 @@ export const GoogleCalendarSettingsCard: React.FC<GoogleCalendarSettingsCardProp
                 </p>
               )}
               <p className="text-[10px] text-slate-400">
-                Where DentaTrack patient visits are recorded
+                Where your planned visits will be added
               </p>
             </div>
           </div>
@@ -230,10 +230,10 @@ export const GoogleCalendarSettingsCard: React.FC<GoogleCalendarSettingsCardProp
           <div className="p-3.5 rounded-xl bg-sky-50/50 dark:bg-slate-800/40 border border-sky-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                Synchronization Status
+                Sync Status
               </span>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                {formattedLastSync ? `Last synced: ${formattedLastSync}` : 'Ready to synchronize planned visits.'}
+                {formattedLastSync ? `Last synced: ${formattedLastSync}` : 'Ready to sync planned visits.'}
               </p>
             </div>
 
@@ -244,7 +244,7 @@ export const GoogleCalendarSettingsCard: React.FC<GoogleCalendarSettingsCardProp
               className="min-h-[40px] px-4 py-2 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-[0.98] transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm shadow-sky-600/20 shrink-0 self-start sm:self-auto disabled:opacity-60"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Syncing Visits...' : 'Sync Upcoming (60 Days)'}</span>
+              <span>{isSyncing ? 'Syncing...' : 'Sync Upcoming Visits'}</span>
             </button>
           </div>
 

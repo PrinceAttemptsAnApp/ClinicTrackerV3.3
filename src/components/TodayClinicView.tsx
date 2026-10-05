@@ -476,7 +476,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
 
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  No clinic scheduled today
+                  No clinic today. Enjoy it while it lasts.
                 </h2>
 
                 {currentSessionInfo.nextUpcoming ? (
@@ -820,7 +820,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                     : `No active cases in Clinic ${selectedClinicFilter}`}
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-0.5">
-                  Your chairside cases appear here. Tap below to create a new patient record.
+                  Your active cases show up here. Tap below to add a patient.
                 </p>
               </div>
               <button
@@ -888,7 +888,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mx-auto" />
                 <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200">All caught up</p>
                 <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
-                  No outstanding clinical tasks requiring immediate attention.
+                  No missing signatures or pending uploads. Suspicious.
                 </p>
               </div>
             )}

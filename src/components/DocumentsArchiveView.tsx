@@ -135,10 +135,10 @@ export const DocumentsArchiveView: React.FC<DocumentsArchiveViewProps> = ({ case
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Evidence & Rubric Archive
+              Evidence &amp; Rubric Archive
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Repository of all doctor-signed rubrics, radiographs, and clinical photo records
+              All your signed rubric photos, X-rays, and clinical images in one place
             </p>
           </div>
 
@@ -301,9 +301,9 @@ export const DocumentsArchiveView: React.FC<DocumentsArchiveViewProps> = ({ case
       ) : (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-10 text-center space-y-2 border border-dashed border-slate-200 dark:border-slate-800">
           <FileText className="w-8 h-8 text-slate-400 mx-auto" />
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No documents found</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">No files yet.</p>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-            Take photos of signed rubrics or attach clinical evidence in Today&apos;s Clinic or Cases.
+            Photos of signed rubrics and X-rays will show up here.
           </p>
         </div>
       )}

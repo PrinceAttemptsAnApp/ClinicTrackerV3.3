@@ -70,16 +70,7 @@ export const KNOWN_LIMITATIONS: KnownLimitationEntry[] = [
   }
 ];
 
-export const UPCOMING_FEATURES: UpcomingFeatureEntry[] = [
-  {
-    title: '📅 Phone Calendar & Reminder Integration',
-    status: 'In Development',
-    tag: 'Upcoming',
-    description:
-      "We're setting up 1-tap sync to push your planned clinic sessions directly to your iPhone or Android calendar — so your phone can remind you about patients before your supervisor asks where they are.",
-    note: 'Currently being drilled and polished in the lab. Stay tuned!'
-  }
-];
+export const UPCOMING_FEATURES: UpcomingFeatureEntry[] = [];
 
 export const PATCH_NOTES: PatchNoteEntry[] = [
   {

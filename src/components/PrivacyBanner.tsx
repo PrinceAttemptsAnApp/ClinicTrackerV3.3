@@ -25,7 +25,7 @@ export const PrivacyBanner: React.FC = () => {
           <ShieldCheck className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
         </div>
         <p className="font-medium text-slate-700 dark:text-slate-300">
-          <strong className="text-slate-900 dark:text-white">Academic Privacy Notice:</strong> Store only the minimum patient identifiers necessary (Patient Name & File #) for your 5th-year academic records. All data remains strictly local on your device.
+          <strong className="text-slate-900 dark:text-white">Privacy:</strong> Your cases stay on this device. Only enter the patient name and file number needed for your clinical logbook.
         </p>
       </div>
       <button

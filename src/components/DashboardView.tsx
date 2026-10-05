@@ -141,10 +141,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               )}
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-2 tracking-tight">
-              Clinical Requirements Progress
+              Requirements Progress
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Accumulating points across disciplines · MIU Practical Logbook 2026–2027
+              MIU Practical Logbook 2026–2027
             </p>
           </div>
 
@@ -166,7 +166,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Clinical Points Progress Bar */}
         <div className="mt-5 space-y-1.5">
           <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-            <span>Overall Clinical Progress</span>
+            <span>Overall Progress</span>
             <span className="text-sky-600 dark:text-sky-400 font-bold">{overallPercent}% ({pointsAcquired}/{pointsTarget} pts)</span>
           </div>
           <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden p-0.5">
@@ -181,7 +181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex-1">
             <div className="flex justify-between font-semibold text-slate-600 dark:text-slate-400 mb-1">
-              <span>Today&apos;s Chairside Progress</span>
+              <span>Today&apos;s Progress</span>
               <span>{todayProgressPercent}% ({todayStepsCompleted}/{todaySteps.length || 0} steps today)</span>
             </div>
             <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
@@ -224,7 +224,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono tabular-nums">{awaitingSignatures}</p>
           <p className="text-xs font-bold text-amber-700 dark:text-amber-400">Missing Signatures</p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Physical rubric pending</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Rubric photo needed</p>
         </button>
 
         {/* Ready for Moodle */}
@@ -264,7 +264,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono tabular-nums">{fullySubmitted}</p>
           <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Completed & Uploaded</p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Verified on Moodle</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Uploaded to Moodle</p>
         </button>
 
         {/* Comprehensive Cases */}
@@ -284,7 +284,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono tabular-nums">{comprehensiveCases}</p>
           <p className="text-xs font-bold text-sky-700 dark:text-sky-400">Comprehensive Cases</p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">3+ disciplines linked</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">3+ disciplines</p>
         </button>
       </div>
 
@@ -295,10 +295,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center justify-between">
             <h3 className="font-black text-slate-900 dark:text-white text-sm flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <span>Action Required Chairside</span>
+              <span>Needs Your Attention</span>
             </h3>
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-              {actionItems.length} items needing attention
+              {actionItems.length} items to check
             </span>
           </div>
 
@@ -350,8 +350,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           ) : (
             <div className="p-8 text-center rounded-2xl bg-slate-50/60 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 space-y-1.5">
               <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto stroke-[1.8]" />
-              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">All signatures & submissions up to date!</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto">No pending instructor rubrics or unsubmitted Moodle cases.</p>
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">All caught up!</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto">No missing signatures or pending Moodle uploads. Suspicious.</p>
             </div>
           )}
         </div>

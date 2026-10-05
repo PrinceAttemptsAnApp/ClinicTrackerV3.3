@@ -40,62 +40,62 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
     {
       title: 'Welcome to DentaTrack',
       icon: Award,
-      badge: 'Overview',
+      badge: 'Quick Start',
       content: (
         <div className="space-y-3.5 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            <strong>DentaTrack</strong> is an all-in-one clinical requirements tracker and academic portfolio designed specifically for 5th-year dental students. It helps you monitor chairside procedure milestones, track signed rubrics, log photographic evidence, and prepare Moodle submissions without hassle.
+            <strong>DentaTrack</strong> keeps your clinical requirements, patient cases, and signed rubrics in one spot so nothing gets lost before submission.
           </p>
 
           {/* Doctor Profile Greeting */}
           <div className="p-3.5 rounded-2xl bg-sky-50/90 border border-sky-200 text-slate-700 space-y-1.5">
             <div className="flex items-center gap-2 text-sky-900 font-bold text-xs sm:text-sm">
               <UserCheck className="w-4 h-4 text-sky-600" />
-              <span>Personalized for {profile?.studentName || 'Doctor'}</span>
+              <span>Ready for {profile?.studentName || 'Doctor'}</span>
             </div>
             <p className="text-xs text-slate-600">
-              Your clinical dashboard, rubric records, and export reports are ready. You can adjust your student ID, targets, and notation anytime in Settings.
+              Your cases and requirement dashboard are ready. You can change your targets or tooth numbering anytime in Settings.
             </p>
           </div>
 
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600">
-            <strong>Key Philosophy:</strong> Minimal clicks chairside. Every case is instantly recognized by <strong>Patient Name & File Number</strong> rather than confusing auto-generated identifiers.
+            <strong>How it works:</strong> Add your patient, log what procedure you&apos;re doing, and tap steps as you finish them at the chair.
           </div>
         </div>
       ),
     },
     {
-      title: 'How to Use & Fast Chairside Workflow',
+      title: 'Fast Chairside Steps',
       icon: Calendar,
-      badge: 'Chairside Guide',
+      badge: '4 Quick Steps',
       content: (
         <div className="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            DentaTrack is optimized for fast use while wearing gloves at the dental chair:
+            Simple workflow designed for quick taps while working in clinic:
           </p>
           <ul className="space-y-2 text-xs text-slate-700">
-            <li className="p-2 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2 shadow-2xs">
+            <li className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2.5 shadow-2xs">
               <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 font-bold flex items-center justify-center flex-shrink-0 text-[11px] mt-0.5">1</span>
               <div>
-                <strong>Create Patient Case:</strong> Tap <em>+ New Case</em>, type the patient name and clinic file number, choose clinic place (A, C, B, M, N, G), and select your starting discipline.
+                <strong>Add your patient:</strong> Tap <em>+ New Case</em>, type their name and file number, and pick your clinic.
               </div>
             </li>
-            <li className="p-2 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2 shadow-2xs">
+            <li className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2.5 shadow-2xs">
               <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 font-bold flex items-center justify-center flex-shrink-0 text-[11px] mt-0.5">2</span>
               <div>
-                <strong>Removable vs. Tooth Selection:</strong> For Removable Prosthodontics, procedures are automatically assigned to entire jaws (Maxillary Arch or Mandibular Arch). For Fixed, Endo, and Operative, tap individual teeth using the interactive quadrant chart.
+                <strong>Pick the teeth:</strong> Tap the teeth on the chart, or select upper/lower arch for dentures.
               </div>
             </li>
-            <li className="p-2 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2 shadow-2xs">
+            <li className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2.5 shadow-2xs">
               <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 font-bold flex items-center justify-center flex-shrink-0 text-[11px] mt-0.5">3</span>
               <div>
-                <strong>Macro Milestones:</strong> Track meaningful milestones (like <em>Reduction, Secondary Impression, Try-in, Delivery</em>) rather than micro-steps. Mark them done with a single tap.
+                <strong>Tap milestones:</strong> Check off steps (like <em>Prep, Impression, or Delivery</em>) as you finish them.
               </div>
             </li>
-            <li className="p-2 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2 shadow-2xs">
+            <li className="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-start gap-2.5 shadow-2xs">
               <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 font-bold flex items-center justify-center flex-shrink-0 text-[11px] mt-0.5">4</span>
               <div>
-                <strong>Plan Next Visit:</strong> Log what you will do next session so you come to clinic completely prepared.
+                <strong>Plan next visit:</strong> Save what you&apos;re doing next session so you come to clinic prepared.
               </div>
             </li>
           </ul>
@@ -103,108 +103,108 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
       ),
     },
     {
-      title: 'The Comprehensive Case Rule',
+      title: 'Comprehensive Cases',
       icon: FileCheck2,
-      badge: 'Academic Rule',
+      badge: 'Requirements',
       content: (
         <div className="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            The Comprehensive Clinic integrates core specialties: <strong>Fixed Prosthodontics, Operative Dentistry, Endodontics, Removable Prosthodontics, and Periodontics</strong> (plus Pedo and Oral Surgery).
+            The Comprehensive Clinic combines: <strong>Fixed, Operative, Endo, Removable, and Perio</strong>.
           </p>
           <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-950 space-y-1">
             <p className="font-bold flex items-center gap-1.5 text-xs sm:text-sm">
               <Layers className="w-4 h-4 text-purple-700" />
-              <span>Automatic 3-Discipline Detection</span>
+              <span>Automatic 3-Discipline Tag</span>
             </p>
             <p className="text-xs">
-              Whenever a patient case contains procedures spanning <strong>3 or more distinct dental disciplines</strong>, DentaTrack automatically badges it as a <strong>Comprehensive Case</strong>.
+              When a patient has procedures from <strong>3 or more disciplines</strong>, DentaTrack automatically marks it as a <strong>Comprehensive Case</strong>.
             </p>
           </div>
           <p className="text-xs text-slate-500">
-            <strong>Target:</strong> You need to complete at least 1 comprehensive case per semester and present your primary comprehensive case at the end-of-year examination.
+            <strong>Goal:</strong> You need at least 1 comprehensive case per semester.
           </p>
         </div>
       ),
     },
     {
-      title: 'Rubric Scanning & Moodle Submissions',
+      title: 'Rubrics & PDF Exports',
       icon: Camera,
-      badge: 'Signatures & Evidence',
+      badge: 'Signatures',
       content: (
         <div className="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            Safeguard your hard-earned clinical requirements against lost paper sheets:
+            Never lose a signed rubric sheet again:
           </p>
           <ol className="list-decimal pl-5 space-y-2 text-xs text-slate-700">
             <li>
-              When your Teaching Assistant (TA) or PhD staff doctor signs your physical rubric sheet, open the procedure in DentaTrack.
+              When your doctor or TA signs your rubric paper, open the procedure.
             </li>
             <li>
-              Tap <strong>Add Rubric / Photo</strong> and capture the signed sheet with your phone camera.
+              Tap <strong>Add Rubric</strong> and take a quick photo with your phone.
             </li>
             <li>
-              Confirm <em>&ldquo;Is this document signed?&rdquo;</em> &rarr; <strong>Yes</strong> to mark the rubric as officially signed.
+              Mark it as <strong>Signed</strong> so your points count.
             </li>
             <li>
-              Attach before/after radiographs and intra-oral photographs to build your portfolio.
+              Attach before/after X-rays and photos to complete your evidence.
             </li>
             <li>
-              When Moodle requirement submission windows open, tap <strong>Export Case PDF</strong> to generate a clean summary bundle ready for upload.
+              When it&apos;s time to submit, tap <strong>Export Case PDF</strong> to get your clean file for Moodle.
             </li>
           </ol>
         </div>
       ),
     },
     {
-      title: 'Offline Mode & Multi-Platform PWA',
+      title: 'Works Offline on Any Device',
       icon: Laptop,
-      badge: 'Zero Cloud Server',
+      badge: 'Private & Local',
       content: (
         <div className="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <p>
-            DentaTrack runs directly in modern browsers and can be installed as an offline Progressive Web App (PWA) on <strong>iOS (iPhone/iPad), Android, Windows, and Mac</strong>.
+            DentaTrack works right in your browser and installs on <strong>iPhone, Android, Windows, and Mac</strong>.
           </p>
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs space-y-1">
-            <p className="font-bold">100% Local & Private</p>
+            <p className="font-bold">100% Local on Your Phone</p>
             <p>
-              All patient records, rubric photographs, and clinical progress are stored safely inside your device&apos;s local <strong>IndexedDB</strong>. It continues working even in hospital basements with zero cellular reception.
+              Your patient notes and rubric photos stay on your device. It works in clinic basements even with zero signal.
             </p>
           </div>
           <p className="text-xs text-slate-500">
-            <strong>Backup & Restore:</strong> Head to the <em>Settings</em> tab anytime to download a full JSON backup of all your cases or transfer your data to a new phone or computer.
+            <strong>Backup:</strong> Head to <em>Settings</em> anytime to download a backup file of all your cases.
           </p>
         </div>
       ),
     },
     {
-      title: 'Solo Passion Project & Feedback',
+      title: 'Made by a Dental Student',
       icon: Heart,
-      badge: 'Developer Note',
+      badge: 'Student Note',
       content: (
         <div className="space-y-3.5 text-xs sm:text-sm text-slate-600 leading-relaxed">
           <div className="p-3 rounded-xl bg-rose-50/80 border border-rose-200 text-rose-950 space-y-1">
             <p className="font-bold text-xs sm:text-sm flex items-center gap-1.5">
               <Heart className="w-4 h-4 text-rose-600 fill-rose-600" />
-              <span>Built by a Dental Student, for Dental Students</span>
+              <span>Built for 5th Year Dental Students</span>
             </p>
             <p className="text-xs text-slate-700 leading-relaxed">
-              DentaTrack was created as a solo passion project by a 5th-year dental student to solve the daily chaos of paper rubrics, lost requirement slips, and frantic end-of-semester calculations.
+              DentaTrack was made to stop lost paper rubrics, messy requirement slips, and end-of-semester stress.
             </p>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 space-y-2 text-xs text-slate-700">
             <div className="flex items-center gap-2 font-bold text-sky-900">
               <Mail className="w-4 h-4 text-sky-600" />
-              <span>Direct Bug Reports & Feature Suggestions</span>
+              <span>Have feedback or found a bug?</span>
             </div>
             <p>
-              Found a bug, visual glitch, or have an idea to improve the app? Please send an email directly to:
+              Send an email directly to:
             </p>
             <div className="p-2 rounded-xl bg-white border border-sky-200 text-center font-mono font-bold text-sky-800 text-xs sm:text-sm select-all">
               amir2101233@miuegypt.edu.eg
             </div>
             <p className="text-[11px] text-slate-500 leading-normal">
-              <strong>Tip:</strong> Please include your <strong>device specifications</strong> (e.g. iPhone 13 / iOS 17 or Samsung Galaxy S23 / Android 14) along with <strong>screenshots</strong> so any issues can be reproduced and resolved quickly!
+              <strong>Tip:</strong> Include your phone model and a screenshot so anything can be fixed quickly!
             </p>
           </div>
         </div>

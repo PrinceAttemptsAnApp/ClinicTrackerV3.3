@@ -347,7 +347,7 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
               {isAlreadyUploaded ? 'Update Schedule' : 'Import Clinical Schedule'}
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-[#cbd5e1]">
-              100% Offline • Processed locally on this device without internet connection.
+              100% Offline • Processed right on your device.
             </p>
           </div>
         </div>
@@ -468,10 +468,10 @@ export const SchedulePdfUploader: React.FC<SchedulePdfUploaderProps> = ({
             <div className="space-y-1">
               <Upload className="w-7 h-7 mx-auto text-sky-600 mb-1" />
               <p className="text-xs font-bold text-slate-700">
-                Click to select Schedule PDF or drag & drop here
+                Tap to pick your timetable PDF, or drop it here
               </p>
               <p className="text-[11px] text-slate-400">
-                Supports Egyptian & international university timetable PDFs (MIU, Cairo, Ain Shams, etc.)
+                Supports university timetable PDFs (MIU, Cairo, Ain Shams, etc.)
               </p>
             </div>
           )}

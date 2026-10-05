@@ -402,7 +402,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                   Clinical Calendar
                 </h1>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Monthly clinical schedule & planned patient workflows
+                  Monthly clinic schedule and planned patient visits
                 </p>
               </div>
             </div>
@@ -750,7 +750,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
             </div>
           ) : (
             <div className="p-3.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-200/60 dark:border-slate-800 text-center text-xs text-slate-400 italic">
-              No recurring university clinic duty scheduled on {selectedCell.dayOfWeekName}s.
+              No clinic sessions scheduled on {selectedCell.dayOfWeekName}s.
             </div>
           )}
         </div>
@@ -918,7 +918,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                   University Timetable Management
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Weekly clinical duties, clinic stations & schedule import
+                  Weekly clinic timetable and schedule import
                 </p>
               </div>
               <button
