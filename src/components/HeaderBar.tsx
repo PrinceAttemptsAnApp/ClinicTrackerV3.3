@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Wifi, WifiOff, Stethoscope } from 'lucide-react';
+import { Sparkles, Wifi, WifiOff } from 'lucide-react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { PWAInstallButton } from './PWAInstallButton';
 import { StudentProfile } from '../types';
+import { ToothIcon } from '../lib/clinicalVisuals';
 import { haptic } from '../lib/haptics';
 
 interface HeaderBarProps {
@@ -135,7 +136,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         {/* Left: App Identity & Rotating Doctor Greeting */}
         <div className="flex items-center gap-3 max-w-full sm:max-w-[65%] md:max-w-[70%]">
           <div className="w-10 h-10 rounded-2xl bg-sky-600 text-white flex items-center justify-center shadow-md shadow-sky-600/30 flex-shrink-0">
-            <Stethoscope className="w-5 h-5 text-white" />
+            <ToothIcon className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -191,11 +192,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
               haptic.light();
               onOpenTutorial();
             }}
-            className="neu-btn px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-sky-700 cursor-pointer flex items-center gap-1 active:scale-95"
+            className="neu-btn px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-sky-700 dark:hover:text-sky-400 cursor-pointer flex items-center gap-1 active:scale-95 transition"
             title="Open Interactive Clinical Workflow Tutorial"
           >
             <span className="hidden sm:inline">Guide</span>
-            <span className="w-4 h-4 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center text-[10px] font-bold">?</span>
+            <span className="w-4 h-4 rounded-full bg-sky-100 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 flex items-center justify-center text-[10px] font-bold">?</span>
           </button>
 
           {/* PWA Install Button */}

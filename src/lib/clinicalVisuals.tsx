@@ -1,18 +1,36 @@
 import React from 'react';
-import { 
-  Crown, 
-  Zap, 
-  Sparkles, 
-  ShieldCheck, 
-  Scissors, 
-  Smile, 
-  Compass, 
-  Award, 
-  Stethoscope,
-  Layers,
-  Activity
-} from 'lucide-react';
 import { DisciplineType } from '../types';
+import { 
+  ToothIcon, 
+  EndoToothIcon, 
+  OperativeToothIcon, 
+  RemovableDentureIcon, 
+  PeriodonticIcon, 
+  OralSurgeryIcon, 
+  PediatricToothIcon, 
+  OrthodonticsIcon,
+  getDisciplineIcon,
+  getProcedureIcon,
+  getClinicalActionIcon,
+  getStatusIcon,
+  getNavigationIcon
+} from './clinicalIcons';
+
+export {
+  ToothIcon, 
+  EndoToothIcon, 
+  OperativeToothIcon, 
+  RemovableDentureIcon, 
+  PeriodonticIcon, 
+  OralSurgeryIcon, 
+  PediatricToothIcon, 
+  OrthodonticsIcon,
+  getDisciplineIcon,
+  getProcedureIcon,
+  getClinicalActionIcon,
+  getStatusIcon,
+  getNavigationIcon
+};
 
 /**
  * Generates 1-2 uppercase initials from a patient name.
@@ -81,46 +99,6 @@ export function getPatientAvatarTheme(name: string): {
   }
   const index = Math.abs(hash) % themes.length;
   return themes[index];
-}
-
-/**
- * Returns a discipline-specific icon component.
- */
-export function getDisciplineIcon(
-  discipline: DisciplineType | string,
-  className: string = 'w-4 h-4'
-): React.ReactElement {
-  const disc = discipline.toLowerCase();
-
-  if (disc.includes('fixed') || disc.includes('crown') || disc.includes('bridge')) {
-    return <Crown className={className} />;
-  }
-  if (disc.includes('endo') || disc.includes('root')) {
-    return <Zap className={className} />;
-  }
-  if (disc.includes('operative') || disc.includes('restorative')) {
-    return <Sparkles className={className} />;
-  }
-  if (disc.includes('removable') || disc.includes('denture') || disc.includes('prostho')) {
-    return <Layers className={className} />;
-  }
-  if (disc.includes('perio') || disc.includes('scaling')) {
-    return <ShieldCheck className={className} />;
-  }
-  if (disc.includes('surgery') || disc.includes('extraction')) {
-    return <Scissors className={className} />;
-  }
-  if (disc.includes('pedo') || disc.includes('pediatric')) {
-    return <Smile className={className} />;
-  }
-  if (disc.includes('ortho')) {
-    return <Compass className={className} />;
-  }
-  if (disc.includes('comprehensive')) {
-    return <Award className={className} />;
-  }
-
-  return <Stethoscope className={className} />;
 }
 
 /**
@@ -198,3 +176,66 @@ export function getDisciplineTheme(discipline: DisciplineType | string): {
     accent: 'text-slate-600 dark:text-slate-400',
   };
 }
+
+/**
+ * Returns a cohesive visual configuration for a clinical case status.
+ */
+export function getCaseStatusVisual(c: {
+  status: string;
+  procedures: {
+    steps: { isCompleted: boolean }[];
+    rubrics: { status: string }[];
+    moodleStatus?: string;
+  }[];
+}): {
+  label: string;
+  dotColor: string;
+  badgeStyle: string;
+  progressColor: string;
+  isAttentionNeeded: boolean;
+} {
+  const allProcedures = c.procedures || [];
+  const isAllSubmitted = allProcedures.length > 0 && allProcedures.every((p) => p.moodleStatus === 'Submitted');
+  const isAwaitingSignatures =
+    c.status === 'Finished (Awaiting Signatures)' ||
+    allProcedures.some((p) => p.rubrics.some((r) => r.status === 'Pending'));
+
+  if (c.status === 'Completed' || isAllSubmitted) {
+    return {
+      label: 'Completed',
+      dotColor: 'bg-emerald-500',
+      badgeStyle: 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200/90 dark:border-emerald-800/60',
+      progressColor: 'bg-emerald-500',
+      isAttentionNeeded: false,
+    };
+  }
+
+  if (isAwaitingSignatures) {
+    return {
+      label: 'Missing Signatures',
+      dotColor: 'bg-amber-500 animate-pulse',
+      badgeStyle: 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-200/90 dark:border-amber-800/60',
+      progressColor: 'bg-amber-500',
+      isAttentionNeeded: true,
+    };
+  }
+
+  if (c.status === 'Ready for Moodle') {
+    return {
+      label: 'Ready for Moodle',
+      dotColor: 'bg-purple-500',
+      badgeStyle: 'text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/60 border-purple-200/90 dark:border-purple-800/60',
+      progressColor: 'bg-purple-500',
+      isAttentionNeeded: false,
+    };
+  }
+
+  return {
+    label: 'In Progress',
+    dotColor: 'bg-sky-500',
+    badgeStyle: 'text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/60 border-sky-200/90 dark:border-sky-800/60',
+    progressColor: 'bg-sky-500',
+    isAttentionNeeded: false,
+  };
+}
+

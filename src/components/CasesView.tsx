@@ -20,7 +20,7 @@ import {
   ArrowRight,
   Loader2,
   MoreVertical,
-  Briefcase,
+  FolderHeart,
   Layers,
   Award
 } from 'lucide-react';
@@ -36,7 +36,8 @@ import {
   getPatientInitials, 
   getPatientAvatarTheme, 
   getDisciplineIcon, 
-  getDisciplineTheme 
+  getDisciplineTheme,
+  getStatusIcon
 } from '../lib/clinicalVisuals';
 import { haptic } from '../lib/haptics';
 import { ModalPortal } from './ModalPortal';
@@ -185,7 +186,7 @@ export const CasesView: React.FC<CasesViewProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-sky-600/10 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center border border-sky-200/60 dark:border-sky-800/60 shrink-0">
-              <Briefcase className="w-5 h-5 stroke-[2.2]" />
+              <FolderHeart className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div>
               <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -418,7 +419,7 @@ export const CasesView: React.FC<CasesViewProps> = ({
                   {/* Status Tag & 3-Dots Action Menu */}
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`text-[11px] font-bold px-2.5 py-1 rounded-xl border ${statusStyle} whitespace-nowrap inline-flex items-center gap-1.5`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor}`} />
+                      {getStatusIcon(statusText, 'w-3 h-3 shrink-0')}
                       <span>{statusText}</span>
                     </span>
 

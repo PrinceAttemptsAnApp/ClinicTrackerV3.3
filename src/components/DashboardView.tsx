@@ -7,12 +7,18 @@ import {
   AlertTriangle, 
   ChevronRight, 
   Sparkles,
-  User,
   Layers,
   TrendingUp,
-  Stethoscope
+  Stethoscope,
+  Check
 } from 'lucide-react';
 import { DentalCase, StudentProfile } from '../types';
+import { 
+  getPatientInitials, 
+  getPatientAvatarTheme, 
+  getDisciplineIcon, 
+  getDisciplineTheme 
+} from '../lib/clinicalVisuals';
 import { haptic } from '../lib/haptics';
 
 interface DashboardViewProps {
@@ -84,6 +90,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     caseId: string;
     patientName: string;
     fileNumber: string;
+    discipline?: string;
     type: 'signature' | 'moodle' | 'incomplete';
     message: string;
   }[] = [];
@@ -96,6 +103,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           caseId: c.id,
           patientName: c.patientName,
           fileNumber: c.fileNumber,
+          discipline: p.discipline,
           type: 'signature',
           message: `${p.title}: Instructor signature missing (${pendingRubric.instructorName || 'Rubric'})`,
         });
@@ -104,6 +112,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           caseId: c.id,
           patientName: c.patientName,
           fileNumber: c.fileNumber,
+          discipline: p.discipline,
           type: 'moodle',
           message: `${p.title}: Signed & ready for Moodle submission`,
         });
@@ -112,70 +121,70 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   });
 
   return (
-    <div className="space-y-5">
-      {/* Top Clinical Progress & Points Card */}
-      <div className="frosted-card rounded-2xl p-5 sm:p-6">
+    <div className="space-y-4 animate-in fade-in duration-150">
+      {/* 1. CLINICAL PROGRESS & POINTS HERO */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200/90 dark:border-slate-800 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-sky-500/15 text-sky-700 border border-sky-500/30">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
                 {activeSemester} Overview
               </span>
               {comprehensiveCases >= 1 ? (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> 1+ Comprehensive Case Met
                 </span>
               ) : (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 border border-amber-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                   Target: 1 Comprehensive Case Needed
                 </span>
               )}
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-[#f8fafc] mt-2">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-2 tracking-tight">
               Clinical Requirements Progress
             </h2>
-            <p className="text-xs text-slate-500 dark:text-[#cbd5e1] mt-0.5">
-              Accumulating points across disciplines • Monitored for year-end presentation
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Accumulating points across disciplines · MIU Practical Logbook 2026–2027
             </p>
           </div>
 
           {/* Points Badge */}
-          <div className="neu-btn px-5 py-3 rounded-2xl flex items-center gap-4 bg-white/70 dark:bg-[#1e293b]">
+          <div className="px-5 py-3 rounded-2xl flex items-center gap-4 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#cbd5e1]">Total Points</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Points</p>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400">{pointsAcquired}</span>
-                <span className="text-xs font-semibold text-slate-400 dark:text-[#cbd5e1]">/ {pointsTarget} pts</span>
+                <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 font-mono tabular-nums">{pointsAcquired}</span>
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">/ {pointsTarget} pts</span>
               </div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 font-black flex items-center justify-center text-sm border border-sky-200 dark:border-sky-800">
+            <div className="w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 font-black flex items-center justify-center text-sm border border-sky-200 dark:border-sky-800">
               {overallPercent}%
             </div>
           </div>
         </div>
 
         {/* Clinical Points Progress Bar */}
-        <div className="mt-5">
-          <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-[#e2e8f0] mb-1.5">
+        <div className="mt-5 space-y-1.5">
+          <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
             <span>Overall Clinical Progress</span>
-            <span className="text-sky-700 dark:text-sky-400 font-bold">{overallPercent}% completed ({pointsAcquired}/{pointsTarget} pts)</span>
+            <span className="text-sky-600 dark:text-sky-400 font-bold">{overallPercent}% ({pointsAcquired}/{pointsTarget} pts)</span>
           </div>
-          <div className="w-full h-3.5 rounded-full bg-slate-200/80 dark:bg-slate-700/60 overflow-hidden p-0.5 shadow-inner">
+          <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden p-0.5">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-500 to-sky-600 transition-all duration-500 shadow-sm"
+              className="h-full rounded-full bg-sky-600 dark:bg-sky-500 transition-all duration-500"
               style={{ width: `${overallPercent}%` }}
             />
           </div>
         </div>
 
         {/* Today's Clinical Progress Bar */}
-        <div className="mt-4 pt-4 border-t border-slate-200/70 dark:border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="flex-1">
-            <div className="flex justify-between font-semibold text-slate-600 dark:text-[#cbd5e1] mb-1">
-              <span>Today&apos;s Clinic Chairside Progress</span>
+            <div className="flex justify-between font-semibold text-slate-600 dark:text-slate-400 mb-1">
+              <span>Today&apos;s Chairside Progress</span>
               <span>{todayProgressPercent}% ({todayStepsCompleted}/{todaySteps.length || 0} steps today)</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-slate-200/70 dark:bg-slate-700/60 overflow-hidden">
+            <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
               <div
                 className="h-full rounded-full bg-emerald-500 transition-all duration-500"
                 style={{ width: `${todayProgressPercent}%` }}
@@ -183,11 +192,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <button
+            type="button"
             onClick={() => {
               haptic.light();
               onNavigateToToday();
             }}
-            className="neu-btn-primary px-3.5 py-1.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-1 cursor-pointer flex-shrink-0 active:scale-95"
+            className="min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-xs transition"
           >
             <Stethoscope className="w-3.5 h-3.5" />
             <span>Open Today&apos;s Clinic</span>
@@ -195,168 +205,195 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Interactive Metric Buttons (Clickable filters taking user directly to the list!) */}
+      {/* 2. INTERACTIVE METRIC TILES */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Awaiting Signature */}
         <button
+          type="button"
           onClick={() => {
             haptic.light();
             onNavigateToCases('awaiting-signature');
           }}
-          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 text-left hover:border-amber-400 dark:hover:border-amber-600 transition shadow-xs cursor-pointer group active:scale-[0.99]"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition" />
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition" />
           </div>
-          <p className="text-xl font-black text-slate-800 dark:text-[#f8fafc] mt-2">{awaitingSignatures}</p>
-          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Awaiting Signature</p>
-          <p className="text-[10px] text-slate-400 dark:text-[#cbd5e1] mt-0.5">Click to view cases</p>
+          <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono tabular-nums">{awaitingSignatures}</p>
+          <p className="text-xs font-bold text-amber-700 dark:text-amber-400">Missing Signatures</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Physical rubric pending</p>
         </button>
 
         {/* Ready for Moodle */}
         <button
+          type="button"
           onClick={() => {
             haptic.light();
             onNavigateToCases('ready-moodle');
           }}
-          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 text-left hover:border-purple-400 dark:hover:border-purple-600 transition shadow-xs cursor-pointer group active:scale-[0.99]"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/70 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800 flex items-center justify-center">
               <Send className="w-4 h-4" />
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition" />
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition" />
           </div>
-          <p className="text-xl font-black text-slate-800 dark:text-[#f8fafc] mt-2">{readyForMoodle}</p>
-          <p className="text-xs font-semibold text-purple-700 dark:text-purple-400">Ready for Moodle</p>
-          <p className="text-[10px] text-slate-400 dark:text-[#cbd5e1] mt-0.5">Signed & ready to export</p>
+          <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono tabular-nums">{readyForMoodle}</p>
+          <p className="text-xs font-bold text-purple-700 dark:text-purple-400">Ready for Moodle</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Signed & ready to export</p>
         </button>
 
         {/* Completed / Submitted */}
         <button
+          type="button"
           onClick={() => {
             haptic.light();
             onNavigateToCases('submitted');
           }}
-          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 text-left hover:border-emerald-400 dark:hover:border-emerald-600 transition shadow-xs cursor-pointer group active:scale-[0.99]"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition" />
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition" />
           </div>
-          <p className="text-xl font-black text-slate-800 dark:text-[#f8fafc] mt-2">{fullySubmitted}</p>
-          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Moodle Submitted</p>
-          <p className="text-[10px] text-slate-400 dark:text-[#cbd5e1] mt-0.5">Archived & uploaded</p>
+          <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono tabular-nums">{fullySubmitted}</p>
+          <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Completed & Uploaded</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Verified on Moodle</p>
         </button>
 
         {/* Comprehensive Cases */}
         <button
+          type="button"
           onClick={() => {
             haptic.light();
             onNavigateToCases('comprehensive');
           }}
-          className="neu-btn p-4 rounded-2xl text-left transition hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 text-left hover:border-sky-400 dark:hover:border-sky-600 transition shadow-xs cursor-pointer group active:scale-[0.99]"
         >
           <div className="flex items-center justify-between">
-            <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800 flex items-center justify-center">
               <Sparkles className="w-4 h-4" />
             </div>
-            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition" />
+            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition" />
           </div>
-          <p className="text-xl font-black text-slate-800 dark:text-[#f8fafc] mt-2">{comprehensiveCases}</p>
-          <p className="text-xs font-semibold text-sky-700 dark:text-sky-400">Comprehensive Cases</p>
-          <p className="text-[10px] text-slate-400 dark:text-[#cbd5e1] mt-0.5">3+ disciplines combined</p>
+          <p className="text-2xl font-black text-slate-900 dark:text-white mt-2 font-mono tabular-nums">{comprehensiveCases}</p>
+          <p className="text-xs font-bold text-sky-700 dark:text-sky-400">Comprehensive Cases</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">3+ disciplines linked</p>
         </button>
       </div>
 
-      {/* Action Required List & Discipline Progress Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* 3. ACTION REQUIRED & DISCIPLINE PROGRESS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Action Required Column */}
-        <div className="lg:col-span-2 frosted-card rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-extrabold text-slate-800 dark:text-[#f8fafc] text-sm flex items-center gap-2">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-slate-900 dark:text-white text-sm flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
-              Action Required Chairside
+              <span>Action Required Chairside</span>
             </h3>
-            <span className="text-[11px] font-semibold text-slate-400 dark:text-[#cbd5e1]">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               {actionItems.length} items needing attention
             </span>
           </div>
 
           {actionItems.length > 0 ? (
             <div className="space-y-2">
-              {actionItems.slice(0, 6).map((item, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    haptic.light();
-                    onSelectCase(item.caseId);
-                  }}
-                  className="p-3 rounded-xl surface-card-interactive hover:border-sky-300 dark:hover:border-sky-500 transition flex items-center justify-between gap-3 cursor-pointer group shadow-2xs active:scale-[0.99]"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-sm">
-                      {item.type === 'signature' ? '🟡' : item.type === 'moodle' ? '🟣' : '⚪'}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-slate-800 dark:text-[#f8fafc] text-xs truncate">
-                          {item.patientName}
-                        </p>
-                        <span className="badge-neutral text-[10px] font-mono px-1.5 py-0.5 rounded">
-                          #{item.fileNumber}
-                        </span>
+              {actionItems.slice(0, 6).map((item, idx) => {
+                const initials = getPatientInitials(item.patientName);
+                const avatarTheme = getPatientAvatarTheme(item.patientName);
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      haptic.light();
+                      onSelectCase(item.caseId);
+                    }}
+                    className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 hover:border-sky-400 dark:hover:border-sky-600 transition flex items-center justify-between gap-3 cursor-pointer group active:scale-[0.995]"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-8 h-8 rounded-lg ${avatarTheme.bg} ${avatarTheme.text} border ${avatarTheme.border} font-bold text-[11px] flex items-center justify-center shrink-0`}>
+                        {initials}
                       </div>
-                      <p className="text-[11px] text-slate-600 dark:text-[#cbd5e1] truncate mt-0.5 font-medium">
-                        {item.message}
-                      </p>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-slate-900 dark:text-white text-xs truncate group-hover:text-sky-600 transition-colors">
+                            {item.patientName}
+                          </p>
+                          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                            #{item.fileNumber}
+                          </span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-md ${
+                            item.type === 'signature'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300'
+                              : 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300'
+                          }`}>
+                            {item.type === 'signature' ? 'Signature' : 'Moodle'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
+                          {item.message}
+                        </p>
+                      </div>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition shrink-0" />
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition flex-shrink-0" />
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <div className="p-8 text-center rounded-xl surface-muted border border-slate-200/60 dark:border-slate-700/60">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-              <p className="font-bold text-slate-800 dark:text-[#f8fafc] text-xs">All signatures and submissions up to date!</p>
-              <p className="text-[11px] text-slate-500 dark:text-[#94a3b8] mt-1 font-medium">No overdue clinical rubrics or Moodle uploads pending.</p>
+            <div className="p-8 text-center rounded-2xl bg-slate-50/60 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800 space-y-1.5">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto stroke-[1.8]" />
+              <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">All signatures & submissions up to date!</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mx-auto">No pending instructor rubrics or unsubmitted Moodle cases.</p>
             </div>
           )}
         </div>
 
         {/* Discipline / Course Progress */}
-        <div className="frosted-card rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-extrabold text-slate-800 dark:text-[#f8fafc] text-sm flex items-center gap-2">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-black text-slate-900 dark:text-white text-sm flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-              Course Progress
+              <span>Disciplines</span>
             </h3>
-            <span className="text-[11px] text-slate-400 dark:text-[#cbd5e1] font-semibold">{disciplines.length} Courses</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">{disciplines.length} Areas</span>
           </div>
 
           <div className="space-y-3 text-xs">
-            {disciplineStats.map((stat) => (
-              <div key={stat.name} className="space-y-1">
-                <div className="flex justify-between font-semibold text-[11px]">
-                  <span className="font-bold text-slate-800 dark:text-[#f8fafc]">{stat.name}</span>
-                  <span className="text-slate-500 dark:text-[#cbd5e1] font-medium">
-                    {stat.completed} completed ({stat.pct}%)
-                  </span>
+            {disciplineStats.map((stat) => {
+              const discTheme = getDisciplineTheme(stat.name);
+
+              return (
+                <div key={stat.name} className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className={discTheme.accent}>
+                        {getDisciplineIcon(stat.name, 'w-3.5 h-3.5')}
+                      </span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">{stat.name}</span>
+                    </div>
+                    <span className="text-slate-500 dark:text-slate-400 text-[11px] font-mono tabular-nums">
+                      {stat.completed}/{stat.total} ({stat.pct}%)
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        stat.pct === 100 ? 'bg-emerald-500' : 'bg-sky-500'
+                      }`}
+                      style={{ width: `${stat.pct}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-200/80 dark:bg-slate-700/60 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-sky-600 dark:bg-sky-500 transition-all duration-300"
-                    style={{ width: `${stat.pct}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

@@ -37,7 +37,9 @@ import { resolvePlannedVisit } from '../lib/visitPlanner';
 import { computeIsComprehensive } from '../lib/storage';
 import { 
   getDisciplineIcon, 
-  getDisciplineTheme 
+  getDisciplineTheme,
+  ToothIcon,
+  getStatusIcon
 } from '../lib/clinicalVisuals';
 import {
   getOfficialRubricsForProcedure,
@@ -357,7 +359,10 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
                 {teethFormatted && (
                   <>
                     <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
-                    <span className="text-sky-600 dark:text-sky-400 font-bold">🦷 {teethFormatted}</span>
+                    <span className="text-sky-600 dark:text-sky-400 font-bold inline-flex items-center gap-1">
+                      <ToothIcon className="w-3.5 h-3.5 shrink-0" />
+                      <span>{teethFormatted}</span>
+                    </span>
                   </>
                 )}
                 <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
@@ -369,7 +374,7 @@ export const ProcedureDetailView: React.FC<ProcedureDetailViewProps> = ({
           {/* Right Header Controls: Status Tag, Moodle Toggle & 3-Dots Menu */}
           <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
             <span className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border ${statusStyle} inline-flex items-center gap-1.5`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor}`} />
+              {getStatusIcon(statusText, 'w-3.5 h-3.5 shrink-0')}
               <span>{statusText}</span>
             </span>
 

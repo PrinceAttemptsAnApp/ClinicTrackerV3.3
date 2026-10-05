@@ -23,8 +23,10 @@ import {
   CalendarCheck,
   Phone,
   PhoneCall,
-  Edit3
+  Edit3,
+  Building2
 } from 'lucide-react';
+import { ToothIcon } from '../lib/clinicalVisuals';
 import { 
   ClinicSession, 
   ClinicPlace, 
@@ -462,13 +464,13 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                 setFilter('clinic');
                 haptic.selection();
               }}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 ${
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
                 filter === 'clinic'
                   ? 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-300 shadow-2xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span>🏥</span>
+              <Building2 className="w-3.5 h-3.5 shrink-0" />
               <span>Clinics</span>
             </button>
             <button
@@ -477,13 +479,13 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                 setFilter('cases');
                 haptic.selection();
               }}
-              className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 ${
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
                 filter === 'cases'
                   ? 'bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-300 shadow-2xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <span>🦷</span>
+              <ToothIcon className="w-3.5 h-3.5 shrink-0" />
               <span>My Cases</span>
             </button>
           </div>
@@ -521,7 +523,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                 previewItems.push({
                   id: s.id,
                   type: 'clinic',
-                  label: `🏥 Clinic ${s.clinicPlace}`,
+                  label: `Clinic ${s.clinicPlace}`,
                   sub: s.discipline,
                 });
               }
@@ -532,7 +534,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                 previewItems.push({
                   id: pc.dentalCase.id + (pc.procedure?.id || ''),
                   type: 'case',
-                  label: `🦷 ${pc.dentalCase.patientName.split(' ')[0]}`,
+                  label: pc.dentalCase.patientName.split(' ')[0],
                   sub: toothStr ? `${cleanProcedureTitle(pc.procedure?.title || '')} · ${toothStr}` : pc.actionText,
                 });
               }
@@ -594,14 +596,19 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                   {visibleChips.map((chip, idx) => (
                     <div
                       key={chip.id + idx}
-                      className={`text-[10px] sm:text-[11px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate leading-tight transition ${
+                      className={`text-[10px] sm:text-[11px] font-semibold px-1 sm:px-1.5 py-0.5 rounded truncate leading-tight transition flex items-center gap-1 ${
                         chip.type === 'clinic'
                           ? 'bg-sky-100/80 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/60'
                           : 'bg-emerald-100/80 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60'
                       }`}
                       title={chip.sub ? `${chip.label} — ${chip.sub}` : chip.label}
                     >
-                      {chip.label}
+                      {chip.type === 'clinic' ? (
+                        <Building2 className="w-2.5 h-2.5 shrink-0 opacity-75" />
+                      ) : (
+                        <ToothIcon className="w-2.5 h-2.5 shrink-0 opacity-75" />
+                      )}
+                      <span className="truncate">{chip.label}</span>
                     </div>
                   ))}
 
@@ -659,7 +666,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <span>🏥</span>
+              <Building2 className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
               <span>University Clinic Duty</span>
             </h4>
             <span className="text-[11px] font-medium text-slate-400">
@@ -720,7 +727,7 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
         <div className="space-y-2 pt-2">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <span>🦷</span>
+              <ToothIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Your Clinical Work & Planned Patients</span>
             </h4>
             <span className="text-[11px] font-medium text-slate-400">
@@ -762,8 +769,9 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
                             {teethFormatted && (
                               <>
                                 <span className="text-slate-300 dark:text-slate-600">·</span>
-                                <span className="text-sky-600 dark:text-sky-400 font-bold">
-                                  🦷 {teethFormatted}
+                                <span className="text-sky-600 dark:text-sky-400 font-bold inline-flex items-center gap-1">
+                                  <ToothIcon className="w-3 h-3 shrink-0" />
+                                  <span>{teethFormatted}</span>
                                 </span>
                               </>
                             )}

@@ -15,7 +15,8 @@ import {
   Check, 
   CalendarDays, 
   Layers, 
-  Image as ImageIcon 
+  Image as ImageIcon,
+  X 
 } from 'lucide-react';
 import { DentalCase, ClinicPlace, ClinicalProcedure, ProcedureTemplate, ClinicSession } from '../types';
 import { RubricUploadModal } from './RubricUploadModal';
@@ -26,6 +27,13 @@ import { generateCaseMoodlePDF } from '../lib/pdfExport';
 import { ExportToast, ToastMessage } from './ExportToast';
 import { getProcedureMacroStepStatus, resolveToothInfo, formatTeethDisplay } from '../lib/macroSteps';
 import { resolvePlannedVisit } from '../lib/visitPlanner';
+import { 
+  getPatientInitials, 
+  getPatientAvatarTheme, 
+  getDisciplineIcon, 
+  getDisciplineTheme,
+  ToothIcon 
+} from '../lib/clinicalVisuals';
 import { ModalPortal } from './ModalPortal';
 import { haptic } from '../lib/haptics';
 
@@ -413,33 +421,33 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
       {/* 1. HEADER / TODAY CLINIC SCHEDULE STATUS */}
       <section 
         aria-label="Today Schedule Status" 
-        className="frosted-card rounded-2xl p-4 sm:p-5 border border-sky-100 shadow-xs"
+        className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs"
       >
         {currentSessionInfo.hasTodaySchedule && currentSessionInfo.active ? (
           /* STATE 1: A CLINIC IS SCHEDULED TODAY */
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                <span className="font-extrabold uppercase text-sky-700">Today</span>
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="font-extrabold uppercase text-sky-600 dark:text-sky-400">Today</span>
                 <span aria-hidden="true">·</span>
                 <span>{todayFormattedDate}</span>
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
-                <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-sky-600 text-white text-xs font-black">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-lg bg-sky-600 text-white text-xs font-black">
                     Clinic {currentSessionInfo.active.clinicPlace}
                   </span>
                   <span>{currentSessionInfo.active.discipline}</span>
                 </h2>
-                <span className="text-xs text-slate-600 font-semibold">
+                <span className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
                   · {currentSessionInfo.active.startTime} – {currentSessionInfo.active.endTime}
                 </span>
-                <span className="text-xs font-bold text-slate-600">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
                   · {displayedCases.length} {displayedCases.length === 1 ? 'case' : 'cases'}
                   {attentionItems.length > 0 && (
-                    <span className="text-amber-700"> ({attentionItems.length} need attention)</span>
+                    <span className="text-amber-600 dark:text-amber-400"> ({attentionItems.length} need attention)</span>
                   )}
                 </span>
               </div>
@@ -449,9 +457,9 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
               <button
                 type="button"
                 onClick={onNavigateToSchedule}
-                className="self-start sm:self-center px-3 py-1.5 rounded-xl text-xs font-bold text-sky-700 hover:text-sky-900 hover:bg-sky-50 border border-sky-200/80 flex items-center gap-1.5 transition cursor-pointer"
+                className="self-start sm:self-center min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/50 border border-sky-200 dark:border-sky-800 flex items-center gap-1.5 transition cursor-pointer"
               >
-                <CalendarDays className="w-3.5 h-3.5 text-sky-600" />
+                <CalendarDays className="w-3.5 h-3.5" />
                 <span>Open Schedule</span>
               </button>
             )}
@@ -460,24 +468,24 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
           /* STATE 2: NO CLINIC IS SCHEDULED TODAY */
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                <span className="font-extrabold uppercase text-slate-600">Today</span>
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="font-extrabold uppercase text-slate-600 dark:text-slate-400">Today</span>
                 <span aria-hidden="true">·</span>
                 <span>{todayFormattedDate}</span>
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h2 className="text-base sm:text-lg font-extrabold text-slate-800">
+                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                   No clinic scheduled today
                 </h2>
 
                 {currentSessionInfo.nextUpcoming ? (
-                  <span className="text-xs font-medium text-slate-600">
-                    <span className="text-slate-400 mr-1">· Next:</span>
-                    <strong className="text-sky-800 font-bold">{currentSessionInfo.nextUpcoming.dayOfWeek}</strong> · Clinic {currentSessionInfo.nextUpcoming.clinicPlace} ({currentSessionInfo.nextUpcoming.startTime}–{currentSessionInfo.nextUpcoming.endTime})
+                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <span className="text-slate-400 dark:text-slate-500 mr-1">· Next:</span>
+                    <strong className="text-sky-600 dark:text-sky-400 font-bold">{currentSessionInfo.nextUpcoming.dayOfWeek}</strong> · Clinic {currentSessionInfo.nextUpcoming.clinicPlace} ({currentSessionInfo.nextUpcoming.startTime}–{currentSessionInfo.nextUpcoming.endTime})
                   </span>
                 ) : (
-                  <span className="text-xs text-slate-500 font-medium">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                     · All active cases remain accessible below
                   </span>
                 )}
@@ -488,9 +496,9 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
               <button
                 type="button"
                 onClick={onNavigateToSchedule}
-                className="self-start sm:self-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-sky-700 hover:text-sky-900 hover:bg-sky-50 border border-sky-200/80 flex items-center gap-1.5 transition cursor-pointer"
+                className="self-start sm:self-center min-h-[40px] px-3.5 py-1.5 rounded-xl text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/50 border border-sky-200 dark:border-sky-800 flex items-center gap-1.5 transition cursor-pointer"
               >
-                <CalendarDays className="w-3.5 h-3.5 text-sky-600" />
+                <CalendarDays className="w-3.5 h-3.5" />
                 <span>Open Schedule</span>
               </button>
             )}
@@ -506,10 +514,10 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
           <div className="space-y-2.5 px-1">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                <h3 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
                   {currentSessionInfo.hasTodaySchedule ? "Today's Cases" : "My Active Cases"}
                 </h3>
-                <span className="text-xs font-semibold text-slate-500">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   ({displayedCases.length})
                 </span>
               </div>
@@ -518,7 +526,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                 <button
                   type="button"
                   onClick={onNavigateToCases}
-                  className="text-xs font-bold text-sky-700 hover:text-sky-900 flex items-center gap-0.5 cursor-pointer transition"
+                  className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-0.5 cursor-pointer transition"
                 >
                   <span>Full Case List</span>
                   <ChevronRight className="w-3.5 h-3.5" />
@@ -529,7 +537,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
             {/* Case Filter Row (Station Filter Pills clearly associated with Case List) */}
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div 
-                className="flex items-center gap-1 p-1 filter-well rounded-xl"
+                className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80"
                 role="tablist"
                 aria-label="Filter cases by clinic place"
               >
@@ -539,8 +547,10 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                     haptic.selection();
                     setSelectedClinicFilter('ALL');
                   }}
-                  className={`filter-pill px-2.5 h-7 rounded-lg text-xs font-bold ${
-                    selectedClinicFilter === 'ALL' ? 'filter-pill-selected active' : ''
+                  className={`min-h-[36px] px-3 rounded-lg text-xs font-bold cursor-pointer transition ${
+                    selectedClinicFilter === 'ALL' 
+                      ? 'bg-sky-600 text-white shadow-2xs' 
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="View cases across all clinics"
                 >
@@ -555,8 +565,10 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                       setSelectedClinicFilter(clinic);
                       onChangeClinicPlace(clinic);
                     }}
-                    className={`filter-pill w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center ${
-                      selectedClinicFilter === clinic ? 'filter-pill-selected active' : ''
+                    className={`min-h-[36px] w-9 rounded-lg text-xs font-bold flex items-center justify-center cursor-pointer transition ${
+                      selectedClinicFilter === clinic 
+                        ? 'bg-sky-600 text-white shadow-2xs' 
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                     title={`Filter by Clinic ${clinic}`}
                   >
@@ -568,7 +580,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
               <button
                 type="button"
                 onClick={onOpenAddCaseModal}
-                className="neu-btn-primary px-3 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1 cursor-pointer shadow-xs active:scale-95 transition"
+                className="min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-xs transition"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>+ Add Case</span>
@@ -582,9 +594,11 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
               {displayedCases.map((c) => {
                 const primaryProc = c.procedures[0];
                 const statusInfo = primaryProc ? getProcedureMacroStepStatus(primaryProc) : null;
-                const toothInfo = primaryProc?.toothNumber ? resolveToothInfo(primaryProc.toothNumber) : null;
                 const toothDisplay = primaryProc?.toothNumber ? formatTeethDisplay(primaryProc.toothNumber) : '';
                 const plannedVisit = resolvePlannedVisit(c, schedule);
+                const initials = getPatientInitials(c.patientName);
+                const avatarTheme = getPatientAvatarTheme(c.patientName);
+                const discTheme = primaryProc ? getDisciplineTheme(primaryProc.discipline) : null;
 
                 // Derive concise next action
                 let nextActionText = 'In progress';
@@ -615,107 +629,103 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                 return (
                   <div
                     key={c.id}
-                    className="frosted-card rounded-2xl p-4 border border-slate-200/80 shadow-2xs hover:border-sky-300 transition flex flex-col justify-between gap-3"
+                    className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:border-sky-400 dark:hover:border-sky-600 transition flex flex-col justify-between gap-3"
                   >
                     {/* Compact Card Header */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4
-                            onClick={() => onSelectCase(c.id)}
-                            className="text-sm font-black text-slate-800 hover:text-sky-600 transition cursor-pointer truncate"
-                          >
-                            {c.patientName}
-                          </h4>
-                          <span className="font-mono text-xs text-slate-500 font-medium">
-                            · Case #{c.fileNumber}
-                          </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        {/* Patient Initials Circle */}
+                        <div
+                          className={`w-10 h-10 rounded-2xl ${avatarTheme.bg} ${avatarTheme.text} border ${avatarTheme.border} font-black text-xs sm:text-sm flex items-center justify-center shrink-0 shadow-2xs tracking-tight select-none`}
+                        >
+                          {initials}
                         </div>
 
-                        {/* Discipline · Tooth notation · Clinic assignment */}
-                        <div className="flex items-center gap-1.5 text-xs text-slate-600 mt-1 flex-wrap">
-                          <span className="font-bold text-sky-800">
-                            {primaryProc ? primaryProc.discipline : 'General'}
-                          </span>
-                          {toothDisplay && (
-                            <>
-                              <span aria-hidden="true" className="text-slate-400">·</span>
-                              <span className="font-semibold text-slate-700">
-                                Tooth {toothDisplay}
-                              </span>
-                            </>
-                          )}
-                          <span aria-hidden="true" className="text-slate-400">·</span>
-                          <span className="text-slate-500 font-medium">
-                            Clinic {c.clinicPlace}
-                          </span>
-                          {c.isComprehensive && (
-                            <>
-                              <span aria-hidden="true" className="text-slate-400">·</span>
-                              <span className="text-purple-700 font-bold text-[11px] inline-flex items-center gap-0.5">
-                                <Sparkles className="w-3 h-3" /> Comprehensive
-                              </span>
-                            </>
-                          )}
-                          {plannedVisit.isPlanned && (
-                            <>
-                              <span aria-hidden="true" className="text-slate-400">·</span>
-                              <span 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPlanVisitTargetCase(c);
-                                }}
-                                className="text-sky-800 font-bold text-[11px] inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-sky-100 hover:bg-sky-200 transition cursor-pointer"
-                                title="Tap to view or change planned visit"
-                              >
-                                <CalendarDays className="w-3 h-3 text-sky-600" />
-                                <span>{plannedVisit.dayName || plannedVisit.formattedDate} · Clinic {plannedVisit.clinicPlace}{plannedVisit.time ? ` (${plannedVisit.time})` : ''}</span>
-                              </span>
-                            </>
-                          )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4
+                              onClick={() => onSelectCase(c.id)}
+                              className="text-base font-black text-slate-900 dark:text-white hover:text-sky-600 dark:hover:text-sky-400 transition cursor-pointer truncate"
+                            >
+                              {c.patientName}
+                            </h4>
+                          </div>
+
+                          {/* Discipline · Tooth notation · Clinic assignment */}
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
+                            <span className="font-mono">#{c.fileNumber}</span>
+                            <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">
+                              Clinic {c.clinicPlace}
+                            </span>
+                            {primaryProc && (
+                              <>
+                                <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                                <span className="font-bold text-sky-600 dark:text-sky-400 inline-flex items-center gap-1">
+                                  {getDisciplineIcon(primaryProc.discipline, 'w-3.5 h-3.5')}
+                                  <span>{primaryProc.discipline}</span>
+                                </span>
+                              </>
+                            )}
+                            {toothDisplay && (
+                              <>
+                                <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                                <span className="inline-flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
+                                  <ToothIcon className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
+                                  <span>Tooth {toothDisplay}</span>
+                                </span>
+                              </>
+                            )}
+                            {c.isComprehensive && (
+                              <>
+                                <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                                <span className="text-purple-600 dark:text-purple-400 font-bold inline-flex items-center gap-0.5">
+                                  <Sparkles className="w-3 h-3" /> Comprehensive
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
 
                       {/* Status indicator & phone call */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 shrink-0">
                         {c.patientPhone && (
                           <a
                             href={`tel:${c.patientPhone.replace(/\s+/g, '')}`}
-                            className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 border border-emerald-200/80 cursor-pointer"
+                            className="p-1.5 rounded-xl text-slate-500 hover:text-sky-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                             title={`Call patient (${c.patientPhone})`}
                           >
                             <PhoneCall className="w-3.5 h-3.5" />
                           </a>
                         )}
                         <span
-                          className={`text-xs font-bold ${
+                          className={`text-[11px] font-bold px-2.5 py-1 rounded-xl border ${
                             c.status === 'Completed' || c.status === 'Finished'
-                              ? 'text-emerald-700'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                               : c.status === 'Ready for Moodle'
-                              ? 'text-purple-700'
-                              : 'text-sky-700'
+                              ? 'bg-purple-50 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                              : 'bg-sky-50 dark:bg-sky-950/70 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800'
                           }`}
                         >
-                          ● {c.status}
+                          {c.status}
                         </span>
                       </div>
                     </div>
 
                     {/* Next Action Box */}
-                    <div className="p-2.5 rounded-xl bg-sky-50/70 border border-sky-200/70 flex items-center justify-between gap-2">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between gap-2 text-xs">
                       <div className="flex items-start gap-2 min-w-0">
                         {nextActionType === 'rubric' ? (
-                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                         ) : nextActionType === 'moodle' ? (
-                          <FileText className="w-3.5 h-3.5 text-purple-600 flex-shrink-0 mt-0.5" />
+                          <FileText className="w-3.5 h-3.5 text-purple-500 shrink-0 mt-0.5" />
                         ) : (
-                          <ArrowRight className="w-3.5 h-3.5 text-sky-600 flex-shrink-0 mt-0.5" />
+                          <ArrowRight className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" />
                         )}
-                        <div className="text-xs">
-                          <span className="font-semibold text-slate-500 mr-1.5">
-                            Next:
-                          </span>
-                          <span className="font-bold text-slate-800">
+                        <div className="min-w-0">
+                          <span className="font-semibold text-slate-400 mr-1.5">Next:</span>
+                          <span className="font-bold text-slate-900 dark:text-white truncate">
                             {nextActionText}
                           </span>
                         </div>
@@ -726,7 +736,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleToggleStep(c, primaryProc.id, statusInfo.nextStep!.id)}
-                          className="px-2 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold text-[11px] shadow-2xs transition cursor-pointer flex-shrink-0 flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold text-xs shadow-2xs transition cursor-pointer shrink-0 flex items-center gap-1"
                           title="Complete next step"
                         >
                           <Check className="w-3 h-3 stroke-[3]" />
@@ -736,7 +746,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                     </div>
 
                     {/* Card Footer: Quick Actions + Open Case */}
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {primaryProc && (
                           <>
@@ -749,10 +759,10 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                                   procedure: primaryProc,
                                 })
                               }
-                              className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-sky-700 hover:bg-slate-100 cursor-pointer flex items-center gap-1"
+                              className="min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1 transition"
                               title="Scan Rubric Signature"
                             >
-                              <Camera className="w-3.5 h-3.5 text-sky-600" />
+                              <Camera className="w-3.5 h-3.5 text-purple-500" />
                               <span>Rubric</span>
                             </button>
 
@@ -765,10 +775,10 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                                   procedure: primaryProc,
                                 })
                               }
-                              className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-emerald-700 hover:bg-slate-100 cursor-pointer flex items-center gap-1"
+                              className="min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1 transition"
                               title="Attach Clinical Photo / X-Ray"
                             >
-                              <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+                              <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />
                               <span>Photo</span>
                             </button>
                           </>
@@ -777,10 +787,10 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                         <button
                           type="button"
                           onClick={() => setPlanVisitTargetCase(c)}
-                          className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-sky-700 hover:bg-slate-100 cursor-pointer flex items-center gap-1"
+                          className="min-h-[36px] px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1 transition"
                           title="Plan next clinical session from extracted schedule"
                         >
-                          <CalendarDays className="w-3.5 h-3.5 text-sky-600" />
+                          <CalendarDays className="w-3.5 h-3.5 text-sky-500" />
                           <span>{plannedVisit.isPlanned ? 'Visit' : '+ Visit'}</span>
                         </button>
                       </div>
@@ -788,10 +798,10 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onSelectCase(c.id)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-sky-100 text-sky-800 font-extrabold text-xs flex items-center gap-1 transition cursor-pointer active:scale-95"
+                        className="min-h-[36px] px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-sky-950/60 text-slate-800 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-400 font-bold text-xs flex items-center gap-1 transition cursor-pointer active:scale-95"
                       >
                         <span>Open Case</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-sky-600" />
+                        <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -799,24 +809,26 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
               })}
             </div>
           ) : (
-            <div className="frosted-card rounded-2xl p-6 text-center space-y-3 border border-slate-200">
-              <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 mx-auto flex items-center justify-center font-bold">
-                <User className="w-5 h-5" />
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 text-center space-y-3 border border-dashed border-slate-200 dark:border-slate-800">
+              <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 mx-auto flex items-center justify-center font-bold">
+                <User className="w-6 h-6 stroke-[1.8]" />
               </div>
-              <h4 className="text-sm font-bold text-slate-800">
-                {selectedClinicFilter === 'ALL'
-                  ? 'No active cases in progress'
-                  : `No active cases in Clinic ${selectedClinicFilter}`}
-              </h4>
-              <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                Your chairside cases appear here. Tap below to create a new patient record.
-              </p>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                  {selectedClinicFilter === 'ALL'
+                    ? 'No active cases in progress'
+                    : `No active cases in Clinic ${selectedClinicFilter}`}
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto mt-0.5">
+                  Your chairside cases appear here. Tap below to create a new patient record.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={onOpenAddCaseModal}
-                className="neu-btn-primary px-3.5 py-2 rounded-xl text-xs font-bold text-white cursor-pointer inline-flex items-center gap-1.5 shadow-xs"
+                className="min-h-[42px] px-4 py-2 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 cursor-pointer inline-flex items-center gap-1.5 shadow-xs transition"
               >
-                <Plus className="w-3.5 h-3.5" /> + New Patient Case
+                <Plus className="w-4 h-4" /> <span>+ New Patient Case</span>
               </button>
             </div>
           )}
@@ -824,16 +836,16 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
 
         {/* RIGHT COLUMN: Cockpit Side Panels (5 cols on desktop) */}
         <div className="lg:col-span-5 space-y-4">
-          {/* 3. NEEDS ATTENTION / NEXT ACTIONS (Only shown if items exist or compact catch-up indicator) */}
-          <section aria-label="Needs Attention" className="frosted-card rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2.5">
-            <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100">
+          {/* 3. NEEDS ATTENTION / NEXT ACTIONS */}
+          <section aria-label="Needs Attention" className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+            <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
-                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
                   Needs Attention
                 </h4>
               </div>
-              <span className="text-xs font-bold text-amber-700">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                 {attentionItems.length}
               </span>
             </div>
@@ -854,37 +866,37 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                         onSelectCase(item.caseId);
                       }
                     }}
-                    className="p-2.5 rounded-xl bg-white/90 dark:bg-[#1e293b] border border-slate-200/80 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 transition cursor-pointer flex items-center justify-between gap-2 shadow-2xs active:scale-[0.99]"
+                    className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 hover:border-sky-400 dark:hover:border-sky-600 transition cursor-pointer flex items-center justify-between gap-2 active:scale-[0.99]"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] truncate">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                         {item.title}
                       </p>
-                      <p className="text-[11px] text-slate-500 dark:text-[#cbd5e1] truncate mt-0.5">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                         {item.description}
                       </p>
                     </div>
 
-                    <span className="text-[10px] font-bold text-slate-600 dark:text-[#cbd5e1] flex-shrink-0">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 shrink-0 font-mono">
                       {item.badge}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 text-center space-y-1">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 mx-auto" />
-                <p className="text-xs font-bold text-emerald-900">All caught up</p>
-                <p className="text-[11px] text-slate-500">
-                  No outstanding clinical tasks requiring immediate action.
+              <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/50 text-center space-y-1">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mx-auto" />
+                <p className="text-xs font-bold text-emerald-900 dark:text-emerald-200">All caught up</p>
+                <p className="text-[11px] text-emerald-700 dark:text-emerald-300">
+                  No outstanding clinical tasks requiring immediate attention.
                 </p>
               </div>
             )}
           </section>
 
           {/* 4. QUICK ACTIONS GRID */}
-          <section aria-label="Quick Actions" className="frosted-card rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2.5">
-            <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider pb-1 border-b border-slate-100">
+          <section aria-label="Quick Actions" className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+            <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider pb-1 border-b border-slate-100 dark:border-slate-800">
               Quick Actions
             </h4>
 
@@ -892,60 +904,60 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
               <button
                 type="button"
                 onClick={onOpenAddCaseModal}
-                className="p-3 rounded-xl bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50/40 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 hover:border-sky-400 dark:hover:border-sky-600 hover:bg-sky-50/50 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[64px]"
               >
                 <div className="flex items-center justify-between text-sky-600 dark:text-sky-400">
                   <User className="w-4 h-4" />
                   <Plus className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] mt-1">+ New Case</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white mt-1">+ New Case</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleTriggerQuickAction('procedure')}
-                className="p-3 rounded-xl bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50/40 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-400 dark:hover:border-purple-600 hover:bg-purple-50/50 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[64px]"
               >
                 <div className="flex items-center justify-between text-purple-600 dark:text-purple-400">
                   <Layers className="w-4 h-4" />
                   <Plus className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] mt-1">+ Procedure</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white mt-1">+ Procedure</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleTriggerQuickAction('rubric')}
-                className="p-3 rounded-xl bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50/40 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-400 dark:hover:border-amber-600 hover:bg-amber-50/50 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[64px]"
               >
                 <div className="flex items-center justify-between text-amber-600 dark:text-amber-400">
                   <Camera className="w-4 h-4" />
                   <FileCheck2 className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] mt-1">Scan Rubric</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white mt-1">Scan Rubric</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleTriggerQuickAction('evidence')}
-                className="p-3 rounded-xl bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700/80 hover:border-sky-300 dark:hover:border-sky-500 hover:bg-sky-50/40 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[58px]"
+                className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-400 dark:hover:border-emerald-600 hover:bg-emerald-50/50 dark:hover:bg-slate-800 text-left transition cursor-pointer active:scale-95 flex flex-col justify-between min-h-[64px]"
               >
                 <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
                   <ImageIcon className="w-4 h-4" />
                   <Plus className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-xs font-bold text-slate-800 dark:text-[#f8fafc] mt-1">Add Photo</span>
+                <span className="text-xs font-bold text-slate-900 dark:text-white mt-1">Add Photo</span>
               </button>
             </div>
           </section>
 
-          {/* 5. TODAY'S SESSIONS (Only rendered if there are active sessions today, avoiding duplicate "no clinic" message) */}
+          {/* 5. TODAY'S SESSIONS */}
           {todaySessions.length > 1 && (
-            <section aria-label="Today Timeline" className="frosted-card rounded-2xl p-4 border border-slate-200/80 shadow-2xs space-y-2.5">
-              <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100">
+            <section aria-label="Today Timeline" className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-1.5">
                   <CalendarDays className="w-4 h-4 text-sky-600" />
-                  <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
                     Today&apos;s Sessions
                   </h4>
                 </div>
@@ -953,7 +965,7 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                   <button
                     type="button"
                     onClick={onNavigateToSchedule}
-                    className="text-xs font-bold text-sky-700 hover:text-sky-900 flex items-center gap-0.5 cursor-pointer"
+                    className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-0.5 cursor-pointer"
                   >
                     <span>Full Schedule</span>
                     <ArrowRight className="w-3 h-3" />
@@ -961,22 +973,22 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
                 )}
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {todaySessions.map((session, sIdx) => (
                   <div
                     key={session.id || sIdx}
-                    className="p-2 rounded-xl surface-muted border text-xs flex items-center justify-between gap-2"
+                    className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 text-xs flex items-center justify-between gap-2"
                   >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-bold text-sky-800 dark:text-sky-400">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-bold text-sky-600 dark:text-sky-400">
                         Clinic {session.clinicPlace}
                       </span>
-                      <span aria-hidden="true" className="text-slate-400 dark:text-slate-500">·</span>
-                      <span className="font-semibold text-slate-800 dark:text-[#f8fafc] truncate">
+                      <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                      <span className="font-bold text-slate-900 dark:text-white truncate">
                         {session.discipline}
                       </span>
                     </div>
-                    <span className="text-slate-600 dark:text-[#cbd5e1] font-medium text-[11px] flex-shrink-0">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px] shrink-0 font-mono">
                       {session.startTime} – {session.endTime}
                     </span>
                   </div>
@@ -990,52 +1002,62 @@ export const TodayClinicView: React.FC<TodayClinicViewProps> = ({
       {/* Target Case Selector Modal for Quick Actions */}
       {targetCaseModal.isOpen && (
         <ModalPortal isOpen={true}>
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-            <div className="frosted-card w-full max-w-sm rounded-2xl p-5 relative shadow-2xl space-y-3">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-2xl p-5 relative shadow-2xl space-y-3 animate-modal-pop text-slate-900 dark:text-slate-100">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-slate-800">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                   Select Patient Case
                 </h4>
                 <button
                   type="button"
                   onClick={() => setTargetCaseModal({ isOpen: false, type: 'procedure' })}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                 >
-                  <ChevronRight className="w-4 h-4 rotate-90" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Choose the patient to {targetCaseModal.type === 'procedure' ? 'add a procedure' : targetCaseModal.type === 'rubric' ? 'scan a rubric' : 'attach a photo'}:
               </p>
 
-              <div className="space-y-1.5 max-h-60 overflow-y-auto">
-                {basePool.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
-                      const primaryProc = c.procedures[0] || null;
-                      const type = targetCaseModal.type;
-                      setTargetCaseModal({ isOpen: false, type: 'procedure' });
-                      if (type === 'procedure') {
-                        setAddProcModalData({ isOpen: true, caseId: c.id });
-                      } else if (type === 'rubric' && primaryProc) {
-                        setRubricModalData({ isOpen: true, caseId: c.id, procedure: primaryProc });
-                      } else if (type === 'evidence' && primaryProc) {
-                        setEvidenceModalData({ isOpen: true, caseId: c.id, procedure: primaryProc });
-                      } else {
-                        onSelectCase(c.id);
-                      }
-                    }}
-                    className="surface-muted w-full p-2.5 rounded-xl border text-left transition cursor-pointer flex items-center justify-between hover:border-sky-300 dark:hover:border-sky-500"
-                  >
-                    <div>
-                      <p className="text-xs font-bold text-slate-800 dark:text-[#f8fafc]">{c.patientName}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-[#cbd5e1]">#{c.fileNumber} · Clinic {c.clinicPlace}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-400" />
-                  </button>
-                ))}
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {basePool.map((c) => {
+                  const initials = getPatientInitials(c.patientName);
+                  const avatarTheme = getPatientAvatarTheme(c.patientName);
+
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        const primaryProc = c.procedures[0] || null;
+                        const type = targetCaseModal.type;
+                        setTargetCaseModal({ isOpen: false, type: 'procedure' });
+                        if (type === 'procedure') {
+                          setAddProcModalData({ isOpen: true, caseId: c.id });
+                        } else if (type === 'rubric' && primaryProc) {
+                          setRubricModalData({ isOpen: true, caseId: c.id, procedure: primaryProc });
+                        } else if (type === 'evidence' && primaryProc) {
+                          setEvidenceModalData({ isOpen: true, caseId: c.id, procedure: primaryProc });
+                        } else {
+                          onSelectCase(c.id);
+                        }
+                      }}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-left transition cursor-pointer flex items-center justify-between hover:border-sky-400 dark:hover:border-sky-600 active:scale-[0.99]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg ${avatarTheme.bg} ${avatarTheme.text} border ${avatarTheme.border} font-bold text-xs flex items-center justify-center shrink-0`}>
+                          {initials}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{c.patientName}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">#{c.fileNumber} · Clinic {c.clinicPlace}</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

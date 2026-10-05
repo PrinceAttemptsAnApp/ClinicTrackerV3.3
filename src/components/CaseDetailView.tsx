@@ -46,7 +46,9 @@ import {
   getPatientInitials, 
   getPatientAvatarTheme, 
   getDisciplineIcon, 
-  getDisciplineTheme 
+  getDisciplineTheme,
+  ToothIcon,
+  getStatusIcon
 } from '../lib/clinicalVisuals';
 import { resolvePlannedVisit } from '../lib/visitPlanner';
 import { haptic } from '../lib/haptics';
@@ -415,7 +417,7 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
           {/* Right Header Controls: Status Badge, Add Procedure & Overflow Menu */}
           <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
             <span className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border ${statusStyle} inline-flex items-center gap-1.5`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor}`} />
+              {getStatusIcon(statusText, 'w-3.5 h-3.5 shrink-0')}
               <span>{statusText}</span>
             </span>
 
@@ -648,7 +650,10 @@ export const CaseDetailView: React.FC<CaseDetailViewProps> = ({
                         {teethDisplay && (
                           <>
                             <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
-                            <span className="text-sky-600 dark:text-sky-400 font-bold">🦷 {teethDisplay}</span>
+                            <span className="text-sky-600 dark:text-sky-400 font-bold inline-flex items-center gap-1">
+                              <ToothIcon className="w-3.5 h-3.5 shrink-0" />
+                              <span>{teethDisplay}</span>
+                            </span>
                           </>
                         )}
                         <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>

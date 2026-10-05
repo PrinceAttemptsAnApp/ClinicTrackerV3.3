@@ -13,7 +13,7 @@ export interface UpcomingFeatureEntry {
   note: string;
 }
 
-export const APP_VERSION = '4.4.0';
+export const APP_VERSION = '4.5.0';
 
 export const UPCOMING_FEATURES: UpcomingFeatureEntry[] = [
   {
@@ -28,12 +28,25 @@ export const UPCOMING_FEATURES: UpcomingFeatureEntry[] = [
 
 export const PATCH_NOTES: PatchNoteEntry[] = [
   {
+    version: '4.5.0',
+    date: '2026-10-05',
+    title: 'Cleaner Case Details & Personal Monthly Calendar',
+    changes: [
+      'Clean Patient & Case Screens: Simplified the Patient and Procedure details pages so you can see your cases, teeth, and progress without scrolling through repeated badges or cluttered text.',
+      'Single Completion Summary: When a procedure is finished, you get one clear summary card at the top instead of seeing "Completed!" repeated five times on the screen.',
+      'Patient Initials Avatars: Added colorful patient initials circles so you can spot who you are treating instantly on your phone.',
+      'Monthly Clinical Calendar: Replaced the plain schedule list with an interactive monthly calendar that combines your university clinic shifts, planned patient visits, and procedure steps.',
+      'Glove-Friendly Popups: Made "Plan Next Visit", "Add Case", and "Add Procedure" popups easier to tap quickly while wearing clinic gloves.',
+      'Sleeker Dark Mode: Cleaned up card borders, contrast, and background colors across all screens to reduce eye strain.'
+    ]
+  },
+  {
     version: '4.4.0',
     date: '2026-09-25',
     title: 'Comprehensive Clinic & Dark Mode Retinal Relief',
     changes: [
       'Comprehensive Clinic Discipline: Added "Comprehensive Clinic" to schedule options for those sessions where a patient needs literally everything done at once.',
-      'Dark Mode Retinal Relief: Fixed harsh light-grey containers in Dark Mode. No more blinding white cards burning your eyes during late-night requirement panics.',
+      'Dark Mode Retinal Relief: Fixed harsh light-grey containers in Dark Mode to ensure comfortable contrast and zero glare.',
       'Crystal-Clear Text Hierarchy: High-contrast text colors across all dark cards so you can actually read your case notes without squinting.',
       'UI Glitch Sweeping: Replaced random grey boxes with clean, high-contrast theme styling across filters, badges, and tooth diagrams.',
       'Light Mode Safe: All dark mode mercy fixes were done without destroying the clean, bright Light Mode look.'

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Stethoscope, 
-  Briefcase, 
+  FolderHeart, 
   FileText, 
-  Calendar, 
+  CalendarDays, 
   Settings, 
   Plus, 
   Sparkles,
@@ -566,9 +566,9 @@ export default function App() {
   const NAV_ITEMS = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'today', label: "Today's Clinic", icon: Stethoscope },
-    { id: 'cases', label: 'Cases', icon: Briefcase },
+    { id: 'cases', label: 'Cases', icon: FolderHeart },
     { id: 'documents', label: 'Documents', icon: FileText },
-    { id: 'schedule', label: 'Schedule', icon: Calendar },
+    { id: 'schedule', label: 'Schedule', icon: CalendarDays },
     { id: 'settings', label: 'Settings', icon: Settings },
   ] as const;
 
