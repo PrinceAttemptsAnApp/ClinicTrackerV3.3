@@ -34,6 +34,7 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 import { SchedulePdfUploader } from './SchedulePdfUploader';
 import { APP_VERSION, PATCH_NOTES, UPCOMING_FEATURES } from '../lib/patchNotes';
 import { ModalPortal } from './ModalPortal';
+import { GoogleCalendarSettingsCard } from './GoogleCalendarSettingsCard';
 import { ThemeMode, getSavedTheme, applyTheme } from '../lib/theme';
 import { haptic } from '../lib/haptics';
 import { Sun, Moon, Monitor } from 'lucide-react';
@@ -730,6 +731,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
         );
       })()}
+
+      {/* Google Calendar Synchronization (V1 Integration) */}
+      <GoogleCalendarSettingsCard cases={cases} schedule={schedule} />
 
       {/* Offline Architecture & PWA Installation Card */}
       <div className="frosted-card rounded-2xl p-5 sm:p-6">

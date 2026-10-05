@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, Check, CalendarClock, ChevronDown, ChevronUp, History } from 'lucide-react';
-import { PATCH_NOTES, APP_VERSION, UPCOMING_FEATURES } from '../lib/patchNotes';
+import { Sparkles, Check, CalendarClock, ChevronDown, ChevronUp, History, AlertTriangle } from 'lucide-react';
+import { PATCH_NOTES, APP_VERSION, UPCOMING_FEATURES, KNOWN_LIMITATIONS } from '../lib/patchNotes';
 import { haptic } from '../lib/haptics';
 import { ModalPortal } from './ModalPortal';
 
@@ -11,6 +11,7 @@ interface WhatsNewModalProps {
 
 export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose }) => {
   const [showHistory, setShowHistory] = useState(false);
+  const [showLimitations, setShowLimitations] = useState(false);
 
   if (!isOpen) return null;
 
@@ -102,6 +103,48 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ isOpen, onClose })
                             <li key={i} className="leading-relaxed">{ch}</li>
                           ))}
                         </ul>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Known Limitations & Things to Expect Toggle */}
+            {KNOWN_LIMITATIONS && KNOWN_LIMITATIONS.length > 0 && (
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic.light();
+                    setShowLimitations(!showLimitations);
+                  }}
+                  className="surface-muted w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold hover:brightness-95 dark:hover:brightness-110 transition-colors cursor-pointer"
+                >
+                  <span className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span>⚠️ Known Limitations &amp; Things to Expect ({KNOWN_LIMITATIONS.length})</span>
+                  </span>
+                  {showLimitations ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                </button>
+
+                {showLimitations && (
+                  <div className="space-y-2.5 pt-1 animate-in fade-in duration-150">
+                    {KNOWN_LIMITATIONS.map((item, idx) => (
+                      <div key={idx} className="p-3.5 rounded-xl border border-amber-200/60 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 text-xs space-y-1.5">
+                        <h4 className="font-bold text-slate-900 dark:text-amber-200 text-xs flex items-center gap-1.5">
+                          <span>{item.title}</span>
+                        </h4>
+                        <p className="text-slate-700 dark:text-slate-300 text-[11px] leading-relaxed font-medium">
+                          {item.description}
+                        </p>
+                        {item.points && item.points.length > 0 && (
+                          <ul className="list-disc pl-4 space-y-0.5 text-slate-600 dark:text-slate-300 text-[11px]">
+                            {item.points.map((pt, pIdx) => (
+                              <li key={pIdx} className="leading-relaxed">{pt}</li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     ))}
                   </div>

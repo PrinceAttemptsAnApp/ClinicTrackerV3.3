@@ -13,7 +13,62 @@ export interface UpcomingFeatureEntry {
   note: string;
 }
 
+export interface KnownLimitationEntry {
+  title: string;
+  description: string;
+  points?: string[];
+}
+
 export const APP_VERSION = '4.5.0';
+
+export const KNOWN_LIMITATIONS: KnownLimitationEntry[] = [
+  {
+    title: '📅 Google Calendar Sync May Require Reconnection',
+    description:
+      'Google Calendar synchronization is optional and works as a one-way DentaTrack → Google Calendar integration. Because the Google access token is kept only in temporary browser memory for security, you may need to reconnect your Google account after completely closing or reloading the app before queued calendar changes can be synchronized. Your local DentaTrack cases, procedures, and plans remain safe on your device and are never affected by disconnecting or reconnecting. When offline, planned calendar updates wait until connectivity is restored and synchronization is available again.'
+  },
+  {
+    title: '📄 iOS Schedule PDF Import May Fail for Some University PDFs',
+    description:
+      'The schedule importer works with many PDF files, but some complex university-generated PDFs with specialized fonts, object streams, or unusual text layouts may not be readable on iPhone/iPad.',
+    points: [
+      'Existing schedule and clinical data are never deleted.',
+      'The original PDF file is not modified.',
+      'Manual schedule entry can always be used as a reliable fallback.',
+      'The issue is strictly limited to extracting text from the affected PDF.'
+    ]
+  },
+  {
+    title: '🔄 Updates May Take a Moment to Appear on iPhone/iPad',
+    description:
+      'Because DentaTrack is a Progressive Web App, iOS WebKit may temporarily display an older cached version after an update. If a new feature does not appear immediately, completely closing and reopening DentaTrack may be necessary. In some cases, the installed Home Screen icon needs additional time to receive updated files. Your locally stored clinical data remains completely independent of normal application updates.'
+  },
+  {
+    title: '📶 Some Features Require Internet Access',
+    description:
+      'DentaTrack’s clinical records, case management, procedure tracking, documents, and scheduling are designed to work 100% offline. However, features communicating with external services require an internet connection, including Google Calendar synchronization and cloud-based analytics. Loss of internet connectivity never prevents you from continuing to record clinical work locally.'
+  },
+  {
+    title: '🗓️ Calendar Planning Depends on the Imported Schedule',
+    description:
+      'The Plan Next Visit system uses DentaTrack’s extracted university clinic schedule as the source for recommended clinic sessions. If the schedule is missing, outdated, or entered incorrectly, recommended visit dates may also be inaccurate. The planning system does not replace your university’s official timetable.'
+  },
+  {
+    title: '📱 iOS and Browser Behavior Can Differ',
+    description:
+      'DentaTrack is designed for modern desktop and mobile browsers, but browser restrictions can affect certain features differently. iOS Safari/WebKit has stricter limitations around PDF processing, background workers, file handling, and PWA caching. These platform limitations can occasionally cause a feature to behave differently on iPhone/iPad compared with desktop Chrome.'
+  },
+  {
+    title: '💾 Clinical Data Is Stored Locally',
+    description:
+      'DentaTrack’s clinical records are stored locally on your device rather than in a central cloud patient database. This provides privacy and offline functionality, but it also means device storage is important. Clearing browser site data, deleting installed PWA data, or switching browsers will not automatically transfer existing clinical records. Please do not clear DentaTrack’s stored website data unless intended.'
+  },
+  {
+    title: '🧪 DentaTrack Is Still Under Active Development',
+    description:
+      'Some features receive visual, technical, or workflow improvements as real-world clinical use reveals edge cases. When an issue occurs, preserving your existing clinical records and avoiding destructive changes to stored data is always our top priority. Known limitations are documented here as they are discovered and addressed.'
+  }
+];
 
 export const UPCOMING_FEATURES: UpcomingFeatureEntry[] = [
   {

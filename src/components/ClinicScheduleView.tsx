@@ -24,9 +24,11 @@ import {
   Phone,
   PhoneCall,
   Edit3,
-  Building2
+  Building2,
+  RefreshCw
 } from 'lucide-react';
 import { ToothIcon } from '../lib/clinicalVisuals';
+import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { 
   ClinicSession, 
   ClinicPlace, 
@@ -106,6 +108,36 @@ export const ClinicScheduleView: React.FC<ClinicScheduleViewProps> = ({
   const [planVisitTargetCase, setPlanVisitTargetCase] = useState<DentalCase | null>(null);
   const [planTargetProcedure, setPlanTargetProcedure] = useState<ClinicalProcedure | null>(null);
   const [isCasePickerOpen, setIsCasePickerOpen] = useState(false);
+
+  // Google Calendar Integration
+  const {
+    isConnected: isGCalConnected,
+    syncCase: syncGCalCase,
+    checkCaseEventStatus: checkGCalEventStatus,
+  } = useGoogleCalendar();
+  const [syncingCaseId, setSyncingCaseId] = useState<string | null>(null);
+  const [gcalToast, setGcalToast] = useState<string | null>(null);
+
+  const handleSyncCase = async (c: DentalCase) => {
+    haptic.selection();
+    setSyncingCaseId(c.id);
+    try {
+      const res = await syncGCalCase(c, schedule);
+      if (res.success) {
+        haptic.success();
+        setGcalToast(`✓ Synced ${c.patientName}'s visit to Google Calendar.`);
+      } else {
+        haptic.warning();
+        setGcalToast(res.error || 'Failed to sync with Google Calendar.');
+      }
+    } catch (err: any) {
+      haptic.warning();
+      setGcalToast(err.message || 'Sync failed.');
+    } finally {
+      setSyncingCaseId(null);
+      setTimeout(() => setGcalToast(null), 4000);
+    }
+  };
 
   // Month navigation handlers
   const handlePrevMonth = () => {
